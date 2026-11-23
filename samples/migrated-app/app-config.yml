@@ -1,0 +1,9 @@
+# Hardened application configuration
+app:
+  name: "Modern Hardened Demo Service"
+  security:
+    # SECURE: Modern authenticated cipher
+    cipher: "AES-256-GCM"
+    hashAlgorithm: "SHA-256"
+    # SECURE: Vault reference rather than hardcoded secret
+    admin_password: "${ENV_APP_ADMIN_PASSWORD}"

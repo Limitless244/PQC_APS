@@ -1,0 +1,36 @@
+# ============================================================
+#  suites.yaml  —  Algorithm Suite Configuration
+#  PQC-APS :: crypto-agility module
+# ============================================================
+#
+# This file is the SINGLE SOURCE OF TRUTH for all algorithm identifiers.
+# Never hardcode algorithm names in Java classes; always read from SuiteConfig.
+#
+# Phase 3 will wire YAML loading into SuiteConfig.forSuite().
+# ============================================================
+
+suites:
+
+  CLASSICAL:
+    kemAlgorithm:         XDH               # X25519 via JDK XDH provider
+    classicalKemAlgorithm: XDH
+    signatureAlgorithm:   SHA256withECDSA   # ECDSA P-256 (baseline, vulnerable)
+    symmetricAlgorithm:   AES/GCM/NoPadding
+    symmetricKeyBits:     256
+    kdfAlgorithm:         HkdfSHA256
+
+  HYBRID:
+    kemAlgorithm:         ML-KEM-768        # FIPS 203 / Kyber-768 (Bouncy Castle)
+    classicalKemAlgorithm: XDH              # X25519 combined with PQ KEM
+    signatureAlgorithm:   ML-DSA-65         # FIPS 204 / Dilithium-3 (Bouncy Castle)
+    symmetricAlgorithm:   AES/GCM/NoPadding
+    symmetricKeyBits:     256
+    kdfAlgorithm:         HkdfSHA256
+
+  PQ_ONLY:
+    kemAlgorithm:         ML-KEM-768
+    classicalKemAlgorithm: ~                # null — no classical component
+    signatureAlgorithm:   ML-DSA-65
+    symmetricAlgorithm:   AES/GCM/NoPadding
+    symmetricKeyBits:     256
+    kdfAlgorithm:         HkdfSHA256

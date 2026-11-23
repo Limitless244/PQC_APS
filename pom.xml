@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- ====================================================================
+       Parent POM — Post-Quantum Cryptography Attack Prevention System
+       All shared dependency versions are declared here so child modules
+       only need to reference groupId + artifactId.
+       ==================================================================== -->
+
+  <groupId>com.pqcaps</groupId>
+  <artifactId>pqc-aps</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>PQC-APS :: Parent</name>
+  <description>
+    Post-Quantum Cryptography Migration and Crypto Attack Prevention System.
+    Capstone project demonstrating hybrid classical/PQ key exchange, ML-KEM-768,
+    ML-DSA-65, attack detection/prevention, and a live performance dashboard.
+  </description>
+
+  <!-- ── Child modules ─────────────────────────────────────────────────── -->
+  <modules>
+    <module>common</module>
+    <module>classical</module>
+    <module>crypto-agility</module>
+    <module>crypto-scanner</module>
+    <module>hybrid-kex</module>
+    <module>pq-auth</module>
+    <module>secure-channel</module>
+    <module>attack-engine</module>
+    <module>attack-lab</module>
+    <module>benchmark-dashboard</module>
+  </modules>
+
+  <!-- ── Property versions (single place to bump) ─────────────────────── -->
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Bouncy Castle — NIST-compliant ML-KEM-768 / ML-DSA-65 -->
+    <bc.version>1.80</bc.version>
+
+    <!-- Spring Boot (dashboard module only) -->
+    <spring-boot.version>3.4.5</spring-boot.version>
+
+    <!-- Testing -->
+    <junit.version>5.11.4</junit.version>
+    <assertj.version>3.27.3</assertj.version>
+
+    <!-- JMH benchmarks (benchmark-dashboard module) -->
+    <jmh.version>1.37</jmh.version>
+
+    <!-- Jackson — JSON report output -->
+    <jackson.version>2.18.3</jackson.version>
+
+    <!-- SLF4J + Logback -->
+    <slf4j.version>2.0.17</slf4j.version>
+    <logback.version>1.5.17</logback.version>
+
+    <!-- SnakeYAML — suites.yaml config -->
+    <snakeyaml.version>2.3</snakeyaml.version>
+  </properties>
+
+  <!-- ── Dependency Management (versions only, no actual dependencies) ── -->
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- Bouncy Castle provider (ML-KEM, ML-DSA, HKDF, AES-GCM) -->
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bc.version}</version>
+      </dependency>
+      <!-- Bouncy Castle PKIX (cert/key encoding helpers) -->
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk18on</artifactId>
+        <version>${bc.version}</version>
+      </dependency>
+
+      <!-- Spring Boot BOM — manages all spring transitive versions -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- JUnit 5 BOM -->
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- AssertJ -->
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <!-- JMH -->
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-core</artifactId>
+        <version>${jmh.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-generator-annprocess</artifactId>
+        <version>${jmh.version}</version>
+      </dependency>
+
+      <!-- Jackson -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+
+      <!-- Logging -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${logback.version}</version>
+      </dependency>
+
+      <!-- SnakeYAML -->
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
+      </dependency>
+
+      <!-- Inter-module dependencies (Phase 1 & 2) -->
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>classical</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>attack-lab</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <!-- Inter-module dependencies (Phase 0) -->
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>crypto-agility</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>hybrid-kex</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>pq-auth</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>secure-channel</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>attack-engine</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+  <!-- ── Dependencies inherited by ALL child modules ───────────────────── -->
+  <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+    </dependency>
+  </dependencies>
+
+  <!-- ── Build plugins ─────────────────────────────────────────────────── -->
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+            <source>${java.version}</source>
+            <target>${java.version}</target>
+            <encoding>UTF-8</encoding>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.2</version>
+          <!-- Run JUnit 5 tests via platform launcher -->
+          <configuration>
+            <includes>
+              <include>**/*Test.java</include>
+              <include>**/*Tests.java</include>
+            </includes>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+</project>

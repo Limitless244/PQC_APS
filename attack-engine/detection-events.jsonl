@@ -1,0 +1,1 @@
+{"id":"669683c8-8503-45a9-bfbb-fcb484098424","timestamp":"2026-11-23T17:13:07.045718200Z","attackType":"TAMPER","severity":"HIGH","component":"TamperGuard","suite":"HYBRID","action":"BLOCKED","detail":"Finished verifyData verification failed: transcript hash or KEM encapsulation ciphertext was tampered (Server verifyData mismatch)"}

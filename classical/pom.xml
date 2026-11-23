@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.pqcaps</groupId>
+    <artifactId>pqc-aps</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>classical</artifactId>
+  <name>PQC-APS :: Classical Baseline</name>
+  <description>
+    Classical (pre-quantum) cryptography implementation used as the Phase 1 baseline.
+    Includes X25519 key exchange, RSA-2048 signatures, AES-256-GCM encryption,
+    HKDF-SHA256 key derivation, and the full classical handshake + secure channel.
+
+    IMPORTANT — this module is intentionally vulnerable in four documented ways
+    (VULN-1 through VULN-4). See VULNERABILITIES.md at the project root.
+    Phase 2 will attack these weaknesses; Phase 4 will fix them.
+  </description>
+
+  <dependencies>
+    <!-- Our shared interfaces and message types -->
+    <dependency>
+      <groupId>com.pqcaps</groupId>
+      <artifactId>common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- Bouncy Castle: not needed for classical JDK primitives, but kept for
+         forward-compat so we can add PQ algorithms in Phase 3 -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>

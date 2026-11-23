@@ -1,0 +1,199 @@
+# PQC-APS Crypto Scanner Rules Catalog
+# Configurable rules for detecting quantum-vulnerable, deprecated, and insecure cryptography.
+
+rules:
+  # ── Public-Key Cryptography (Quantum-Vulnerable) ─────────────────────────
+  - id: "RULE-RSA"
+    name: "RSA Asymmetric Cryptography"
+    category: "KEY_EXCHANGE_QV"
+    quantumVulnerable: true
+    severity: "HIGH"
+    baseScore: 85
+    explanation: "RSA is vulnerable to polynomial-time factorization on a cryptographically relevant quantum computer via Shor's algorithm."
+    recommendation: "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204)."
+    migrationTarget: "ML-KEM-768 / ML-DSA-65"
+
+  - id: "RULE-RSA-WEAK"
+    name: "Weak RSA Key (< 2048 bits)"
+    category: "CIPHER_BROKEN"
+    quantumVulnerable: true
+    severity: "CRITICAL"
+    baseScore: 95
+    explanation: "RSA key length under 2048 bits is classically vulnerable to factoring and immediately broken by Shor's algorithm."
+    recommendation: "Upgrade immediately to ML-KEM-768/ML-DSA-65, or minimum RSA-3072 as a temporary classical measure."
+    migrationTarget: "ML-KEM-768 / ML-DSA-65"
+
+  - id: "RULE-ECC"
+    name: "Elliptic Curve Cryptography (ECDH / ECDSA / X25519 / Ed25519)"
+    category: "KEY_EXCHANGE_QV"
+    quantumVulnerable: true
+    severity: "HIGH"
+    baseScore: 85
+    explanation: "Discrete logarithm on elliptic curves is completely broken by Shor's algorithm. Subject to Harvest-Now-Decrypt-Later attacks."
+    recommendation: "Deploy a hybrid key exchange combining X25519 with ML-KEM-768, and migrate authentication to ML-DSA-65."
+    migrationTarget: "Hybrid X25519 + ML-KEM-768 / ML-DSA-65"
+
+  - id: "RULE-DH-DSA"
+    name: "Finite Field Diffie-Hellman / DSA"
+    category: "KEY_EXCHANGE_QV"
+    quantumVulnerable: true
+    severity: "HIGH"
+    baseScore: 85
+    explanation: "Classical Diffie-Hellman and DSA are vulnerable to Shor's algorithm and large-scale precomputation attacks."
+    recommendation: "Migrate key establishment to ML-KEM-768 and signatures to ML-DSA-65."
+    migrationTarget: "ML-KEM-768 / ML-DSA-65"
+
+  # ── Classically Broken & Weak Hash Functions ────────────────────────────
+  - id: "RULE-MD5"
+    name: "MD5 Message Digest"
+    category: "HASH_BROKEN"
+    quantumVulnerable: false
+    severity: "HIGH"
+    baseScore: 70
+    explanation: "MD5 is completely broken by practical collision attacks. Unsuitable for security or integrity."
+    recommendation: "Replace with SHA-256, SHA-384, or SHA3-256."
+    migrationTarget: "SHA-256 / SHA-384"
+
+  - id: "RULE-SHA1"
+    name: "SHA-1 Hash Function"
+    category: "HASH_BROKEN"
+    quantumVulnerable: false
+    severity: "HIGH"
+    baseScore: 70
+    explanation: "SHA-1 has proven collision attacks (SHAttered) and is disallowed by NIST SP 800-131A."
+    recommendation: "Migrate to SHA-256, SHA-384, or SHA-512."
+    migrationTarget: "SHA-256 / SHA-384"
+
+  # ── Deprecated & Insecure Symmetric Ciphers ─────────────────────────────
+  - id: "RULE-DES-3DES"
+    name: "DES / Triple-DES (3DES)"
+    category: "CIPHER_BROKEN"
+    quantumVulnerable: false
+    severity: "CRITICAL"
+    baseScore: 95
+    explanation: "DES 56-bit key is trivially brute-forced; 3DES 64-bit block size is vulnerable to Sweet32 collision attacks."
+    recommendation: "Migrate to AES-256-GCM (Authenticated Encryption with Associated Data)."
+    migrationTarget: "AES-256-GCM"
+
+  - id: "RULE-RC4-BLOWFISH"
+    name: "RC4 / Blowfish Stream & Block Ciphers"
+    category: "CIPHER_BROKEN"
+    quantumVulnerable: false
+    severity: "CRITICAL"
+    baseScore: 95
+    explanation: "RC4 suffers from severe keystream biases (Bar Mitzvah / NOMORE attacks); Blowfish has small 64-bit blocks."
+    recommendation: "Replace immediately with AES-256-GCM or ChaCha20-Poly1305."
+    migrationTarget: "AES-256-GCM"
+
+  - id: "RULE-AES-ECB"
+    name: "AES in ECB Mode (Electronic Codebook)"
+    category: "CIPHER_BROKEN"
+    quantumVulnerable: false
+    severity: "CRITICAL"
+    baseScore: 95
+    explanation: "ECB mode encrypts identical plaintext blocks to identical ciphertext blocks, leaking structural patterns without IV."
+    recommendation: "Use AES-GCM or AES-CBC with HMAC; prefer authenticated AEAD ciphers."
+    migrationTarget: "AES-256-GCM"
+
+  - id: "RULE-AES128"
+    name: "AES-128 Key Length"
+    category: "SYMMETRIC_INFO"
+    quantumVulnerable: false
+    severity: "INFO"
+    baseScore: 20
+    explanation: "Grover's quantum search algorithm reduces effective symmetric key search security to 64 bits."
+    recommendation: "Upgrade to AES-256 for long-term data protection to retain 128-bit post-quantum security margin."
+    migrationTarget: "AES-256-GCM"
+
+  # ── Secret Safety & Randomness ──────────────────────────────────────────
+  - id: "RULE-HARDCODED-SECRET"
+    name: "Hardcoded Cryptographic Secret / Key / Token"
+    category: "SECRET_HARDCODED"
+    quantumVulnerable: false
+    severity: "CRITICAL"
+    baseScore: 90
+    explanation: "Hardcoded cryptographic keys or credentials in source code or config files lead to direct compromise."
+    recommendation: "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately."
+    migrationTarget: "Environment Variable / Hardware Security Module / Vault"
+
+  - id: "RULE-WEAK-RNG"
+    name: "Insecure Pseudorandom Number Generator"
+    category: "RNG_WEAK"
+    quantumVulnerable: false
+    severity: "HIGH"
+    baseScore: 80
+    explanation: "java.util.Random or Math.random() use linear congruential generators with internal state easily reconstructible from few outputs."
+    recommendation: "Always use java.security.SecureRandom for keys, nonces, IVs, salts, and session tokens."
+    migrationTarget: "java.security.SecureRandom"
+
+  - id: "RULE-STATIC-IV"
+    name: "Static or Zero Initialization Vector (IV / Nonce)"
+    category: "CIPHER_BROKEN"
+    quantumVulnerable: false
+    severity: "CRITICAL"
+    baseScore: 95
+    explanation: "Reusing a static or all-zero IV with AES-GCM causes catastrophic authentication key recovery and plaintext XOR leakage."
+    recommendation: "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation."
+    migrationTarget: "CSPRNG Nonce / Monotonic Counter"
+
+  # ── TLS Endpoint Rules ──────────────────────────────────────────────────
+  - id: "RULE-TLS-LEGACY"
+    name: "Legacy TLS Protocol Version (SSLv3, TLS 1.0, TLS 1.1)"
+    category: "TLS_LEGACY"
+    quantumVulnerable: false
+    severity: "HIGH"
+    baseScore: 80
+    explanation: "SSLv3, TLS 1.0, and TLS 1.1 contain critical flaws (POODLE, BEAST) and lack modern AEAD cipher support."
+    recommendation: "Enforce TLS 1.3 or TLS 1.2 with secure AEAD cipher suites."
+    migrationTarget: "TLS 1.3"
+
+  - id: "RULE-TLS-RSA-KEX"
+    name: "TLS RSA Key Exchange"
+    category: "KEY_EXCHANGE_QV"
+    quantumVulnerable: true
+    severity: "HIGH"
+    baseScore: 85
+    explanation: "Static RSA key exchange lacks Forward Secrecy and is vulnerable to retroactive quantum decryption."
+    recommendation: "Use ephemeral key exchange (ECDHE / hybrid ML-KEM) with Forward Secrecy."
+    migrationTarget: "Hybrid X25519 + ML-KEM-768"
+
+  - id: "RULE-TLS-CERT-QV"
+    name: "TLS Quantum-Vulnerable Certificate (RSA / EC)"
+    category: "SIGNATURE_QV"
+    quantumVulnerable: true
+    severity: "MEDIUM"
+    baseScore: 60
+    explanation: "Server certificate relies on classical RSA or ECC public keys vulnerable to quantum forgery."
+    recommendation: "Plan migration to post-quantum certificates (ML-DSA) or hybrid certificate chains."
+    migrationTarget: "ML-DSA-65 Certificate"
+
+  - id: "RULE-TLS-WEAK-KEY"
+    name: "TLS Certificate with Weak Key (< 2048 bits)"
+    category: "CIPHER_BROKEN"
+    quantumVulnerable: true
+    severity: "CRITICAL"
+    baseScore: 95
+    explanation: "The server certificate uses an RSA key smaller than 2048 bits, vulnerable to classical factorization."
+    recommendation: "Reissue the certificate with minimum RSA-3072 or ML-DSA-65."
+    migrationTarget: "ML-DSA-65 Certificate"
+
+  - id: "RULE-TLS-EXPIRED"
+    name: "Expired TLS Certificate"
+    category: "TLS_LEGACY"
+    quantumVulnerable: false
+    severity: "HIGH"
+    baseScore: 80
+    explanation: "The server certificate validity period has expired, breaking authenticity assurance."
+    recommendation: "Renew and deploy a valid TLS certificate."
+    migrationTarget: "Valid X.509 Certificate"
+
+  # ── Positive Rule (Quantum Readiness Tracking) ──────────────────────────
+  - id: "RULE-PQC-READY"
+    name: "Post-Quantum Cryptographic Primitive in Use"
+    category: "PQC_READY"
+    quantumVulnerable: false
+    severity: "INFO"
+    baseScore: 0
+    explanation: "The code employs NIST-standardized Post-Quantum Cryptography (ML-KEM or ML-DSA)."
+    recommendation: "No migration needed. Maintain algorithm agility and follow standards evolution."
+    migrationTarget: "Already Quantum-Resistant"

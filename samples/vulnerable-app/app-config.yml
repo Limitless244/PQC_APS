@@ -1,0 +1,9 @@
+# Insecure application configuration
+app:
+  name: "Vulnerable Demo Service"
+  security:
+    # VULN: Weak symmetric cipher mode
+    cipher: "AES-128"
+    hashAlgorithm: "MD5"
+    # VULN: Hardcoded administrative password
+    admin_password: "DUMMY_PASSWORD_XYZ987654321_ADMIN"
