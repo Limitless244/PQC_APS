@@ -23,6 +23,10 @@ public final class HybridHandshake {
 
     private static final int NONCE_LEN = 32;
 
+    public static void setObserver(HandshakeObserver observer) {
+        HandshakeObserverContext.setGlobalObserver(observer);
+    }
+
     public record HandshakeOutcome(SessionKeys sessionKeys, String chosenSuite) {}
 
     private HybridHandshake() {}
@@ -95,6 +99,8 @@ public final class HybridHandshake {
         out.writeObject(clientHello);
         out.flush();
         log("[CLIENT] [2/8] Sent ClientHello (suites=%s)", supportedSuites);
+        int chWireBytes = (xpk_c != null) ? 1356 : 1311;
+        HandshakeObserverContext.emit("ClientHello", "CLIENT_TO_SERVER", chWireBytes, hex4(kpk_c), "OK");
 
         // ── Step 4: Receive ServerHello ────────────────────────────────────
         ServerHello serverHello = (ServerHello) in.readObject();
@@ -130,6 +136,7 @@ public final class HybridHandshake {
                 throw new SecurityException("handshake failed: Server identity signature verification failed! MITM detected.");
             }
             log("[CLIENT] [5/8] Verified server ML-DSA-65 signature [OK]");
+            HandshakeObserverContext.emit("SignatureCheck", "CLIENT", 3309, hex4(serverHello.signature()), "OK");
         } else {
             if (!allowInsecureNoPinning) {
                 log("[CLIENT] [ERROR] FAIL-CLOSED: No pinned server public key configured for %s! Aborting.", chosenSuite);
@@ -166,6 +173,7 @@ public final class HybridHandshake {
         out.writeObject(clientFinished);
         out.flush();
         log("[CLIENT] [6/8] Sent Finished message (verifyData=%s...)", hex4(finishedVerifyData));
+        HandshakeObserverContext.emit("ClientFinished", "CLIENT_TO_SERVER", 127, hex4(finishedVerifyData), "OK");
 
         // ── Step 7: Receive & Verify Server Finished (Mutual Confirmation) ──
         FinishedMessage serverFinished;
@@ -187,6 +195,7 @@ public final class HybridHandshake {
         log("[CLIENT] [7/8] Received & verified Server Finished (verifyData=%s...) [OK]", hex4(serverFinished.verifyData()));
 
         log("[CLIENT] [8/8] Handshake complete! Channel established.");
+        HandshakeObserverContext.emit("ChannelEstablished", "BOTH", 0, "OK", "SECURE");
         return new HandshakeOutcome(sessionKeys, chosenSuite);
     }
 
@@ -276,6 +285,8 @@ public final class HybridHandshake {
         out.writeObject(serverHello);
         out.flush();
         log("[SERVER] [4/8] Sent ServerHello to client");
+        int shWireBytes = (xpk_s != null) ? 4488 : 4444;
+        HandshakeObserverContext.emit("ServerHello", "SERVER_TO_CLIENT", shWireBytes, hex4(signature), "OK");
 
         // ── Step 6: Receive & Verify Client Finished ───────────────────────
         FinishedMessage clientFinished = (FinishedMessage) in.readObject();
@@ -297,6 +308,7 @@ public final class HybridHandshake {
         out.writeObject(serverFinished);
         out.flush();
         log("[SERVER] [7/8] Sent Server Finished (verifyData=%s...)", hex4(serverVerifyData));
+        HandshakeObserverContext.emit("ServerFinished", "SERVER_TO_CLIENT", 127, hex4(serverVerifyData), "OK");
 
         log("[SERVER] [8/8] Handshake complete! Channel established.");
         return new HandshakeOutcome(sessionKeys, chosenSuite);

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -92,10 +93,47 @@ public class DashboardDataService {
             throw new NoSuchElementException("Scan report not found for target: " + target);
         }
         try {
-            return ScanReport.loadFromJson(path.toFile());
+            ScanReport report = ScanReport.loadFromJson(path.toFile());
+            List<com.pqcaps.scanner.ScanFinding> sortedFindings = new ArrayList<>(report.findings());
+            sortedFindings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
+            return new ScanReport(report.scanId(), report.target(), report.timestamp(), report.summary(), sortedFindings);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to parse scan report for " + target + ": " + e.getMessage());
         }
+    }
+
+    public synchronized ScanReport runScan(String target) {
+        if (!List.of("vulnerable", "migrated", "self").contains(target.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: vulnerable, migrated, self");
+        }
+        String targetLower = target.toLowerCase();
+        Path scanPath = switch (targetLower) {
+            case "vulnerable" -> Path.of("samples", "vulnerable-app");
+            case "migrated" -> Path.of("samples", "migrated-app");
+            default -> Path.of(".");
+        };
+
+        if (Files.exists(scanPath)) {
+            try {
+                com.pqcaps.scanner.SourceScanner scanner = new com.pqcaps.scanner.SourceScanner(
+                        com.pqcaps.scanner.RuleRegistry.getInstance(),
+                        com.pqcaps.scanner.RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS);
+                List<com.pqcaps.scanner.ScanFinding> findings = new ArrayList<>(scanner.scanDirectory(scanPath));
+                findings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
+                com.pqcaps.scanner.ScanSummary summary = com.pqcaps.scanner.RiskScoreCalculator.createSummary(findings);
+                ScanReport report = new ScanReport(
+                        UUID.randomUUID().toString(),
+                        "Directory: " + scanPath.toString(),
+                        Instant.now().toString(),
+                        summary,
+                        findings
+                );
+                Path outPath = DataPaths.resolve("scan-report-" + targetLower + ".json");
+                ScanReport.saveToJson(outPath.toFile(), report);
+                return report;
+            } catch (Exception ignored) {}
+        }
+        return loadScanReport(targetLower);
     }
 
     public BenchmarkReport loadBenchmarks() {

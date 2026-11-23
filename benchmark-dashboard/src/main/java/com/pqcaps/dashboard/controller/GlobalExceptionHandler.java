@@ -1,5 +1,7 @@
 package com.pqcaps.dashboard.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,6 +13,8 @@ import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException e) {
@@ -34,16 +38,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                "error", "Data Processing Error",
-                "message", e.getMessage() != null ? e.getMessage() : "An error occurred while processing data",
-                "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        String msg = e.getMessage() != null ? e.getMessage() : "Operation not permitted in current state";
+        HttpStatus status = msg.toLowerCase().contains("already") ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(Map.of(
+                "error", status.getReasonPhrase(),
+                "message", msg,
+                "status", status.value(),
                 "timestamp", Instant.now().toString()
         ));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception e) {
+        log.error("Unhandled server exception: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Internal Server Error",
                 "message", "An unexpected error occurred. Details suppressed for security.",

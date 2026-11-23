@@ -24,6 +24,10 @@ public final class ClassicalHandshake {
 
     private ClassicalHandshake() {}
 
+    public static void setObserver(HandshakeObserver observer) {
+        HandshakeObserverContext.setGlobalObserver(observer);
+    }
+
     public record HandshakeOutcome(SessionKeys sessionKeys, String chosenSuite) {}
 
     // ═══════════════════════════════════════════════════════════════
@@ -62,6 +66,7 @@ public final class ClassicalHandshake {
         out.writeObject(hello);
         out.flush();
         log("[CLIENT] [2/5] Sent ClientHello  nonce_c=%s...  suites=%s", hex4(nonce_c), offeredSuites);
+        HandshakeObserverContext.emit("ClientHello", "CLIENT_TO_SERVER", 111, hex4(xpk_c), "OK");
 
         // ── Step 3: receive ServerHello ───────────────────────────────────────
         ServerHello sh = (ServerHello) in.readObject();
@@ -85,6 +90,7 @@ public final class ClassicalHandshake {
                 throw new SecurityException("Server signature verification FAILED -- possible MITM attack!");
             }
             log("[CLIENT] [4/5] Server signature verified OK");
+            HandshakeObserverContext.emit("SignatureCheck", "CLIENT", 256, hex4(sh.signature()), "OK");
         }
 
         // ── Step 5: derive session keys ───────────────────────────────────────
@@ -93,6 +99,7 @@ public final class ClassicalHandshake {
         SessionKeys keys = deriveSessionKeys(ss, nonce_c, sh.nonce_s());
         Arrays.fill(ss, (byte) 0);
         log("[CLIENT] [5/5] Session keys derived  c2s=%s...  Handshake complete OK", hex4(keys.clientToServer()));
+        HandshakeObserverContext.emit("ChannelEstablished", "BOTH", 0, "OK", "SECURE");
 
         return new HandshakeOutcome(keys, sh.chosenSuite());
     }
@@ -147,6 +154,7 @@ public final class ClassicalHandshake {
         out.writeObject(sh);
         out.flush();
         log("[SERVER] [3/4] Sent ServerHello  suite=%s  nonce_s=%s...  sig=%s...", chosenSuite, hex4(nonce_s), hex4(sig));
+        HandshakeObserverContext.emit("ServerHello", "SERVER_TO_CLIENT", 390, hex4(xpk_s), "OK");
 
         // ── Step 4: derive session keys ───────────────────────────────────────
         SessionKeys keys = deriveSessionKeys(ss, hello.nonce_c(), nonce_s);

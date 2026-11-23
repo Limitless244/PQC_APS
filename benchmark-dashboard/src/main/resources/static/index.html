@@ -1,374 +1,489 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PQC-APS :: Post-Quantum Cryptography Migration & Attack Prevention System</title>
+    <title>PQC-APS :: Post-Quantum Cryptography Migration &amp; Attack Prevention System</title>
     <link rel="stylesheet" href="css/dashboard.css">
-    <!-- Chart.js via CDN with built-in offline SVG fallback -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <header class="navbar">
-        <div class="nav-brand">
-            <span class="brand-shield">&#x1F6E1;</span>
-            <div class="brand-text">
-                <h1>PQC-APS</h1>
-                <p>Post-Quantum Cryptography Migration &amp; Crypto Attack Prevention System</p>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <span class="brand-shield" aria-hidden="true">&#x1F6E1;</span>
+                    <div>
+                        <h2>PQC-APS</h2>
+                        <span class="badge-sub">Post-Quantum APS</span>
+                    </div>
+                </div>
             </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="overview" aria-label="Overview Page">
+                    <span class="nav-icon">&#x1F3E0;</span> Overview
+                </button>
+                <button class="nav-item" data-page="handshake" aria-label="Live Handshake Visualizer">
+                    <span class="nav-icon">&#x21C4;</span> Handshake
+                </button>
+                <button class="nav-item" data-page="simulator" aria-label="Attack Simulator">
+                    <span class="nav-icon">&#x26A0;</span> Attack Simulator
+                </button>
+                <button class="nav-item" data-page="benchmarks" aria-label="JMH Benchmarks">
+                    <span class="nav-icon">&#x1F4CA;</span> Benchmarks
+                </button>
+                <button class="nav-item" data-page="scanner" aria-label="Crypto Scanner">
+                    <span class="nav-icon">&#x1F50D;</span> Scanner
+                </button>
+                <button class="nav-item" data-page="chat" aria-label="Secure Chat Demo">
+                    <span class="nav-icon">&#x1F4AC;</span> Chat Demo
+                </button>
+                <button class="nav-item" data-page="events" aria-label="Live Detection Events">
+                    <span class="nav-icon">&#x1F4E1;</span> Live Events
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="theme-toggle" class="btn btn-secondary btn-sm" aria-label="Toggle Dark and Light Theme">
+                    <span id="theme-icon">&#x2600;</span> <span id="theme-text">Light Theme</span>
+                </button>
+                <div class="host-pill" title="Localhost Binding Only">127.0.0.1:8080</div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h1 id="page-title">Overview</h1>
+                    <p id="page-caption" class="caption-text">Executive overview of the post-quantum cryptography migration and attack prevention architecture.</p>
+                </div>
+                <div class="topbar-actions">
+                    <span class="badge badge-success" id="connection-status">&#x25CF; Live Feed Connected</span>
+                </div>
+            </header>
+
+            <main class="page-container">
+
+                <!-- ── 1. PAGE: OVERVIEW ── -->
+                <section id="page-overview" class="page-content active">
+                    <div class="grid-cards">
+                        <div class="card metric-card">
+                            <span class="card-icon">&#x2714;</span>
+                            <div class="card-body">
+                                <h3>Total Reactor Tests</h3>
+                                <p class="metric-value text-success">127 / 127 Passing</p>
+                                <p class="metric-sub">Across 11 Maven Submodules</p>
+                            </div>
+                        </div>
+                        <div class="card metric-card">
+                            <span class="card-icon">&#x1F6E1;</span>
+                            <div class="card-body">
+                                <h3>Attack Matrix Coverage</h3>
+                                <p class="metric-value text-success">15 / 15 Cells Evaluated</p>
+                                <p class="metric-sub">5 Attacks &times; 3 Modes Verified</p>
+                            </div>
+                        </div>
+                        <div class="card metric-card">
+                            <span class="card-icon">&#x269B;</span>
+                            <div class="card-body">
+                                <h3>Quantum-Safe Hybrid</h3>
+                                <p class="metric-value text-primary">ML-KEM-768 + ML-DSA-65</p>
+                                <p class="metric-sub">NIST FIPS 203 &amp; 204 Standardized</p>
+                            </div>
+                        </div>
+                        <div class="card metric-card">
+                            <span class="card-icon">&#x26A1;</span>
+                            <div class="card-body">
+                                <h3>Symmetric Throughput</h3>
+                                <p class="metric-value text-primary">&gt; 1,200 MB/s</p>
+                                <p class="metric-sub">AES-256-GCM AEAD Record Layer</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card overview-flow-card">
+                        <h3>Hybrid Key Exchange &amp; Multi-Guard Defence Architecture</h3>
+                        <div class="architecture-diagram">
+                            <div class="arch-box">
+                                <h4>Classical Layer</h4>
+                                <p>X25519 (ECDH) + RSA-2048</p>
+                                <span class="tag tag-warning">Quantum-Vulnerable</span>
+                            </div>
+                            <div class="arch-connector">&plus;</div>
+                            <div class="arch-box">
+                                <h4>Post-Quantum Layer</h4>
+                                <p>ML-KEM-768 (KEM) + ML-DSA-65</p>
+                                <span class="tag tag-success">NIST FIPS 203 / 204</span>
+                            </div>
+                            <div class="arch-connector">&equals;</div>
+                            <div class="arch-box highlight">
+                                <h4>Hybrid Defense-in-Depth</h4>
+                                <p>Dual Shared Secrets &bull; Dual Finished Confirmations</p>
+                                <span class="tag tag-primary">IND-CCA2 Secure</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── 2. PAGE: LIVE HANDSHAKE VISUALIZER ── -->
+                <section id="page-handshake" class="page-content">
+                    <div class="control-panel">
+                        <div class="control-group">
+                            <label for="hs-suite-select"><strong>Cipher Suite:</strong></label>
+                            <select id="hs-suite-select" class="select-input">
+                                <option value="HYBRID" selected>HYBRID (X25519 + ML-KEM-768 / ML-DSA-65)</option>
+                                <option value="PQ_ONLY">PQ_ONLY (ML-KEM-768 / ML-DSA-65)</option>
+                                <option value="CLASSICAL">CLASSICAL (X25519 / RSA-2048)</option>
+                            </select>
+                        </div>
+                        <button id="btn-run-handshake" class="btn btn-primary">
+                            <span id="hs-btn-icon">&#x25B6;</span> Run In-Process Handshake
+                        </button>
+                    </div>
+
+                    <div class="handshake-layout">
+                        <div class="handshake-viewport card">
+                            <div class="actor-columns">
+                                <div class="actor client-actor">
+                                    <span class="actor-icon">&#x1F4BB;</span>
+                                    <h4>Client</h4>
+                                    <span class="actor-sub">Initiator</span>
+                                </div>
+                                <div class="actor server-actor">
+                                    <span class="actor-icon">&#x1F5C3;</span>
+                                    <h4>Server</h4>
+                                    <span class="actor-sub">Pinned Identity</span>
+                                </div>
+                            </div>
+                            <div id="handshake-arrows" class="handshake-arrows">
+                                <div class="empty-state">Select a cipher suite and click "Run In-Process Handshake" to visualize live message flow.</div>
+                            </div>
+                        </div>
+
+                        <div class="handshake-summary card">
+                            <h3>Handshake Telemetry</h3>
+                            <div class="summary-metric">
+                                <span class="summary-label">Total Wire Bytes:</span>
+                                <span id="hs-total-bytes" class="summary-value font-mono">0 B</span>
+                            </div>
+                            <div class="summary-metric">
+                                <span class="summary-label">Elapsed Time:</span>
+                                <span id="hs-elapsed-time" class="summary-value font-mono">0.00 ms</span>
+                            </div>
+                            <div class="summary-metric">
+                                <span class="summary-label">Selected Suite:</span>
+                                <span id="hs-selected-suite" class="summary-value font-mono">-</span>
+                            </div>
+                            <div class="summary-metric">
+                                <span class="summary-label">Session Status:</span>
+                                <span id="hs-session-status" class="summary-value text-muted">IDLE</span>
+                            </div>
+                            <div class="handshake-notes">
+                                <h4>Protocol Details</h4>
+                                <p id="hs-protocol-note">Hybrid mode exchanges dual public keys in ClientHello and mutual Finished messages for key confirmation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── 3. PAGE: ATTACK SIMULATOR ── -->
+                <section id="page-simulator" class="page-content">
+                    <div class="control-panel">
+                        <div class="control-group">
+                            <label for="sim-attack-select"><strong>Attack:</strong></label>
+                            <select id="sim-attack-select" class="select-input">
+                                <option value="Downgrade">Downgrade (ClientHello Suite Stripping)</option>
+                                <option value="MITM">MITM (Rogue Key Substitution)</option>
+                                <option value="Replay">Replay (Record Retransmission)</option>
+                                <option value="Nonce Reuse">Nonce Reuse (Keystream Re-use)</option>
+                                <option value="Tampering">Tampering (Ciphertext Bit Flip)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="sim-mode-select"><strong>Target Mode:</strong></label>
+                            <select id="sim-mode-select" class="select-input">
+                                <option value="CLASSICAL-VULNERABLE">CLASSICAL-VULNERABLE (Vulnerable Baseline)</option>
+                                <option value="CLASSICAL-HARDENED">CLASSICAL-HARDENED (Hardened Classical)</option>
+                                <option value="HYBRID" selected>HYBRID (Hardened Post-Quantum)</option>
+                            </select>
+                        </div>
+                        <button id="btn-run-simulation" class="btn btn-danger">
+                            <span id="sim-btn-icon">&#x26A0;</span> Run Attack Simulation
+                        </button>
+                    </div>
+
+                    <div class="attack-explanation-banner card">
+                        <strong>Attack Explanation: </strong>
+                        <span id="sim-attack-explanation">An active network adversary modifies the ClientHello cipher suite list to force negotiation of an insecure cipher suite.</span>
+                    </div>
+
+                    <div id="sim-result-card" class="card sim-result-card hidden">
+                        <div class="sim-header">
+                            <div>
+                                <h3 id="sim-title">Simulation Outcome</h3>
+                                <span id="sim-subtitle" class="text-muted">Attack executed against target mode</span>
+                            </div>
+                            <span id="sim-outcome-badge" class="badge badge-danger">SUCCEEDED</span>
+                        </div>
+
+                        <div class="sim-grid">
+                            <div class="sim-box">
+                                <h4>Triggered Defence</h4>
+                                <p id="sim-defence" class="font-mono text-primary">-</p>
+                            </div>
+                            <div class="sim-box">
+                                <h4>Detection Event</h4>
+                                <p id="sim-event-id" class="font-mono">-</p>
+                            </div>
+                        </div>
+
+                        <div class="sim-steps">
+                            <h4>Attacker Execution Steps (Real Code Path):</h4>
+                            <ul id="sim-steps-list"></ul>
+                        </div>
+
+                        <div class="sim-evidence">
+                            <h4>Forensic Evidence:</h4>
+                            <p id="sim-evidence-text" class="font-mono">-</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── 4. PAGE: JMH BENCHMARKS & SUITE COMPARISON ── -->
+                <section id="page-benchmarks" class="page-content">
+                    <div class="card benchmark-header-card">
+                        <div class="benchmark-header-info">
+                            <h3 id="machine-info-header">Host Environment: Loading...</h3>
+                            <p id="cpu-limitation-text" class="caption-text">Measurements executed with JMH and ThreadMXBean.</p>
+                        </div>
+                        <button id="btn-refresh-benchmarks" class="btn btn-secondary btn-sm">&#x21BB; Refresh Results</button>
+                    </div>
+
+                    <!-- Suite Comparison Switcher -->
+                    <div class="card comparison-card">
+                        <div class="comparison-header">
+                            <h3>Suite Comparison: Honest Trade-Off Analysis</h3>
+                            <div class="comparison-switch">
+                                <button class="pill-btn active" data-compare="HYBRID">HYBRID vs CLASSICAL</button>
+                                <button class="pill-btn" data-compare="PQ_ONLY">PQ_ONLY vs CLASSICAL</button>
+                            </div>
+                        </div>
+                        <div id="comparison-callout" class="callout callout-warning">
+                            <strong>Bandwidth Cost:</strong> HYBRID incurs ~7.7x ClientHello bandwidth and ~12.2x total handshake wire overhead due to ML-KEM-768 public key (1,184 B) and ML-DSA-65 signature (3,309 B). In exchange, it guarantees post-quantum forward secrecy with sub-millisecond CPU overhead.
+                        </div>
+                        <div class="comparison-grid">
+                            <div class="metric-box">
+                                <h4>Total Handshake Wire</h4>
+                                <p id="comp-wire" class="metric-value">6,098 B vs 501 B</p>
+                                <span id="comp-wire-ratio" class="badge badge-warning">12.2x Overhead</span>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Public Key Size</h4>
+                                <p id="comp-pk" class="metric-value">1,184 B vs 32 B</p>
+                                <span class="badge badge-warning">37x Overhead</span>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Signature Size</h4>
+                                <p id="comp-sig" class="metric-value">3,309 B vs 256 B</p>
+                                <span class="badge badge-warning">12.9x Overhead</span>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Handshake CPU Overhead</h4>
+                                <p id="comp-cpu" class="metric-value">~1.25x</p>
+                                <span class="badge badge-success">Negligible CPU Cost</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="charts-grid">
+                        <div class="card chart-card">
+                            <h3>Primitive Key &amp; Signature Sizes (Bytes)</h3>
+                            <div class="chart-wrapper"><canvas id="chart-sizes"></canvas></div>
+                        </div>
+                        <div class="card chart-card">
+                            <h3>Total Handshake Wire Size (Bytes)</h3>
+                            <div class="chart-wrapper"><canvas id="chart-wire"></canvas></div>
+                        </div>
+                        <div class="card chart-card">
+                            <h3>Handshake Latency (&mu;s - Avg &amp; P95)</h3>
+                            <div class="chart-wrapper"><canvas id="chart-latency"></canvas></div>
+                        </div>
+                        <div class="card chart-card">
+                            <h3>AES-256-GCM Symmetric Throughput (MB/s)</h3>
+                            <div class="chart-wrapper"><canvas id="chart-throughput"></canvas></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── 5. PAGE: CRYPTO SCANNER ── -->
+                <section id="page-scanner" class="page-content">
+                    <div class="control-panel">
+                        <div class="control-group">
+                            <label for="scanner-target-select"><strong>Target Repository:</strong></label>
+                            <select id="scanner-target-select" class="select-input">
+                                <option value="vulnerable">samples/vulnerable-app (Legacy Classical Baseline)</option>
+                                <option value="migrated">samples/migrated-app (Post-Quantum Migrated)</option>
+                                <option value="self">. (PQC-APS Repository Root)</option>
+                            </select>
+                        </div>
+                        <button id="btn-run-scan" class="btn btn-primary">
+                            <span id="scan-btn-icon">&#x1F50D;</span> Scan Target
+                        </button>
+                    </div>
+
+                    <div class="grid-cards">
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <h3>Overall Risk Score</h3>
+                                <p class="metric-value" id="scan-score">- / 100</p>
+                                <p class="metric-sub" id="scan-target-desc">Selected Target</p>
+                            </div>
+                        </div>
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <h3>Security Grade</h3>
+                                <p class="metric-value" id="scan-grade">-</p>
+                                <p class="metric-sub" id="scan-status-desc">Status</p>
+                            </div>
+                        </div>
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <h3>Critical &amp; High</h3>
+                                <p class="metric-value text-danger" id="scan-high-count">0</p>
+                                <p class="metric-sub">Immediate Action Items</p>
+                            </div>
+                        </div>
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <h3>Total Findings</h3>
+                                <p class="metric-value" id="scan-total-count">0</p>
+                                <p class="metric-sub">Across All Rules</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Cryptographic Inventory Findings (Sorted by Risk Score)</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>File</th>
+                                        <th>Line</th>
+                                        <th>Severity</th>
+                                        <th>Algorithm / Construct</th>
+                                        <th>Category</th>
+                                        <th>Risk</th>
+                                        <th>Recommendation</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scanner-findings-body">
+                                    <tr><td colspan="7" class="empty-state">Select target and click "Scan Target".</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── 6. PAGE: SECURE CHAT DEMO ── -->
+                <section id="page-chat" class="page-content">
+                    <div class="control-panel">
+                        <div class="control-group">
+                            <label for="chat-mode-select"><strong>Security Channel Mode:</strong></label>
+                            <select id="chat-mode-select" class="select-input">
+                                <option value="HYBRID" selected>HYBRID (Quantum-Resistant + Sequence Guard + Tamper Guard)</option>
+                                <option value="CLASSICAL-HARDENED">CLASSICAL-HARDENED (RSA/X25519 + Hardened Guards)</option>
+                                <option value="CLASSICAL-VULNERABLE">CLASSICAL-VULNERABLE (Vulnerable MITM Baseline)</option>
+                            </select>
+                        </div>
+                        <button id="btn-init-chat" class="btn btn-secondary btn-sm">Reset Channel</button>
+                    </div>
+
+                    <div class="chat-demo-grid">
+                        <!-- Alice (Sender) -->
+                        <div class="card chat-panel">
+                            <div class="chat-header">
+                                <span class="actor-icon">&#x1F467;</span>
+                                <div>
+                                    <h4>Alice (Client)</h4>
+                                    <span class="actor-sub">Sender &bull; AES-256-GCM</span>
+                                </div>
+                            </div>
+                            <div id="chat-alice-messages" class="chat-body">
+                                <div class="chat-bubble sender">Type a message to transmit over the secure channel.</div>
+                            </div>
+                            <div class="chat-input-bar">
+                                <input type="text" id="chat-input-text" class="input-text" placeholder="Type message (e.g. Wire transfer $5000)..." value="Wire transfer $5,000 to Bob">
+                                <button id="btn-chat-send" class="btn btn-primary">Send</button>
+                            </div>
+                        </div>
+
+                        <!-- Attacker View -->
+                        <div class="card chat-panel attacker-panel">
+                            <div class="chat-header">
+                                <span class="actor-icon">&#x1F977;</span>
+                                <div>
+                                    <h4>Attacker Network View</h4>
+                                    <span class="actor-sub">Passive Sniff &amp; Active Injection</span>
+                                </div>
+                            </div>
+                            <div id="chat-attacker-log" class="chat-body font-mono">
+                                <div class="attacker-empty">[Listening on 127.0.0.1 network interface...]</div>
+                            </div>
+                            <div class="attacker-controls">
+                                <button id="btn-chat-replay" class="btn btn-warning btn-sm" title="Replay captured ciphertext record">&#x21BA; Attacker: Replay Last Message</button>
+                                <button id="btn-chat-flip" class="btn btn-danger btn-sm" title="Flip a bit in the ciphertext">&#x26A1; Attacker: Flip a Bit</button>
+                            </div>
+                        </div>
+
+                        <!-- Bob (Receiver) -->
+                        <div class="card chat-panel">
+                            <div class="chat-header">
+                                <span class="actor-icon">&#x1F468;</span>
+                                <div>
+                                    <h4>Bob (Server)</h4>
+                                    <span class="actor-sub">Receiver &bull; Sequence &amp; Tag Guard</span>
+                                </div>
+                            </div>
+                            <div id="chat-bob-messages" class="chat-body">
+                                <div class="chat-bubble receiver">Awaiting incoming encrypted records...</div>
+                            </div>
+                            <div class="chat-status-bar">
+                                <span id="bob-guard-status" class="badge badge-success">&#x2714; Channel Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── 7. PAGE: LIVE DETECTION EVENTS ── -->
+                <section id="page-events" class="page-content">
+                    <div class="control-panel">
+                        <div class="control-group">
+                            <label for="event-filter"><strong>Filter Attack Type:</strong></label>
+                            <select id="event-filter" class="select-input">
+                                <option value="ALL">All Attack Types</option>
+                                <option value="DOWNGRADE">DOWNGRADE</option>
+                                <option value="MITM">MITM</option>
+                                <option value="REPLAY">REPLAY</option>
+                                <option value="NONCE_REUSE">NONCE_REUSE</option>
+                                <option value="TAMPER">TAMPER</option>
+                            </select>
+                        </div>
+                        <span id="feed-count" class="badge badge-secondary">0 events</span>
+                    </div>
+
+                    <div id="events-container" class="events-feed">
+                        <div class="empty-state">Listening for real-time security events...</div>
+                    </div>
+                </section>
+
+            </main>
         </div>
-        <div class="nav-status">
-            <span class="badge badge-success" id="connection-status">● Live Feed Connected</span>
-            <span class="host-pill">127.0.0.1:8080</span>
-        </div>
-    </header>
-
-    <nav class="tab-bar">
-        <button class="tab-btn active" data-tab="overview">Overview</button>
-        <button class="tab-btn" data-tab="attacks">Attack Matrix</button>
-        <button class="tab-btn" data-tab="events">Live Detection Events</button>
-        <button class="tab-btn" data-tab="benchmarks">JMH Benchmarks</button>
-        <button class="tab-btn" data-tab="scanner">Crypto Scanner</button>
-    </nav>
-
-    <main class="content-container">
-
-        <!-- ── TAB 1: OVERVIEW ── -->
-        <section id="tab-overview" class="tab-content active">
-            <div class="grid-cards">
-                <div class="card metric-card">
-                    <span class="card-icon">&#x2714;</span>
-                    <div class="card-body">
-                        <h3>Tests Passing</h3>
-                        <p class="metric-value text-success">127 / 127</p>
-                        <p class="metric-sub">11 Multi-Module Reactor Subprojects</p>
-                    </div>
-                </div>
-                <div class="card metric-card">
-                    <span class="card-icon">&#x1F6E1;</span>
-                    <div class="card-body">
-                        <h3>Hardened Defences</h3>
-                        <p class="metric-value text-success">10 / 10 Blocked</p>
-                        <p class="metric-sub">Hardened Classical &amp; Hybrid Suites</p>
-                    </div>
-                </div>
-                <div class="card metric-card">
-                    <span class="card-icon">&#x269B;</span>
-                    <div class="card-body">
-                        <h3>Quantum Readiness</h3>
-                        <p class="metric-value text-primary">100% Hybrid</p>
-                        <p class="metric-sub">ML-KEM-768 + ML-DSA-65 (FIPS 203/204)</p>
-                    </div>
-                </div>
-                <div class="card metric-card">
-                    <span class="card-icon">&#x21C6;</span>
-                    <div class="card-body">
-                        <h3>Wire Overhead</h3>
-                        <p class="metric-value text-warning">+12.2x Total</p>
-                        <p class="metric-sub">6,098 B vs 501 B (Sub-ms CPU)</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card banner-card">
-                <h2>System Architecture &amp; Hybrid Migration Summary</h2>
-                <p>
-                    PQC-APS demonstrates the complete transition from vulnerable classical communications (X25519, RSA-2048, AES-256-GCM)
-                    to quantum-resistant hybrid cryptography conforming to NIST FIPS 203 (ML-KEM-768) and NIST FIPS 204 (ML-DSA-65).
-                    The system combines proactive cryptographic inventory scanning, active attack prevention guards, and an empirical performance dashboard.
-                </p>
-                <div class="callout callout-info">
-                    <strong>Honest Performance Evaluation:</strong> Hybrid key encapsulation and dual-signature schemes incur an unavoidable
-                    <strong>~7.7x to 12.2x increase in handshake bandwidth</strong> due to post-quantum public key and signature sizes.
-                    However, in-memory CPU computation overhead remains minimal (&lt; 1.3x), ensuring high-throughput enterprise readiness with forward secrecy against "Harvest Now, Decrypt Later" adversaries.
-                </div>
-            </div>
-
-            <div class="grid-two-columns">
-                <div class="card">
-                    <h3>Suite Comparison Summary</h3>
-                    <table class="table" id="overview-suite-table">
-                        <thead>
-                            <tr>
-                                <th>Suite</th>
-                                <th>Key Exchange</th>
-                                <th>Authentication</th>
-                                <th>Total Handshake</th>
-                                <th>Quantum Forward Secrecy</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>CLASSICAL</strong></td>
-                                <td>ECDH X25519 (32 B)</td>
-                                <td>RSA-2048 (256 B)</td>
-                                <td>501 B</td>
-                                <td><span class="badge badge-danger">Vulnerable (Shor's)</span></td>
-                            </tr>
-                            <tr>
-                                <td><strong>HYBRID</strong></td>
-                                <td>X25519 + ML-KEM-768</td>
-                                <td>ML-DSA-65 (3309 B)</td>
-                                <td>6,098 B</td>
-                                <td><span class="badge badge-success">Quantum Safe + Dual Defense</span></td>
-                            </tr>
-                            <tr>
-                                <td><strong>PQ_ONLY</strong></td>
-                                <td>ML-KEM-768 (1184 B)</td>
-                                <td>ML-DSA-65 (3309 B)</td>
-                                <td>6,009 B</td>
-                                <td><span class="badge badge-success">Full Quantum Safe</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="card">
-                    <h3>Active Defence Telemetry</h3>
-                    <div id="overview-telemetry-box" class="telemetry-box">
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Downgrade Guard:</span>
-                            <span class="telemetry-desc">Strict transcript signature binding offered suites (RFC 8446).</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">MITM Guard:</span>
-                            <span class="telemetry-desc">Fail-closed pinned ML-DSA-65 public key identity validation.</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Replay Guard:</span>
-                            <span class="telemetry-desc">Strict per-direction sequence numbers (recvSeq monotonicity).</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Nonce Guard:</span>
-                            <span class="telemetry-desc">Zero-reuse verification preventing AES-GCM keystream recovery.</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Tamper Guard:</span>
-                            <span class="telemetry-desc">ML-KEM implicit rejection &amp; generic non-oracle error response.</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="telemetry-label">Timing Guard:</span>
-                            <span class="telemetry-desc">Guaranteed constant-time comparison via MessageDigest.isEqual.</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── TAB 2: ATTACK MATRIX ── -->
-        <section id="tab-attacks" class="tab-content">
-            <div class="action-header">
-                <div>
-                    <h2>Phase 4 Security Evaluation Matrix (5 Attacks &times; 3 Modes)</h2>
-                    <p>Click any cell to inspect the forensic evidence line and associated detection event.</p>
-                </div>
-                <button class="btn btn-primary" id="btn-run-attacks">&#x25B6; Run Local Attack Matrix</button>
-            </div>
-
-            <div class="card">
-                <table class="table matrix-table" id="attack-matrix-table">
-                    <thead>
-                        <tr>
-                            <th>Attack Type</th>
-                            <th>CLASSICAL-VULNERABLE</th>
-                            <th>CLASSICAL-HARDENED</th>
-                            <th>HYBRID (Post-Quantum)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attack-matrix-body">
-                        <!-- Populated dynamically via JS -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Detail modal/card for clicked matrix cell -->
-            <div class="card detail-drawer hidden" id="matrix-detail-drawer">
-                <div class="drawer-header">
-                    <h3 id="drawer-title">Cell Evidence Details</h3>
-                    <button class="btn btn-sm btn-secondary" id="btn-close-drawer">&times; Close</button>
-                </div>
-                <div class="drawer-body">
-                    <div class="form-row">
-                        <label>Attack Name:</label>
-                        <span id="detail-attack" class="field-val">-</span>
-                    </div>
-                    <div class="form-row">
-                        <label>Target Mode:</label>
-                        <span id="detail-mode" class="field-val">-</span>
-                    </div>
-                    <div class="form-row">
-                        <label>Outcome:</label>
-                        <span id="detail-outcome" class="field-val">-</span>
-                    </div>
-                    <div class="form-row">
-                        <label>Event ID:</label>
-                        <span id="detail-event-id" class="field-val font-mono">-</span>
-                    </div>
-                    <div class="form-row">
-                        <label>Evidence Line:</label>
-                        <p id="detail-evidence" class="evidence-box">-</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── TAB 3: LIVE EVENTS ── -->
-        <section id="tab-events" class="tab-content">
-            <div class="action-header">
-                <div>
-                    <h2>Live Cryptographic Attack Detection Events</h2>
-                    <p>Real-time telemetry streamed via Server-Sent Events (SSE) from the Attack Engine.</p>
-                </div>
-                <div class="filter-group">
-                    <label for="event-filter">Filter Attack Type:</label>
-                    <select id="event-filter" class="select-input">
-                        <option value="ALL">All Types</option>
-                        <option value="DOWNGRADE">Downgrade</option>
-                        <option value="MITM">MITM</option>
-                        <option value="REPLAY">Replay</option>
-                        <option value="NONCE_REUSE">Nonce Reuse</option>
-                        <option value="TAMPER">Tampering</option>
-                        <option value="TIMING">Timing Side-Channel</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="feed-header">
-                    <span>Recent Detection Events (Latest 50)</span>
-                    <span id="feed-count" class="badge badge-info">0 events</span>
-                </div>
-                <div class="event-feed" id="events-container">
-                    <!-- Dynamic event cards -->
-                </div>
-            </div>
-        </section>
-
-        <!-- ── TAB 4: BENCHMARKS ── -->
-        <section id="tab-benchmarks" class="tab-content">
-            <div class="action-header">
-                <div>
-                    <h2>JMH Performance &amp; Cryptographic Benchmarks</h2>
-                    <p id="machine-info-header">Loading system hardware and runtime environment...</p>
-                </div>
-                <button class="btn btn-secondary" id="btn-refresh-benchmarks">&#x21BB; Refresh Results</button>
-            </div>
-
-            <div class="grid-two-columns">
-                <div class="card">
-                    <h3>Key &amp; Signature Sizes (NIST FIPS 203 / 204)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="chart-sizes"></canvas>
-                        <div id="fallback-sizes" class="chart-fallback hidden"></div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Handshake Wire Sizes (ClientHello, ServerHello, Finished)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="chart-wire"></canvas>
-                        <div id="fallback-wire" class="chart-fallback hidden"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid-two-columns">
-                <div class="card">
-                    <h3>In-Memory Handshake Latency (Microseconds, No Sockets)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="chart-latency"></canvas>
-                        <div id="fallback-latency" class="chart-fallback hidden"></div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>AES-256-GCM Symmetric Throughput (MB/s)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="chart-throughput"></canvas>
-                        <div id="fallback-throughput" class="chart-fallback hidden"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Thread CPU Time per Handshake</h3>
-                <div class="chart-wrapper">
-                    <canvas id="chart-cpu"></canvas>
-                    <div id="fallback-cpu" class="chart-fallback hidden"></div>
-                </div>
-                <p class="footnote" id="cpu-limitation-text"></p>
-            </div>
-        </section>
-
-        <!-- ── TAB 5: CRYPTO SCANNER ── -->
-        <section id="tab-scanner" class="tab-content">
-            <div class="action-header">
-                <div>
-                    <h2>Cryptographic Inventory Scanner (CBOM &amp; Migration Risk)</h2>
-                    <p>Automated quantum vulnerability scanner for source code, configuration files, and TLS endpoints.</p>
-                </div>
-                <div class="target-pills">
-                    <button class="pill-btn active" data-target="vulnerable">Vulnerable App</button>
-                    <button class="pill-btn" data-target="migrated">Migrated App</button>
-                    <button class="pill-btn" data-target="self">Self (PQC-APS)</button>
-                </div>
-            </div>
-
-            <div class="grid-cards">
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <h3>Migration Risk Score</h3>
-                        <p class="metric-value" id="scan-score">-</p>
-                        <p class="metric-sub" id="scan-target-desc">-</p>
-                    </div>
-                </div>
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <h3>Security Grade</h3>
-                        <p class="metric-value" id="scan-grade">-</p>
-                        <p class="metric-sub" id="scan-status-desc">-</p>
-                    </div>
-                </div>
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <h3>Critical &amp; High Findings</h3>
-                        <p class="metric-value text-danger" id="scan-high-count">-</p>
-                        <p class="metric-sub">Quantum breakable algorithms</p>
-                    </div>
-                </div>
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <h3>Total Findings</h3>
-                        <p class="metric-value" id="scan-total-count">-</p>
-                        <p class="metric-sub">Scanned source &amp; config files</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Vulnerability &amp; Migration Findings</h3>
-                <table class="table" id="scanner-findings-table">
-                    <thead>
-                        <tr>
-                            <th>File</th>
-                            <th>Line</th>
-                            <th>Severity</th>
-                            <th>Matched Item</th>
-                            <th>Quantum Risk Category</th>
-                            <th>Score</th>
-                            <th>Remediation Advice</th>
-                        </tr>
-                    </thead>
-                    <tbody id="scanner-findings-body">
-                        <!-- Populated dynamically -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-    </main>
-
-    <footer class="footer">
-        <p>PQC-APS &bull; Post-Quantum Cryptography Migration and Crypto Attack Prevention System &bull; Bound to 127.0.0.1 (Defensive &amp; Demo Use Only)</p>
-    </footer>
+    </div>
 
     <script src="js/dashboard.js"></script>
 </body>

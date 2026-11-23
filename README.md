@@ -41,16 +41,17 @@ mvnw.cmd clean package -DskipTests
 mvnw.cmd verify
 ```
 
-### Run the dashboard
-```bash
-# 1. Start the Spring Boot backend
-mvnw.cmd -pl benchmark-dashboard spring-boot:run
+### Generate All Artifacts
+```powershell
+# Runs 15-cell attack matrix, scans 3 targets, and generates benchmark results
+.\scripts\generate-all.ps1
+```
 
-# 2. In a second terminal, start the React frontend
-cd benchmark-dashboard/frontend
-npm install
-npm run dev
-# Open http://localhost:5173
+### Run the Interactive Dashboard
+```powershell
+# Starts the Spring Boot backend serving the live HTML/JS + Chart.js dashboard
+.\mvnw.cmd spring-boot:run -pl benchmark-dashboard "-Dpqcaps.dataDir=data"
+# Open in browser: http://127.0.0.1:8080
 ```
 
 ---

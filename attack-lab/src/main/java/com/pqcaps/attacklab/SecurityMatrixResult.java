@@ -27,6 +27,17 @@ public record SecurityMatrixResult(
         @JsonProperty("detail") String detail
 ) {
 
+    public SecurityMatrixResult(String attack, String mode, boolean attackSucceeded, String eventId, String detail) {
+        this(attack, mode, attackSucceeded, !attackSucceeded, eventId, detail);
+    }
+
+    public String getAttack() { return attack; }
+    public String getMode() { return mode; }
+    public boolean isAttackSucceeded() { return attackSucceeded; }
+    public boolean isDefenceTriggered() { return defenceTriggered; }
+    public String getEventId() { return eventId; }
+    public String getDetail() { return detail; }
+
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
 
