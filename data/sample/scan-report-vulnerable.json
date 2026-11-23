@@ -1,0 +1,95 @@
+{
+  "scanId": "sample-vuln-001",
+  "target": "samples/vulnerable-app",
+  "timestamp": "2026-11-23T20:56:00Z",
+  "summary": {
+    "totalFindings": 5,
+    "countsBySeverity": {
+      "CRITICAL": 2,
+      "HIGH": 2,
+      "MEDIUM": 1,
+      "LOW": 0,
+      "INFO": 0
+    },
+    "overallScore": 92,
+    "grade": "F",
+    "quantumReadiness": 0.0
+  },
+  "findings": [
+    {
+      "id": "vuln-001-001",
+      "ruleId": "RULE-ASYM-RSA-WEAK",
+      "category": "QUANTUM_VULNERABLE_ASYMMETRIC",
+      "file": "src/main/java/com/example/vuln/LegacyCryptoService.java",
+      "line": 15,
+      "redactedSnippet": "KeyPairGenerator.getInstance(\"RSA\")",
+      "algorithm": "RSA-1024",
+      "quantumVulnerable": true,
+      "severity": "CRITICAL",
+      "riskScore": 95,
+      "explanation": "RSA-1024 is broken by Shor's algorithm on a sufficiently large quantum computer. NIST recommends immediate migration.",
+      "recommendation": "Migrate to ML-KEM-768 for key exchange or ML-DSA-65 for digital signatures (FIPS 203/204).",
+      "migrationTarget": "ML-KEM-768"
+    },
+    {
+      "id": "vuln-001-002",
+      "ruleId": "RULE-HASH-MD5",
+      "category": "BROKEN_PRIMITIVE",
+      "file": "src/main/java/com/example/vuln/LegacyCryptoService.java",
+      "line": 22,
+      "redactedSnippet": "MessageDigest.getInstance(\"MD5\")",
+      "algorithm": "MD5",
+      "quantumVulnerable": true,
+      "severity": "CRITICAL",
+      "riskScore": 90,
+      "explanation": "MD5 is cryptographically broken. Collisions can be found in seconds.",
+      "recommendation": "Replace MD5 with SHA-256 or SHA-384.",
+      "migrationTarget": "SHA-256"
+    },
+    {
+      "id": "vuln-001-003",
+      "ruleId": "RULE-CIPHER-DES",
+      "category": "BROKEN_PRIMITIVE",
+      "file": "src/main/java/com/example/vuln/LegacyCryptoService.java",
+      "line": 30,
+      "redactedSnippet": "Cipher.getInstance(\"DES/CBC/PKCS5Padding\")",
+      "algorithm": "DES",
+      "quantumVulnerable": true,
+      "severity": "HIGH",
+      "riskScore": 85,
+      "explanation": "DES with 56-bit key is exhaustively brute-forced in hours with modern hardware.",
+      "recommendation": "Replace DES with AES-256-GCM.",
+      "migrationTarget": "AES-256-GCM"
+    },
+    {
+      "id": "vuln-001-004",
+      "ruleId": "RULE-SECRET-HARDCODED",
+      "category": "HARDCODED_CREDENTIAL",
+      "file": "src/main/resources/application.properties",
+      "line": 4,
+      "redactedSnippet": "app.jwt.secret = [REDACTED]",
+      "algorithm": "HARDCODED_SECRET",
+      "quantumVulnerable": false,
+      "severity": "HIGH",
+      "riskScore": 75,
+      "explanation": "Hard-coded cryptographic secrets can be extracted from compiled binaries or version history.",
+      "recommendation": "Move secrets to an external vault or environment variables.",
+      "migrationTarget": "HashiCorp Vault / AWS Secrets Manager"
+    },
+    {
+      "id": "vuln-001-005",
+      "ruleId": "RULE-CIPHER-AES-ECB",
+      "category": "INSECURE_MODE",
+      "file": "src/main/java/com/example/vuln/LegacyCryptoService.java",
+      "line": 42,
+      "redactedSnippet": "Cipher.getInstance(\"AES/ECB/PKCS5Padding\")",
+      "algorithm": "AES-ECB",
+      "quantumVulnerable": false,
+      "severity": "MEDIUM",
+      "riskScore": 50,
+      "explanation": "ECB mode leaks patterns: identical plaintext blocks produce identical ciphertext blocks.",
+      "recommendation": "Replace ECB with an authenticated AEAD mode such as AES-256-GCM.",
+      "migrationTarget": "AES-256-GCM"
+    }
+  ]
+}

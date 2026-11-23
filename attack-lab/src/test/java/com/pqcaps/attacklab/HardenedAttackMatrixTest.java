@@ -20,22 +20,16 @@ class HardenedAttackMatrixTest {
 
         SecurityMatrixRunner.printMatrixTable(matrix);
 
-        // Save to attack-results.json for inspection and Phase 6 dashboard
-        File jsonFile = new File("attack-results.json");
+        // Save to data/attack-results.json for inspection and Phase 6 dashboard
+        java.nio.file.Path jsonPath = com.pqcaps.common.DataPaths.resolve("attack-results.json");
+        File jsonFile = jsonPath.toFile();
         SecurityMatrixResult.saveToJson(jsonFile, matrix);
         assertThat(jsonFile).exists();
 
-        // Also ensure copy exists at repo root if running from subproject directory
-        File parentPom = new File("..", "pom.xml");
-        if (parentPom.exists()) {
-            File rootJson = new File("..", "attack-results.json");
-            SecurityMatrixResult.saveToJson(rootJson, matrix);
-            File localEvents = new File("detection-events.jsonl");
-            if (localEvents.exists()) {
-                java.nio.file.Files.copy(localEvents.toPath(), java.nio.file.Path.of("..", "detection-events.jsonl"),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            }
-        }
+        // Step 0 check: Assert attack-results.json has exactly 15 rows (5 attacks x 3 modes)
+        assertThat(matrix).hasSize(15);
+        List<SecurityMatrixResult> loaded = SecurityMatrixResult.loadFromJson(jsonFile);
+        assertThat(loaded).hasSize(15);
 
         List<String> attacks = List.of("Downgrade", "MITM", "Replay", "Nonce Reuse", "Tampering");
 

@@ -18,7 +18,7 @@ import java.util.List;
  */
 public final class AttackLabRunner {
 
-    private static final String DEFAULT_JSON_PATH = "attack-results.json";
+    private static final String DEFAULT_JSON_PATH = com.pqcaps.common.DataPaths.resolve("attack-results.json").toString();
 
     public static void main(String[] args) {
         String target = (args != null && args.length > 0) ? args[0].toLowerCase().trim() : "all";

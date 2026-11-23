@@ -42,7 +42,7 @@ public final class EventLog {
     }
 
     private final List<DetectionEvent> events = new CopyOnWriteArrayList<>();
-    private Path logFilePath = Path.of("detection-events.jsonl");
+    private Path logFilePath = com.pqcaps.common.DataPaths.resolve("detection-events.jsonl");
 
     private EventLog() {}
 

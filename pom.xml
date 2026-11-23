@@ -129,6 +129,11 @@
         <artifactId>jackson-databind</artifactId>
         <version>${jackson.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.datatype</groupId>
+        <artifactId>jackson-datatype-jsr310</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
 
       <!-- Logging -->
       <dependency>
@@ -189,6 +194,11 @@
       <dependency>
         <groupId>com.pqcaps</groupId>
         <artifactId>attack-engine</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pqcaps</groupId>
+        <artifactId>crypto-scanner</artifactId>
         <version>${project.version}</version>
       </dependency>
 

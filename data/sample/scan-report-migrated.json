@@ -1,0 +1,19 @@
+{
+  "scanId": "sample-migrated-001",
+  "target": "samples/migrated-app",
+  "timestamp": "2026-11-23T20:58:00Z",
+  "summary": {
+    "totalFindings": 0,
+    "countsBySeverity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 0,
+      "INFO": 0
+    },
+    "overallScore": 0,
+    "grade": "A",
+    "quantumReadiness": 1.0
+  },
+  "findings": []
+}

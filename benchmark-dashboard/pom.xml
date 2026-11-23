@@ -14,19 +14,15 @@
   <artifactId>benchmark-dashboard</artifactId>
   <name>PQC-APS :: Benchmark Dashboard</name>
   <description>
-    Spring Boot backend (REST + WebSocket) serving JMH benchmark results and
-    live attack-event feeds. Hosts the React/Chart.js dashboard frontend.
+    Spring Boot backend (REST + SSE) serving JMH benchmark results, live attack-event
+    feeds, and crypto scanner reports. Hosts the Chart.js dashboard frontend.
   </description>
 
   <dependencies>
-    <!-- Spring Boot Web + WebSocket -->
+    <!-- Spring Boot Web -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-websocket</artifactId>
     </dependency>
 
     <!-- JMH for in-process benchmarks -->
@@ -41,6 +37,14 @@
     </dependency>
 
     <!-- Our own modules -->
+    <dependency>
+      <groupId>com.pqcaps</groupId>
+      <artifactId>common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.pqcaps</groupId>
+      <artifactId>classical</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.pqcaps</groupId>
       <artifactId>hybrid-kex</artifactId>
@@ -59,6 +63,14 @@
     </dependency>
     <dependency>
       <groupId>com.pqcaps</groupId>
+      <artifactId>attack-lab</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.pqcaps</groupId>
+      <artifactId>crypto-scanner</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.pqcaps</groupId>
       <artifactId>crypto-agility</artifactId>
     </dependency>
 
@@ -66,6 +78,17 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
+    <!-- Testing -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

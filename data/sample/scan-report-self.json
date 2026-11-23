@@ -1,0 +1,65 @@
+{
+  "scanId": "sample-self-001",
+  "target": ". (PQC-APS Root)",
+  "timestamp": "2026-11-23T21:00:00Z",
+  "summary": {
+    "totalFindings": 3,
+    "countsBySeverity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 1
+    },
+    "overallScore": 12,
+    "grade": "A-",
+    "quantumReadiness": 0.88
+  },
+  "findings": [
+    {
+      "id": "self-001-001",
+      "ruleId": "RULE-ASYM-RSA",
+      "category": "CLASSICAL_BASELINE_DEMO",
+      "file": "classical/src/main/java/com/pqcaps/classical/RsaSigner.java",
+      "line": 18,
+      "redactedSnippet": "KeyPairGenerator.getInstance(\"RSA\")",
+      "algorithm": "RSA-2048",
+      "quantumVulnerable": true,
+      "severity": "MEDIUM",
+      "riskScore": 40,
+      "explanation": "RSA-2048 is vulnerable to Shor's algorithm. Used here intentionally as the Phase 1 classical baseline for comparison.",
+      "recommendation": "Preserved intentionally for Phase 1 classical baseline demonstration.",
+      "migrationTarget": "ML-DSA-65"
+    },
+    {
+      "id": "self-001-002",
+      "ruleId": "RULE-ASYM-ECC",
+      "category": "HYBRID_COMPONENT",
+      "file": "classical/src/main/java/com/pqcaps/classical/X25519KeyExchange.java",
+      "line": 15,
+      "redactedSnippet": "KeyPairGenerator.getInstance(\"X25519\")",
+      "algorithm": "X25519",
+      "quantumVulnerable": true,
+      "severity": "LOW",
+      "riskScore": 25,
+      "explanation": "X25519 provides classical ECDH. Combined with ML-KEM-768 in HYBRID mode for post-quantum defense-in-depth.",
+      "recommendation": "Combined in hybrid mode with ML-KEM-768 for post-quantum defense-in-depth.",
+      "migrationTarget": "ML-KEM-768 (hybrid)"
+    },
+    {
+      "id": "self-001-003",
+      "ruleId": "RULE-INFO-AES-256",
+      "category": "SYMMETRIC_QUANTUM_RESISTANT",
+      "file": "classical/src/main/java/com/pqcaps/classical/AesGcmCipher.java",
+      "line": 22,
+      "redactedSnippet": "Cipher.getInstance(\"AES/GCM/NoPadding\")",
+      "algorithm": "AES-256-GCM",
+      "quantumVulnerable": false,
+      "severity": "INFO",
+      "riskScore": 0,
+      "explanation": "AES-256-GCM meets NIST quantum-safe requirements. Grover's halves effective key length to 128-bit, still secure.",
+      "recommendation": "Compliant with Grover's algorithm threshold (256-bit security).",
+      "migrationTarget": "No migration required"
+    }
+  ]
+}

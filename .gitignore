@@ -58,3 +58,9 @@ logs/
 *.tmp
 *.bak
 *.swp
+
+# ── Generated data directory ───────────────────────────────────────────
+data/*
+!data/sample/
+!data/sample/**
+
