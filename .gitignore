@@ -64,3 +64,9 @@ data/*
 !data/sample/
 !data/sample/**
 
+
+*/detection-events.jsonl
+*/attack-results.json
+data/*.json
+data/*.jsonl
+!data/sample/
