@@ -58,6 +58,18 @@ public class DashboardDataService {
         }
     }
 
+    public Map<String, Object> loadTestSummary() {
+        Path path = resolveFile("test-summary.json");
+        if (!Files.exists(path)) {
+            return Map.of("available", false);
+        }
+        try {
+            return mapper.readValue(path.toFile(), new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            return Map.of("available", false);
+        }
+    }
+
     public List<DetectionEvent> loadEvents(int limit) {
         Path path = resolveFile("detection-events.jsonl");
         if (!Files.exists(path)) {

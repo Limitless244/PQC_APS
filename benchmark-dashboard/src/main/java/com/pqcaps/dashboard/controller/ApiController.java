@@ -58,6 +58,11 @@ public class ApiController {
         return dataService.loadBenchmarks();
     }
 
+    @GetMapping("/test-summary")
+    public Map<String, Object> getTestSummary() {
+        return dataService.loadTestSummary();
+    }
+
     @GetMapping(value = "/events/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamEvents() {
         return dataService.registerEmitter();

@@ -91,6 +91,44 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$DataDir/benchmark-results.json")) 
 
 Copy-Item "$DataDir/benchmark-results.json" "$DataDir/sample/benchmark-results.json" -Force
 
+# 4. Generate Test Summary from Surefire Reports
+Write-Host "`n>>> [4/4] Aggregating Surefire Test Reports..."
+$testSummaryFile = "$DataDir/test-summary.json"
+$totalTests = 0
+$failures = 0
+$errors = 0
+$skipped = 0
+
+Get-ChildItem -Path . -Filter "TEST-*.xml" -Recurse | Where-Object { $_.FullName -notmatch "samples" } | ForEach-Object {
+    try {
+        [xml]$xml = Get-Content $_.FullName
+        $totalTests += [int]$xml.testsuite.tests
+        $failures += [int]$xml.testsuite.failures
+        $errors += [int]$xml.testsuite.errors
+        $skipped += [int]$xml.testsuite.skipped
+    } catch {}
+}
+
+if ($totalTests -gt 0) {
+    $passed = $totalTests - $failures - $errors - $skipped
+    $summaryObj = [PSCustomObject]@{
+        available = $true
+        totalTests = $totalTests
+        passed = $passed
+        failures = $failures
+        errors = $errors
+        skipped = $skipped
+        moduleCount = 10
+        caption = "Across 10 modules"
+        timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    }
+    $summaryObj | ConvertTo-Json -Depth 4 | Set-Content $testSummaryFile -Encoding UTF8
+    Copy-Item $testSummaryFile "$DataDir/sample/test-summary.json" -Force
+    Write-Host "Test summary generated: $totalTests tests ($passed passed, $failures failed) across 10 modules."
+} else {
+    Write-Host "Notice: No surefire reports found; test-summary.json not generated."
+}
+
 Write-Host "`n=========================================================================="
 Write-Host "  PQC-APS :: All Artifacts Successfully Generated in $DataDir"
 Write-Host "=========================================================================="

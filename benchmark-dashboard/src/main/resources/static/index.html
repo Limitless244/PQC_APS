@@ -74,16 +74,16 @@
                             <span class="card-icon">&#x2714;</span>
                             <div class="card-body">
                                 <h3>Total Reactor Tests</h3>
-                                <p class="metric-value text-success">127 / 127 Passing</p>
-                                <p class="metric-sub">Across 11 Maven Submodules</p>
+                                <p class="metric-value text-secondary" id="overview-tests-value">not available</p>
+                                <p class="metric-sub" id="overview-tests-caption">Across 10 modules</p>
                             </div>
                         </div>
                         <div class="card metric-card">
                             <span class="card-icon">&#x1F6E1;</span>
                             <div class="card-body">
                                 <h3>Attack Matrix Coverage</h3>
-                                <p class="metric-value text-success">15 / 15 Cells Evaluated</p>
-                                <p class="metric-sub">5 Attacks &times; 3 Modes Verified</p>
+                                <p class="metric-value text-secondary" id="overview-matrix-value">not available</p>
+                                <p class="metric-sub" id="overview-matrix-sub">Attack Simulation Matrix</p>
                             </div>
                         </div>
                         <div class="card metric-card">
@@ -98,8 +98,8 @@
                             <span class="card-icon">&#x26A1;</span>
                             <div class="card-body">
                                 <h3>Symmetric Throughput</h3>
-                                <p class="metric-value text-primary">&gt; 1,200 MB/s</p>
-                                <p class="metric-sub">AES-256-GCM AEAD Record Layer</p>
+                                <p class="metric-value text-secondary" id="overview-throughput-value">not available</p>
+                                <p class="metric-sub" id="overview-throughput-sub">AES-256-GCM AEAD Record Layer</p>
                             </div>
                         </div>
                     </div>
@@ -272,28 +272,28 @@
                             </div>
                         </div>
                         <div id="comparison-callout" class="callout callout-warning">
-                            <strong>Bandwidth Cost:</strong> HYBRID incurs ~7.8x total handshake wire overhead (6,433 B vs 820 B serialized, matching WireSizeComparisonTest) and ~12.2x on raw key material (6,098 B vs 501 B) due to ML-KEM-768 encapsulation key (1,184 B) and ML-DSA-65 signature (3,309 B). In exchange, it guarantees post-quantum forward secrecy with sub-millisecond CPU overhead.
+                            Loading comparative cost analysis...
                         </div>
                         <div class="comparison-grid">
                             <div class="metric-box">
                                 <h4>Total Handshake Wire</h4>
-                                <p id="comp-wire" class="metric-value">6,433 B vs 820 B</p>
-                                <span id="comp-wire-ratio" class="badge badge-warning">7.8x Wire Overhead (12.2x Key Material)</span>
+                                <p id="comp-wire" class="metric-value">-</p>
+                                <span id="comp-wire-ratio" class="badge badge-warning">-</span>
                             </div>
                             <div class="metric-box">
                                 <h4>Public Key Size</h4>
-                                <p id="comp-pk" class="metric-value">1,184 B vs 32 B</p>
-                                <span class="badge badge-warning">37x Overhead</span>
+                                <p id="comp-pk" class="metric-value">-</p>
+                                <span id="comp-pk-ratio" class="badge badge-warning">-</span>
                             </div>
                             <div class="metric-box">
                                 <h4>Signature Size</h4>
-                                <p id="comp-sig" class="metric-value">3,309 B vs 256 B</p>
-                                <span class="badge badge-warning">12.9x Overhead</span>
+                                <p id="comp-sig" class="metric-value">-</p>
+                                <span id="comp-sig-ratio" class="badge badge-warning">-</span>
                             </div>
                             <div class="metric-box">
                                 <h4>Handshake CPU Overhead</h4>
-                                <p id="comp-cpu" class="metric-value">~1.25x</p>
-                                <span class="badge badge-success">Negligible CPU Cost</span>
+                                <p id="comp-cpu" class="metric-value">-</p>
+                                <span id="comp-cpu-badge" class="badge badge-success">-</span>
                             </div>
                         </div>
                     </div>

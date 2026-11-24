@@ -118,6 +118,38 @@ class ApiControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/test-summary returns dynamic test summary when available")
+    void getTestSummary_whenAvailable_returnsSummary() throws Exception {
+        Mockito.when(dataService.loadTestSummary()).thenReturn(Map.of(
+                "available", true,
+                "totalTests", 166,
+                "passed", 166,
+                "failures", 0,
+                "errors", 0,
+                "skipped", 0,
+                "moduleCount", 10,
+                "caption", "Across 10 modules"
+        ));
+
+        mockMvc.perform(get("/api/test-summary").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(true))
+                .andExpect(jsonPath("$.totalTests").value(166))
+                .andExpect(jsonPath("$.passed").value(166))
+                .andExpect(jsonPath("$.caption").value("Across 10 modules"));
+    }
+
+    @Test
+    @DisplayName("GET /api/test-summary returns available=false when file missing")
+    void getTestSummary_whenMissing_returnsNotAvailable() throws Exception {
+        Mockito.when(dataService.loadTestSummary()).thenReturn(Map.of("available", false));
+
+        mockMvc.perform(get("/api/test-summary").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(false));
+    }
+
+    @Test
     @DisplayName("GET /api/events/stream returns text/event-stream content type")
     void getEventsStream_returnsSseContentType() throws Exception {
         Mockito.when(dataService.registerEmitter())
