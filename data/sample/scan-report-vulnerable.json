@@ -1,7 +1,7 @@
 {
-  "scanId" : "dbbaaa59-710e-42a2-bd7a-a31be91649bd",
+  "scanId" : "8dfc6c9d-9008-4f53-8205-de214ab5f45b",
   "target" : "Directory: samples/vulnerable-app",
-  "timestamp" : "2026-11-24T05:04:09.129068200Z",
+  "timestamp" : "2026-11-24T08:29:42.009967200Z",
   "summary" : {
     "totalFindings" : 16,
     "countsBySeverity" : {
@@ -17,7 +17,7 @@
     "quantumReadiness" : 0.0
   },
   "findings" : [ {
-    "id" : "963d3d37-ec12-4b44-813d-eaab6262e63a",
+    "id" : "862fd7d1-decc-4198-867d-fde3eb3f0a28",
     "ruleId" : "RULE-RC4-BLOWFISH",
     "category" : "CIPHER_BROKEN",
     "file" : "legacy_service.py",
@@ -31,7 +31,7 @@
     "recommendation" : "Replace immediately with AES-256-GCM or ChaCha20-Poly1305.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "8041937f-6183-4b2d-aeca-702c546cd4da",
+    "id" : "5cdf44c8-6a88-48c6-885f-36aa9299931a",
     "ruleId" : "RULE-RC4-BLOWFISH",
     "category" : "CIPHER_BROKEN",
     "file" : "legacy_service.py",
@@ -45,7 +45,7 @@
     "recommendation" : "Replace immediately with AES-256-GCM or ChaCha20-Poly1305.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "92f83b43-e3bc-4986-bfff-32c7660ea022",
+    "id" : "79779cd5-f69c-4e9e-b174-d85d8a311681",
     "ruleId" : "RULE-RSA-WEAK",
     "category" : "CIPHER_BROKEN",
     "file" : "src/main/java/com/example/vulnerable/VulnerableCrypto.java",
@@ -59,7 +59,7 @@
     "recommendation" : "Upgrade immediately to ML-KEM-768/ML-DSA-65, or minimum RSA-3072 as a temporary classical measure.",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "47569717-5381-4d86-852b-9a2567aab12d",
+    "id" : "6c50250f-78ab-4bea-9e99-96b1c3d004ff",
     "ruleId" : "RULE-DES-3DES",
     "category" : "CIPHER_BROKEN",
     "file" : "src/main/java/com/example/vulnerable/VulnerableCrypto.java",
@@ -73,7 +73,7 @@
     "recommendation" : "Migrate to AES-256-GCM (Authenticated Encryption with Associated Data).",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "add2c42e-b31c-4b53-bbdf-1ffe4e37d832",
+    "id" : "9ea9488a-f6a7-4e5b-a13c-a6625f8db38b",
     "ruleId" : "RULE-AES-ECB",
     "category" : "CIPHER_BROKEN",
     "file" : "src/main/java/com/example/vulnerable/VulnerableCrypto.java",
@@ -87,7 +87,7 @@
     "recommendation" : "Use AES-GCM or AES-CBC with HMAC; prefer authenticated AEAD ciphers.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "74c1c751-4221-4947-9310-13809de889fc",
+    "id" : "3a846b1c-3b12-422c-8579-1b4f53aed058",
     "ruleId" : "RULE-HARDCODED-SECRET",
     "category" : "SECRET_HARDCODED",
     "file" : "app-config.yml",
@@ -101,7 +101,7 @@
     "recommendation" : "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately.",
     "migrationTarget" : "Environment Variable / Hardware Security Module / Vault"
   }, {
-    "id" : "fa1a50b9-5fd5-428e-b5c8-5b9ccadecf9f",
+    "id" : "e1f856f5-2ad2-43a3-baa1-7edb074359c5",
     "ruleId" : "RULE-HARDCODED-SECRET",
     "category" : "SECRET_HARDCODED",
     "file" : "legacy_service.py",
@@ -115,7 +115,7 @@
     "recommendation" : "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately.",
     "migrationTarget" : "Environment Variable / Hardware Security Module / Vault"
   }, {
-    "id" : "52fa78e8-2bd4-4a64-81a3-07be85084af3",
+    "id" : "be0eca4d-ad75-4e25-9964-b0158204d6df",
     "ruleId" : "RULE-HARDCODED-SECRET",
     "category" : "SECRET_HARDCODED",
     "file" : "src/main/java/com/example/vulnerable/VulnerableCrypto.java",
@@ -129,7 +129,7 @@
     "recommendation" : "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately.",
     "migrationTarget" : "Environment Variable / Hardware Security Module / Vault"
   }, {
-    "id" : "395e21c8-8829-4886-9727-c7395209d19c",
+    "id" : "4f8d8f21-e28e-4ad4-9af0-57a1c8db30e1",
     "ruleId" : "RULE-HARDCODED-SECRET",
     "category" : "SECRET_HARDCODED",
     "file" : "test-private.pem",
@@ -143,7 +143,7 @@
     "recommendation" : "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately.",
     "migrationTarget" : "Environment Variable / Hardware Security Module / Vault"
   }, {
-    "id" : "30d0595a-1453-4022-baa8-12b11aa142fa",
+    "id" : "0dffa48a-5bf1-47d3-b5bf-472f5112d406",
     "ruleId" : "RULE-WEAK-RNG",
     "category" : "RNG_WEAK",
     "file" : "src/main/java/com/example/vulnerable/VulnerableCrypto.java",
@@ -157,7 +157,7 @@
     "recommendation" : "Always use java.security.SecureRandom for keys, nonces, IVs, salts, and session tokens.",
     "migrationTarget" : "java.security.SecureRandom"
   }, {
-    "id" : "e4a7801c-d1e6-4b43-a541-e5a9f3c8e8cf",
+    "id" : "7992f225-1328-4a39-b82b-e0a171543475",
     "ruleId" : "RULE-MD5",
     "category" : "HASH_BROKEN",
     "file" : "app-config.yml",
@@ -171,7 +171,7 @@
     "recommendation" : "Replace with SHA-256, SHA-384, or SHA3-256.",
     "migrationTarget" : "SHA-256 / SHA-384"
   }, {
-    "id" : "84feae13-3593-452f-8662-54f861e98e13",
+    "id" : "a75ab6e7-b716-4ad4-a331-2ea7ceec3510",
     "ruleId" : "RULE-MD5",
     "category" : "HASH_BROKEN",
     "file" : "legacy_service.py",
@@ -185,7 +185,7 @@
     "recommendation" : "Replace with SHA-256, SHA-384, or SHA3-256.",
     "migrationTarget" : "SHA-256 / SHA-384"
   }, {
-    "id" : "faaba1d3-7597-48bf-9cbc-d9fc23be4d4c",
+    "id" : "08beab33-e497-40ad-a396-421623256c2d",
     "ruleId" : "RULE-MD5",
     "category" : "HASH_BROKEN",
     "file" : "legacy_service.py",
@@ -199,7 +199,7 @@
     "recommendation" : "Replace with SHA-256, SHA-384, or SHA3-256.",
     "migrationTarget" : "SHA-256 / SHA-384"
   }, {
-    "id" : "615f2356-99b9-45fe-a2c1-3e5f79eace13",
+    "id" : "c12d3718-428d-46ed-b850-2778daed228b",
     "ruleId" : "RULE-MD5",
     "category" : "HASH_BROKEN",
     "file" : "src/main/java/com/example/vulnerable/VulnerableCrypto.java",
@@ -213,7 +213,7 @@
     "recommendation" : "Replace with SHA-256, SHA-384, or SHA3-256.",
     "migrationTarget" : "SHA-256 / SHA-384"
   }, {
-    "id" : "1c6df2bb-4fcc-4db8-9f1b-b777653cbbc1",
+    "id" : "cb971975-8aeb-4e46-aa0b-b44a2ab2bdad",
     "ruleId" : "RULE-AES128",
     "category" : "SYMMETRIC_INFO",
     "file" : "app-config.yml",
@@ -227,7 +227,7 @@
     "recommendation" : "Upgrade to AES-256 for long-term data protection to retain 128-bit post-quantum security margin.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "c7a9cc00-8335-4b40-a02e-24f579336a4c",
+    "id" : "5f614c0c-21a1-43d3-a7fc-49b357c253ca",
     "ruleId" : "RULE-AES128",
     "category" : "SYMMETRIC_INFO",
     "file" : "src/main/java/com/example/vulnerable/VulnerableCrypto.java",

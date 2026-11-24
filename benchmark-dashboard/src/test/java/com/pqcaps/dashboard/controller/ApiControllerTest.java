@@ -207,13 +207,14 @@ class ApiControllerTest {
     @DisplayName("POST /api/handshake/run with valid suite returns result")
     void runHandshake_validSuite_returnsResult() throws Exception {
         HandshakeVisualizerService.HandshakeVisualizerResult fakeRes =
-                new HandshakeVisualizerService.HandshakeVisualizerResult("HYBRID", Collections.<HandshakeStepEvent>emptyList(), 6098, 5000000L, 5.0, "SECURE");
+                new HandshakeVisualizerService.HandshakeVisualizerResult("HYBRID", Collections.<HandshakeStepEvent>emptyList(), 6433, 6098, 5000000L, 5.0, 0.0, "SECURE");
         Mockito.when(visualizerService.executeHandshake("HYBRID")).thenReturn(fakeRes);
 
         mockMvc.perform(post("/api/handshake/run").param("suite", "HYBRID"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.suite", is("HYBRID")))
-                .andExpect(jsonPath("$.totalWireBytes", is(6098)))
+                .andExpect(jsonPath("$.totalWireBytes", is(6433)))
+                .andExpect(jsonPath("$.payloadBytes", is(6098)))
                 .andExpect(jsonPath("$.outcome", is("SECURE")));
     }
 

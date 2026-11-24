@@ -1,7 +1,7 @@
 {
-  "scanId" : "7049aec8-0843-43cd-b066-2458519b1a36",
+  "scanId" : "393cac7e-c37c-4104-bd40-3e874011fe82",
   "target" : "Directory: samples/migrated-app",
-  "timestamp" : "2026-11-24T05:04:09.646362800Z",
+  "timestamp" : "2026-11-24T08:29:42.601243200Z",
   "summary" : {
     "totalFindings" : 2,
     "countsBySeverity" : {
@@ -17,7 +17,7 @@
     "quantumReadiness" : 100.0
   },
   "findings" : [ {
-    "id" : "b4618f3d-3dc0-4059-9b99-8a8b0109abd9",
+    "id" : "b0b4b8dd-c840-4e08-8356-6a624b452841",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "src/main/java/com/example/migrated/ModernCrypto.java",
@@ -31,7 +31,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "61d27647-408d-4943-9996-f5bff9abd327",
+    "id" : "d16274ed-0acc-4ad5-90c0-53c3848b8319",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "src/main/java/com/example/migrated/ModernCrypto.java",

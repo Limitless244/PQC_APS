@@ -29,7 +29,17 @@ public class ChatDemoService {
             String attackerView,
             String bobOutcome,
             String mode
-    ) {}
+    ) {
+        /**
+         * Returns the actual decrypted plaintext seen by the attacker in CLASSICAL-VULNERABLE mode.
+         */
+        public String attackerPlaintext() {
+            if (attackerView != null && attackerView.startsWith("[MITM Intercepted Plaintext]: \"")) {
+                return attackerView.substring("[MITM Intercepted Plaintext]: \"".length(), attackerView.length() - 1);
+            }
+            return attackerView;
+        }
+    }
 
     public record AttackerActionResult(
             String action,
@@ -106,9 +116,17 @@ public class ChatDemoService {
             // Attacker observation
             String attackerView;
             if ("CLASSICAL-VULNERABLE".equals(currentMode) && attackerCompromisedKeys != null) {
-                // MITM decrypts and sees plaintext
-                byte[] intercepted = cipher.decrypt(attackerCompromisedKeys.clientToServer(), nonce, aad, ct);
-                attackerView = "[MITM Intercepted Plaintext]: \"" + new String(intercepted, StandardCharsets.UTF_8) + "\"";
+                // VULN-4: Missing client key pinning allows the on-path MITM to terminate the handshake
+                // with both client and server, obtaining session keys. The attacker intercepts the captured
+                // on-wire EncryptedRecord and genuinely decrypts it using AES-GCM without hardcoded strings.
+                byte[] intercepted = cipher.decrypt(
+                        attackerCompromisedKeys.clientToServer(),
+                        record.nonce(),
+                        ClassicalSecureChannel.buildAad(record.sequenceNumber()),
+                        record.ciphertext()
+                );
+                String actualDecryptedPlaintext = new String(intercepted, StandardCharsets.UTF_8);
+                attackerView = "[MITM Intercepted Plaintext]: \"" + actualDecryptedPlaintext + "\"";
             } else {
                 // Hybrid/Hardened: Attacker only sees encrypted ciphertext bytes
                 attackerView = "[Encrypted Record seq=" + seq + "]: " + ctHexTruncated + " (" + ct.length + " bytes ciphertext)";

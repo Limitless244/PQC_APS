@@ -10,14 +10,14 @@
   "mode" : "CLASSICAL-HARDENED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "21fc7bc2-98fb-4e0c-a3b0-a7ff42bb4957",
+  "eventId" : "f44998a1-0450-4b62-8732-9fa216420878",
   "detail" : "ClientHello suites stripped -> signature verification over transcript failed, suite tampering blocked"
 }, {
   "attack" : "Downgrade",
   "mode" : "HYBRID",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "e1d9d20f-67a5-4128-b792-b3fd53c8e57f",
+  "eventId" : "e5af09b5-4faf-4dd1-94a4-dfed998567d3",
   "detail" : "ClientHello suites stripped -> ML-DSA-65 signed transcript mismatch, downgrade blocked"
 }, {
   "attack" : "MITM",
@@ -31,14 +31,14 @@
   "mode" : "CLASSICAL-HARDENED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "2d28f9ea-656c-47d9-b11e-ca2afea89379",
+  "eventId" : "1756da24-da38-441c-a246-f9c26567325e",
   "detail" : "Rogue server presented untrusted RSA key -> pinned key check failed, rogue server rejected"
 }, {
   "attack" : "MITM",
   "mode" : "HYBRID",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "3055df6c-1569-4094-bbe1-4aad9efd9e08",
+  "eventId" : "eddec2a5-4c83-490e-ae06-18f5155d9c29",
   "detail" : "Rogue server presented unpinned ML-DSA-65 key -> signature verification against pinned key failed"
 }, {
   "attack" : "Replay",
@@ -52,14 +52,14 @@
   "mode" : "CLASSICAL-HARDENED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "dd4b7894-39d3-4fc7-a0e5-909e0a036a16",
+  "eventId" : "dfd257ec-aba9-43c2-9a5c-5d7d36c29718",
   "detail" : "Record seq=0 re-sent -> rejected duplicate sequence number by ReplayGuard"
 }, {
   "attack" : "Replay",
   "mode" : "HYBRID",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "f50011b1-3950-43ed-92e8-783bf95a85f4",
+  "eventId" : "ffac05aa-78fd-4bc8-8786-f6d6f9309e9f",
   "detail" : "Record seq=0 re-sent -> rejected by ReplayGuard"
 }, {
   "attack" : "Nonce Reuse",
@@ -73,14 +73,14 @@
   "mode" : "CLASSICAL-HARDENED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "72d8a347-19ff-438c-93de-c73e5d2035fb",
+  "eventId" : "b4807061-e3cc-4587-87bc-e112b2d2465a",
   "detail" : "Attempted nonce counter reset -> reset refused by NonceGuard"
 }, {
   "attack" : "Nonce Reuse",
   "mode" : "HYBRID",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "1d01d692-10cb-4d63-9b4b-8c4f31d6bf5d",
+  "eventId" : "1210c637-b394-4676-bcb1-34230dff15e8",
   "detail" : "Duplicate nonce presented -> blocked by NonceManager"
 }, {
   "attack" : "Tampering",
@@ -94,13 +94,13 @@
   "mode" : "CLASSICAL-HARDENED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "c186b954-5b24-47aa-934d-7d37290e61b2",
+  "eventId" : "1cd4e153-01e8-40a2-997f-faa1dbc9ce4e",
   "detail" : "Ciphertext bit flipped -> TamperGuard caught tag mismatch"
 }, {
   "attack" : "Tampering",
   "mode" : "HYBRID",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "9831ccc6-7745-4944-b2ee-c10b12a6ff13",
+  "eventId" : "2dfdfdc0-7cea-4250-8088-a4b4036fa957",
   "detail" : "ML-KEM ciphertext bit flipped -> Finished verification failed via implicit rejection"
 } ]

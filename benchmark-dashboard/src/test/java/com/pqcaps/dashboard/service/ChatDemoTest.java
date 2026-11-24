@@ -92,6 +92,40 @@ class ChatDemoTest {
     }
 
     @Test
+    @DisplayName("In CLASSICAL-VULNERABLE mode with active MITM, attacker panel shows readable plaintext")
+    void classicalVulnerableMitmShowsReadablePlaintext() {
+        chatService.initSession("CLASSICAL-VULNERABLE");
+        String secretMessage = "DynamicTransfer-" + java.util.UUID.randomUUID();
+        ChatDemoService.ChatSendResult res = chatService.sendMessage(secretMessage);
+
+        assertThat(res.attackerView()).contains("[MITM Intercepted Plaintext]: \"" + secretMessage + "\"");
+        assertThat(res.attackerView()).contains(secretMessage);
+        assertThat(res.attackerPlaintext()).isEqualTo(secretMessage);
+    }
+
+    @Test
+    @DisplayName("In CLASSICAL-VULNERABLE mode, sends two different random messages and asserts attacker view equals each")
+    void classicalVulnerableMitmDecryptsDynamicRandomMessages() {
+        chatService.initSession("CLASSICAL-VULNERABLE");
+
+        // Two distinct random messages (no fixed strings)
+        String msg1 = "RandomMsg-1-" + java.util.UUID.randomUUID();
+        String msg2 = "RandomMsg-2-" + java.util.UUID.randomUUID();
+
+        assertThat(msg1).isNotEqualTo(msg2);
+
+        // Send first random message
+        ChatDemoService.ChatSendResult res1 = chatService.sendMessage(msg1);
+        assertThat(res1.attackerView()).isEqualTo("[MITM Intercepted Plaintext]: \"" + msg1 + "\"");
+        assertThat(res1.attackerPlaintext()).isEqualTo(msg1);
+
+        // Send second random message
+        ChatDemoService.ChatSendResult res2 = chatService.sendMessage(msg2);
+        assertThat(res2.attackerView()).isEqualTo("[MITM Intercepted Plaintext]: \"" + msg2 + "\"");
+        assertThat(res2.attackerPlaintext()).isEqualTo(msg2);
+    }
+
+    @Test
     @DisplayName("Invalid mode throws IllegalArgumentException")
     void invalidModeThrowsException() {
         assertThatThrownBy(() -> chatService.initSession("QUANTUM_BROKEN"))

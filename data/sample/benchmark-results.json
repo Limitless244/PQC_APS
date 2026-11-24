@@ -6,7 +6,7 @@
     "osName" : "Windows 11",
     "osArch" : "amd64",
     "cpuCores" : 16,
-    "timestamp" : "2026-11-24T05:04:12.632580400Z"
+    "timestamp" : "2026-11-24T08:29:45.663309700Z"
   },
   "sizes" : [ {
     "category" : "PRIMITIVE_KEY",
@@ -159,98 +159,98 @@
   "latency" : [ {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "X25519",
-    "avgMicroseconds" : 620.75,
-    "p95Microseconds" : 924.5
+    "avgMicroseconds" : 700.56,
+    "p95Microseconds" : 1035.5
   }, {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "ML-KEM-768",
-    "avgMicroseconds" : 273.84,
-    "p95Microseconds" : 387.9
+    "avgMicroseconds" : 213.08,
+    "p95Microseconds" : 321.5
   }, {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "ML-DSA-65",
-    "avgMicroseconds" : 568.38,
-    "p95Microseconds" : 1053.2
+    "avgMicroseconds" : 677.46,
+    "p95Microseconds" : 990.5
   }, {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "RSA-2048",
-    "avgMicroseconds" : 79722.63,
-    "p95Microseconds" : 177321.8
+    "avgMicroseconds" : 64283.98,
+    "p95Microseconds" : 110032.1
   }, {
     "operation" : "encapsulate",
     "suiteOrAlgorithm" : "ML-KEM-768",
-    "avgMicroseconds" : 341.28,
-    "p95Microseconds" : 548.2
+    "avgMicroseconds" : 281.42,
+    "p95Microseconds" : 464.8
   }, {
     "operation" : "decapsulate",
     "suiteOrAlgorithm" : "ML-KEM-768",
-    "avgMicroseconds" : 277.21,
-    "p95Microseconds" : 547.4
+    "avgMicroseconds" : 211.98,
+    "p95Microseconds" : 420.2
   }, {
     "operation" : "sign",
     "suiteOrAlgorithm" : "RSA-2048",
-    "avgMicroseconds" : 926.75,
-    "p95Microseconds" : 1336.5
+    "avgMicroseconds" : 790.14,
+    "p95Microseconds" : 856.0
   }, {
     "operation" : "verify",
     "suiteOrAlgorithm" : "RSA-2048",
-    "avgMicroseconds" : 66.67,
-    "p95Microseconds" : 111.9
+    "avgMicroseconds" : 54.45,
+    "p95Microseconds" : 99.1
   }, {
     "operation" : "sign",
     "suiteOrAlgorithm" : "ML-DSA-65",
-    "avgMicroseconds" : 1021.91,
-    "p95Microseconds" : 1408.7
+    "avgMicroseconds" : 715.82,
+    "p95Microseconds" : 930.1
   }, {
     "operation" : "verify",
     "suiteOrAlgorithm" : "ML-DSA-65",
-    "avgMicroseconds" : 229.21,
-    "p95Microseconds" : 418.3
+    "avgMicroseconds" : 216.39,
+    "p95Microseconds" : 371.7
   }, {
     "operation" : "handshake",
     "suiteOrAlgorithm" : "CLASSICAL",
-    "avgMicroseconds" : 1617.38,
-    "p95Microseconds" : 2113.0
+    "avgMicroseconds" : 1507.33,
+    "p95Microseconds" : 1944.7
   }, {
     "operation" : "handshake",
     "suiteOrAlgorithm" : "HYBRID",
-    "avgMicroseconds" : 1599.49,
-    "p95Microseconds" : 2548.5
+    "avgMicroseconds" : 1638.49,
+    "p95Microseconds" : 2331.2
   }, {
     "operation" : "handshake",
     "suiteOrAlgorithm" : "PQ_ONLY",
-    "avgMicroseconds" : 976.54,
-    "p95Microseconds" : 1832.5
+    "avgMicroseconds" : 944.62,
+    "p95Microseconds" : 1684.8
   } ],
   "cpu" : [ {
     "suite" : "CLASSICAL",
-    "avgCpuMicroseconds" : 1406.25,
-    "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
-  }, {
-    "suite" : "HYBRID",
     "avgCpuMicroseconds" : 1250.0,
     "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
   }, {
+    "suite" : "HYBRID",
+    "avgCpuMicroseconds" : 1406.25,
+    "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
+  }, {
     "suite" : "PQ_ONLY",
-    "avgCpuMicroseconds" : 1093.75,
+    "avgCpuMicroseconds" : 937.5,
     "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
   } ],
   "throughput" : [ {
     "recordSize" : "1 KB",
     "operation" : "Encrypt",
-    "throughputMBps" : 39.9
+    "throughputMBps" : 46.1
   }, {
     "recordSize" : "1 KB",
     "operation" : "Decrypt",
-    "throughputMBps" : 134.2
+    "throughputMBps" : 133.7
   }, {
     "recordSize" : "64 KB",
     "operation" : "Encrypt",
-    "throughputMBps" : 2248.1
+    "throughputMBps" : 927.2
   }, {
     "recordSize" : "64 KB",
     "operation" : "Decrypt",
-    "throughputMBps" : 2351.2
+    "throughputMBps" : 2627.6
   } ],
   "summary" : {
     "handshakeWireOverheadRatio" : 7.85,

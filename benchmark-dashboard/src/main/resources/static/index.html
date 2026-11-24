@@ -167,11 +167,17 @@
                             <h3>Handshake Telemetry</h3>
                             <div class="summary-metric">
                                 <span class="summary-label">Total Wire Bytes:</span>
-                                <span id="hs-total-bytes" class="summary-value font-mono">0 B</span>
+                                <div>
+                                    <span id="hs-total-bytes" class="summary-value font-mono">0 B</span>
+                                    <div id="hs-payload-bytes" class="text-secondary" style="font-size: 0.8rem; margin-top: 2px;">(payload before framing: 0 B)</div>
+                                </div>
                             </div>
                             <div class="summary-metric">
                                 <span class="summary-label">Elapsed Time:</span>
-                                <span id="hs-elapsed-time" class="summary-value font-mono">0.00 ms</span>
+                                <div>
+                                    <span id="hs-elapsed-time" class="summary-value font-mono">0.00 ms</span>
+                                    <div id="hs-time-breakdown" class="text-secondary" style="font-size: 0.8rem; margin-top: 2px;">crypto time (animation delay excluded; 1st run includes JIT warm-up)</div>
+                                </div>
                             </div>
                             <div class="summary-metric">
                                 <span class="summary-label">Selected Suite:</span>

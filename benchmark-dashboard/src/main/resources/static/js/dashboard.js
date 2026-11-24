@@ -269,7 +269,9 @@ function initHandshakeVisualizer() {
         const arrowsContainer = document.getElementById('handshake-arrows');
         const statusEl = document.getElementById('hs-session-status');
         const bytesEl = document.getElementById('hs-total-bytes');
+        const payloadEl = document.getElementById('hs-payload-bytes');
         const timeEl = document.getElementById('hs-elapsed-time');
+        const timeBreakdownEl = document.getElementById('hs-time-breakdown');
         const selectedSuiteEl = document.getElementById('hs-selected-suite');
 
         runBtn.disabled = true;
@@ -280,6 +282,10 @@ function initHandshakeVisualizer() {
             statusEl.className = 'summary-value text-warning';
         }
         if (selectedSuiteEl) selectedSuiteEl.textContent = suite;
+        if (bytesEl) bytesEl.textContent = '0 B';
+        if (payloadEl) payloadEl.textContent = '(payload before framing: 0 B)';
+        if (timeEl) timeEl.textContent = '0.00 ms';
+        if (timeBreakdownEl) timeBreakdownEl.textContent = 'measuring crypto time...';
 
         try {
             const es = new EventSource('/api/handshake/stream?suite=' + encodeURIComponent(suite));
@@ -294,8 +300,15 @@ function initHandshakeVisualizer() {
             es.addEventListener('complete', (e) => {
                 try {
                     const res = JSON.parse(e.data);
-                    if (bytesEl) bytesEl.textContent = res.totalWireBytes + ' B';
-                    if (timeEl) timeEl.textContent = res.elapsedMillis + ' ms';
+                    if (bytesEl) bytesEl.textContent = Number(res.totalWireBytes).toLocaleString() + ' B';
+                    if (payloadEl && res.payloadBytes != null) {
+                        payloadEl.textContent = '(payload before framing: ' + Number(res.payloadBytes).toLocaleString() + ' B)';
+                    }
+                    if (timeEl) timeEl.textContent = Number(res.elapsedMillis).toFixed(2) + ' ms';
+                    if (timeBreakdownEl) {
+                        const anim = res.displayMillis > 0 ? ` + ${Math.round(res.displayMillis)} ms animation delay` : '';
+                        timeBreakdownEl.textContent = `crypto execution time${anim} (first run includes JIT warm-up)`;
+                    }
                     if (statusEl) {
                         statusEl.textContent = '\u2714 SECURE';
                         statusEl.className = 'summary-value text-success font-bold';
@@ -883,6 +896,17 @@ function initSecureChatDemo() {
         });
     }
 
+    if (modeSelect) {
+        modeSelect.addEventListener('change', () => {
+            const mode = modeSelect.value;
+            fetch('/api/chat/init?mode=' + encodeURIComponent(mode), { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    resetChatPanels(data.mode);
+                });
+        });
+    }
+
     if (sendBtn && inputEl) {
         sendBtn.addEventListener('click', () => {
             const msg = inputEl.value.trim();
@@ -971,6 +995,10 @@ function logAttackerIntercept(text) {
     if (!log) return;
     const div = document.createElement('div');
     div.style.marginBottom = '6px';
+    if (text && text.includes('[MITM Intercepted Plaintext]')) {
+        div.style.color = '#f85149';
+        div.style.fontWeight = 'bold';
+    }
     div.textContent = text;
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;

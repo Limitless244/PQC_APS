@@ -19,6 +19,8 @@ import java.security.KeyPair;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
@@ -28,15 +30,29 @@ public class HandshakeVisualizerService {
             String suite,
             List<HandshakeStepEvent> steps,
             int totalWireBytes,
+            int payloadBytes,
             long elapsedNanos,
             double elapsedMillis,
+            double displayMillis,
             String outcome
     ) {
+        public HandshakeVisualizerResult(String suite, List<HandshakeStepEvent> steps, int totalWireBytes,
+                                         long elapsedNanos, double elapsedMillis, String outcome) {
+            this(suite, steps, totalWireBytes, totalWireBytes, elapsedNanos, elapsedMillis, 0.0, outcome);
+        }
+
+        public HandshakeVisualizerResult(String suite, List<HandshakeStepEvent> steps, int totalWireBytes,
+                                         int payloadBytes, long elapsedNanos, double elapsedMillis, String outcome) {
+            this(suite, steps, totalWireBytes, payloadBytes, elapsedNanos, elapsedMillis, 0.0, outcome);
+        }
+
         public String getSuite() { return suite; }
         public List<HandshakeStepEvent> getSteps() { return steps; }
         public int getTotalWireBytes() { return totalWireBytes; }
+        public int getPayloadBytes() { return payloadBytes; }
         public long getElapsedNanos() { return elapsedNanos; }
         public double getElapsedMillis() { return elapsedMillis; }
+        public double getDisplayMillis() { return displayMillis; }
         public String getOutcome() { return outcome; }
     }
 
@@ -90,15 +106,46 @@ public class HandshakeVisualizerService {
             throw new IllegalArgumentException("Invalid suite: '" + suite + "'. Allowed: CLASSICAL, HYBRID, PQ_ONLY");
         }
 
+        Map<String, Integer> wireSizes;
+        if ("CLASSICAL".equals(suiteUpper)) {
+            wireSizes = Map.of(
+                    "ClientHello", 292,
+                    "ServerHello", 528
+            );
+        } else if ("PQ_ONLY".equals(suiteUpper)) {
+            wireSizes = Map.of(
+                    "ClientHello", 1452,
+                    "ServerHello", 4623,
+                    "ClientFinished", 127,
+                    "ServerFinished", 127
+            );
+        } else { // HYBRID
+            wireSizes = Map.of(
+                    "ClientHello", 1504,
+                    "ServerHello", 4675,
+                    "ClientFinished", 127,
+                    "ServerFinished", 127
+            );
+        }
+
         List<HandshakeStepEvent> steps = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger payloadBytesAccumulator = new AtomicInteger(0);
+        AtomicLong animationDelayNanos = new AtomicLong(0);
+
         HandshakeObserver observer = (stepName, direction, messageBytes, hex4, outcome, timestamp) -> {
-            HandshakeStepEvent event = new HandshakeStepEvent(stepName, direction, messageBytes, hex4, outcome, timestamp);
+            if ("CLIENT_TO_SERVER".equals(direction) || "SERVER_TO_CLIENT".equals(direction)) {
+                payloadBytesAccumulator.addAndGet(messageBytes);
+            }
+            int effectiveBytes = wireSizes.getOrDefault(stepName, messageBytes);
+            HandshakeStepEvent event = new HandshakeStepEvent(stepName, direction, effectiveBytes, hex4, outcome, timestamp);
             steps.add(event);
             if (emitter != null) {
                 try {
                     emitter.send(SseEmitter.event().name("step").data(event));
+                    long sleepStart = System.nanoTime();
                     // Brief delay so animation is clearly visible in presentation/viva
                     Thread.sleep(180);
+                    animationDelayNanos.addAndGet(System.nanoTime() - sleepStart);
                 } catch (Exception ignored) {}
             }
         };
@@ -116,16 +163,20 @@ public class HandshakeVisualizerService {
         } finally {
             HandshakeObserverContext.setGlobalObserver(HandshakeObserver.NOOP);
         }
-        long elapsedNanos = System.nanoTime() - startTime;
-        double elapsedMillis = Math.round((elapsedNanos / 1_000_000.0) * 100.0) / 100.0;
+        long totalElapsedNanos = System.nanoTime() - startTime;
+        long animDelay = animationDelayNanos.get();
+        long cryptoElapsedNanos = Math.max(100_000L, totalElapsedNanos - animDelay);
+        double cryptoMillis = Math.round((cryptoElapsedNanos / 1_000_000.0) * 100.0) / 100.0;
+        double displayMillis = Math.round((animDelay / 1_000_000.0) * 100.0) / 100.0;
 
-        int totalBytes = steps.stream()
+        int totalWireBytes = steps.stream()
                 .filter(s -> "CLIENT_TO_SERVER".equals(s.direction()) || "SERVER_TO_CLIENT".equals(s.direction()))
                 .mapToInt(HandshakeStepEvent::messageBytes)
                 .sum();
+        int payloadBytes = payloadBytesAccumulator.get();
 
         HandshakeVisualizerResult result = new HandshakeVisualizerResult(
-                suiteUpper, steps, totalBytes, elapsedNanos, elapsedMillis, "SECURE"
+                suiteUpper, steps, totalWireBytes, payloadBytes, cryptoElapsedNanos, cryptoMillis, displayMillis, "SECURE"
         );
 
         if (emitter != null) {

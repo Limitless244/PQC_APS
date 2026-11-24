@@ -21,7 +21,8 @@ class HandshakeVisualizerServiceTest {
 
         assertThat(result.suite()).isEqualTo("HYBRID");
         assertThat(result.outcome()).isEqualTo("SECURE");
-        assertThat(result.totalWireBytes()).isEqualTo(6098); // 1356 + 4488 + 127 + 127
+        assertThat(result.totalWireBytes()).isEqualTo(6433); // WireSizeComparisonTest serialized total (1504 + 4675 + 127 + 127)
+        assertThat(result.payloadBytes()).isEqualTo(6098);   // Payload before framing (1356 + 4488 + 127 + 127)
         assertThat(result.steps()).isNotEmpty();
 
         List<String> stepNames = result.steps().stream().map(HandshakeStepEvent::stepName).toList();
@@ -42,7 +43,8 @@ class HandshakeVisualizerServiceTest {
 
         assertThat(result.suite()).isEqualTo("CLASSICAL");
         assertThat(result.outcome()).isEqualTo("SECURE");
-        assertThat(result.totalWireBytes()).isEqualTo(501); // 111 + 390
+        assertThat(result.totalWireBytes()).isEqualTo(820);  // WireSizeComparisonTest serialized total (292 + 528)
+        assertThat(result.payloadBytes()).isEqualTo(501);    // Payload before framing (111 + 390)
 
         List<String> stepNames = result.steps().stream().map(HandshakeStepEvent::stepName).toList();
         assertThat(stepNames).containsSubsequence(
@@ -51,6 +53,18 @@ class HandshakeVisualizerServiceTest {
                 "SignatureCheck",
                 "ChannelEstablished"
         );
+    }
+
+    @Test
+    @DisplayName("Visualizer HYBRID and CLASSICAL totals equal WireSizeComparisonTest values")
+    void visualizerTotalsMatchWireSizeComparisonTest() {
+        HandshakeVisualizerService.HandshakeVisualizerResult hybridRes = service.executeHandshake("HYBRID");
+        assertThat(hybridRes.totalWireBytes()).isEqualTo(6433);
+        assertThat(hybridRes.payloadBytes()).isEqualTo(6098);
+
+        HandshakeVisualizerService.HandshakeVisualizerResult classicalRes = service.executeHandshake("CLASSICAL");
+        assertThat(classicalRes.totalWireBytes()).isEqualTo(820);
+        assertThat(classicalRes.payloadBytes()).isEqualTo(501);
     }
 
     @Test
