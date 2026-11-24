@@ -84,8 +84,8 @@ public class DashboardDataService {
     }
 
     public ScanReport loadScanReport(String target) {
-        if (!List.of("vulnerable", "migrated", "self").contains(target.toLowerCase())) {
-            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: vulnerable, migrated, self");
+        if (!List.of("vulnerable", "migrated", "self", "self-production", "self-tests").contains(target.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: vulnerable, migrated, self, self-production, self-tests");
         }
         String filename = "scan-report-" + target.toLowerCase() + ".json";
         Path path = resolveFile(filename);
@@ -103,21 +103,28 @@ public class DashboardDataService {
     }
 
     public synchronized ScanReport runScan(String target) {
-        if (!List.of("vulnerable", "migrated", "self").contains(target.toLowerCase())) {
-            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: vulnerable, migrated, self");
+        if (!List.of("vulnerable", "migrated", "self", "self-production", "self-tests").contains(target.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: vulnerable, migrated, self, self-production, self-tests");
         }
         String targetLower = target.toLowerCase();
+        Path root = Files.exists(Path.of("..", "pom.xml")) ? Path.of("..") : Path.of(".");
         Path scanPath = switch (targetLower) {
-            case "vulnerable" -> Path.of("samples", "vulnerable-app");
-            case "migrated" -> Path.of("samples", "migrated-app");
-            default -> Path.of(".");
+            case "vulnerable" -> root.resolve(Path.of("samples", "vulnerable-app"));
+            case "migrated" -> root.resolve(Path.of("samples", "migrated-app"));
+            default -> root;
         };
 
         if (Files.exists(scanPath)) {
             try {
+                boolean isProduction = "self-production".equals(targetLower);
+                boolean includeTests = "self-tests".equals(targetLower);
+                Set<String> excludedModules = isProduction ? Set.of("attack-lab", "classical") : Set.of();
                 com.pqcaps.scanner.SourceScanner scanner = new com.pqcaps.scanner.SourceScanner(
                         com.pqcaps.scanner.RuleRegistry.getInstance(),
-                        com.pqcaps.scanner.RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS);
+                        com.pqcaps.scanner.RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS,
+                        false,
+                        includeTests,
+                        excludedModules);
                 List<com.pqcaps.scanner.ScanFinding> findings = new ArrayList<>(scanner.scanDirectory(scanPath));
                 findings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
                 com.pqcaps.scanner.ScanSummary summary = com.pqcaps.scanner.RiskScoreCalculator.createSummary(findings);

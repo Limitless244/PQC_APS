@@ -27,6 +27,9 @@ public final class CryptoScannerMain {
         String outArg = "scan-report.json";
         String failOnArg = null;
         boolean iOwnThisTarget = false;
+        boolean includeSamples = false;
+        boolean includeTests = false;
+        Set<String> excludedModules = new HashSet<>();
         int dataLifetimeYears = RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS;
 
         for (int i = 0; i < args.length; i++) {
@@ -39,6 +42,17 @@ public final class CryptoScannerMain {
                 case "--lifetime" -> { if (++i < args.length) dataLifetimeYears = Integer.parseInt(args[i]); }
                 case "--fail-on" -> { if (++i < args.length) failOnArg = args[i].toUpperCase(); }
                 case "--i-own-this-target" -> iOwnThisTarget = true;
+                case "--include-samples" -> includeSamples = true;
+                case "--include-tests" -> includeTests = true;
+                case "--exclude-modules" -> {
+                    if (++i < args.length) {
+                        for (String m : args[i].split(",")) {
+                            if (!m.trim().isEmpty()) {
+                                excludedModules.add(m.trim().toLowerCase());
+                            }
+                        }
+                    }
+                }
                 default -> {
                     if (pathArg == null && tlsArg == null && !arg.startsWith("-")) {
                         pathArg = arg;
@@ -59,7 +73,7 @@ public final class CryptoScannerMain {
 
             if (pathArg != null) {
                 targetDescription = "Directory: " + pathArg;
-                SourceScanner scanner = new SourceScanner(RuleRegistry.getInstance(), dataLifetimeYears);
+                SourceScanner scanner = new SourceScanner(RuleRegistry.getInstance(), dataLifetimeYears, includeSamples, includeTests, excludedModules);
                 findings = scanner.scanDirectory(Path.of(pathArg));
             } else {
                 targetDescription = "TLS: " + tlsArg;
@@ -147,8 +161,8 @@ public final class CryptoScannerMain {
                 counts.getOrDefault("INFO", 0),
                 pqcCount
         );
-        System.out.printf("  OVERALL RISK GRADE: [%s] (Risk Score: %d/100) | QUANTUM READINESS: %.1f%%%n",
-                report.summary().grade(), report.summary().overallScore(), report.summary().quantumReadiness());
+        System.out.printf("  OVERALL RISK GRADE: [%s] (Risk Score: %d/100, Points: %d) | QUANTUM READINESS: %.1f%%%n",
+                report.summary().grade(), report.summary().overallScore(), report.summary().riskPoints(), report.summary().quantumReadiness());
         System.out.println("========================================================================================================================\n");
     }
 
@@ -172,6 +186,9 @@ public final class CryptoScannerMain {
               --out <file>                 Save JSON report (default: scan-report.json)
               --lifetime <years>           Set expected data lifetime in years (default: 10)
               --fail-on <SEVERITY>         Exit with code 2 if any finding meets/exceeds severity (CRITICAL, HIGH, MEDIUM, LOW)
+              --include-samples            Include samples/ directory during path scan (excluded by default)
+              --include-tests              Include src/test/ and rules.yaml during path scan (excluded by default)
+              --exclude-modules <list>     Comma-separated list of modules/directories to exclude (e.g. attack-lab,classical)
               --i-own-this-target          Authorize scanning of non-local TLS target
             """);
     }

@@ -16,10 +16,17 @@ New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 New-Item -ItemType Directory -Force -Path "$DataDir/sample" | Out-Null
 
 $mvn = "C:\Users\BAHRATHRAJ M\.m2\wrapper\dists\apache-maven-3.9.9-bin\apache-maven-3.9.9\bin\mvn.cmd"
+if (-not (Test-Path $mvn)) {
+    $mvn = "mvn.cmd"
+}
 
 # 1. Run 15-cell Attack Matrix
 Write-Host "`n>>> [1/3] Running 15-Cell Attack Matrix..."
 & $mvn test -pl attack-lab -Dtest=HardenedAttackMatrixTest "-Dpqcaps.dataDir=$DataDir"
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$DataDir/attack-results.json")) {
+    Write-Error "CRITICAL: Attack matrix execution failed with exit code $LASTEXITCODE."
+    exit 1
+}
 
 Copy-Item "$DataDir/attack-results.json" "$DataDir/sample/attack-results.json" -Force
 if (Test-Path "$DataDir/detection-events.jsonl") {
@@ -28,22 +35,62 @@ if (Test-Path "$DataDir/detection-events.jsonl") {
 
 # 2. Run Crypto Scans on 3 targets
 Write-Host "`n>>> [2/3] Scanning targets (vulnerable-app, migrated-app, self)..."
-$scannerCp = "crypto-scanner/target/classes;crypto-agility/target/classes;common/target/classes;C:\Users\BAHRATHRAJ M\.m2\repository\org\yaml\snakeyaml\2.3\snakeyaml-2.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.18.3\jackson-databind-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.18.3\jackson-core-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.18.3\jackson-annotations-2.18.3.jar"
+$scannerJar = "crypto-scanner/target/crypto-scanner-1.0.0-SNAPSHOT-shaded.jar"
+if (-not (Test-Path $scannerJar)) {
+    Write-Host "Building crypto-scanner shaded jar..."
+    & $mvn package -pl crypto-scanner -DskipTests
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $scannerJar)) {
+        Write-Error "CRITICAL: Failed to build crypto-scanner shaded jar."
+        exit 1
+    }
+}
 
-java -cp $scannerCp com.pqcaps.scanner.CryptoScannerMain scan --path samples/vulnerable-app --out "$DataDir/scan-report-vulnerable.json"
-java -cp $scannerCp com.pqcaps.scanner.CryptoScannerMain scan --path samples/migrated-app --out "$DataDir/scan-report-migrated.json"
-java -cp $scannerCp com.pqcaps.scanner.CryptoScannerMain scan --path . --out "$DataDir/scan-report-self.json"
+function Invoke-CryptoScan([string]$targetPath, [string]$outFile, [string[]]$extraArgs = @()) {
+    Write-Host "  -> Scanning '$targetPath' -> '$outFile'..."
+    if ($extraArgs.Count -gt 0) {
+        java -jar $scannerJar scan --path "$targetPath" --out "$outFile" @extraArgs
+    } else {
+        java -jar $scannerJar scan --path "$targetPath" --out "$outFile"
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "CRITICAL: Crypto scanner failed for target '$targetPath' with exit code $LASTEXITCODE."
+        exit 1
+    }
+    if (-not (Test-Path $outFile)) {
+        Write-Error "CRITICAL: Crypto scanner exited with 0 but output file '$outFile' was not generated."
+        exit 1
+    }
+    $fileItem = Get-Item $outFile
+    if ($fileItem.Length -eq 0) {
+        Write-Error "CRITICAL: Generated scan report '$outFile' is empty."
+        exit 1
+    }
+}
+
+Invoke-CryptoScan "samples/vulnerable-app" "$DataDir/scan-report-vulnerable.json"
+Invoke-CryptoScan "samples/migrated-app" "$DataDir/scan-report-migrated.json"
+Invoke-CryptoScan "." "$DataDir/scan-report-self.json"
+Invoke-CryptoScan "." "$DataDir/scan-report-self-production.json" @("--exclude-modules", "attack-lab,classical")
+Invoke-CryptoScan "." "$DataDir/scan-report-self-tests.json" @("--include-tests")
 
 Copy-Item "$DataDir/scan-report-vulnerable.json" "$DataDir/sample/scan-report-vulnerable.json" -Force
 Copy-Item "$DataDir/scan-report-migrated.json" "$DataDir/sample/scan-report-migrated.json" -Force
 Copy-Item "$DataDir/scan-report-self.json" "$DataDir/sample/scan-report-self.json" -Force
+Copy-Item "$DataDir/scan-report-self-production.json" "$DataDir/sample/scan-report-self-production.json" -Force
+Copy-Item "$DataDir/scan-report-self-tests.json" "$DataDir/sample/scan-report-self-tests.json" -Force
 
 # 3. Run Benchmark (Quick mode)
 Write-Host "`n>>> [3/3] Running Cryptographic Benchmarks..."
-$benchCp = "benchmark-dashboard/target/classes;attack-engine/target/classes;attack-lab/target/classes;crypto-scanner/target/classes;crypto-agility/target/classes;secure-channel/target/classes;pq-auth/target/classes;hybrid-kex/target/classes;classical/target/classes;common/target/classes;C:\Users\BAHRATHRAJ M\.m2\repository\org\bouncycastle\bcprov-jdk18on\1.80\bcprov-jdk18on-1.80.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\bouncycastle\bcpkix-jdk18on\1.80\bcpkix-jdk18on-1.80.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.18.3\jackson-databind-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.18.3\jackson-core-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.18.3\jackson-annotations-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\openjdk\jmh\jmh-core\1.37\jmh-core-1.37.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\yaml\snakeyaml\2.3\snakeyaml-2.3.jar"
+$benchCp = "benchmark-dashboard/target/classes;attack-engine/target/classes;attack-lab/target/classes;crypto-scanner/target/classes;crypto-agility/target/classes;secure-channel/target/classes;pq-auth/target/classes;hybrid-kex/target/classes;classical/target/classes;common/target/classes;C:\Users\BAHRATHRAJ M\.m2\repository\org\bouncycastle\bcprov-jdk18on\1.80\bcprov-jdk18on-1.80.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\bouncycastle\bcpkix-jdk18on\1.80\bcpkix-jdk18on-1.80.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.18.3\jackson-databind-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.18.3\jackson-core-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.18.3\jackson-annotations-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jsr310\2.18.3\jackson-datatype-jsr310-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\openjdk\jmh\jmh-core\1.37\jmh-core-1.37.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\yaml\snakeyaml\2.3\snakeyaml-2.3.jar"
 
 java "-Dpqcaps.dataDir=$DataDir" -cp $benchCp com.pqcaps.dashboard.benchmark.BenchmarkCli quick
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$DataDir/benchmark-results.json")) {
+    Write-Error "CRITICAL: Benchmark runner failed with exit code $LASTEXITCODE."
+    exit 1
+}
 
 Copy-Item "$DataDir/benchmark-results.json" "$DataDir/sample/benchmark-results.json" -Force
 
-Write-Host "`nAll artifacts successfully generated in $DataDir and $DataDir/sample!"
+Write-Host "`n=========================================================================="
+Write-Host "  PQC-APS :: All Artifacts Successfully Generated in $DataDir"
+Write-Host "=========================================================================="

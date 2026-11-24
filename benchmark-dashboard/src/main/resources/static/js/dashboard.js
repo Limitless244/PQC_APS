@@ -387,19 +387,19 @@ function updateSuiteComparison(selectedSuite) {
 
     if (selectedSuite === 'HYBRID') {
         if (callout) {
-            callout.innerHTML = '<strong>Bandwidth Cost:</strong> HYBRID incurs ~7.7x ClientHello bandwidth and ~12.2x total handshake wire overhead due to ML-KEM-768 public key (1,184 B) and ML-DSA-65 signature (3,309 B). In return, it guarantees post-quantum forward secrecy with sub-millisecond CPU overhead.';
+            callout.innerHTML = '<strong>Bandwidth Cost:</strong> HYBRID incurs ~7.8x total handshake wire overhead (6,433 B vs 820 B serialized, matching WireSizeComparisonTest) and ~12.2x on raw key material (6,098 B vs 501 B) due to ML-KEM-768 encapsulation key (1,184 B) and ML-DSA-65 signature (3,309 B). In return, it guarantees post-quantum forward secrecy with sub-millisecond CPU overhead.';
         }
-        if (compWire) compWire.textContent = '6,098 B vs 501 B';
-        if (compWireRatio) compWireRatio.textContent = '12.2x Total Overhead';
+        if (compWire) compWire.textContent = '6,433 B vs 820 B';
+        if (compWireRatio) compWireRatio.textContent = '7.8x Wire Overhead (12.2x Key Material)';
         if (compPk) compPk.textContent = '1,184 B vs 32 B';
         if (compSig) compSig.textContent = '3,309 B vs 256 B';
         if (compCpu) compCpu.textContent = '~1.25x (Sub-millisecond)';
     } else {
         if (callout) {
-            callout.innerHTML = '<strong>Pure Post-Quantum:</strong> PQ_ONLY drops classical X25519 entirely, relying exclusively on ML-KEM-768 and ML-DSA-65. Handshake wire size is 6,009 B (~12.0x classical) with optimal lattice-based performance.';
+            callout.innerHTML = '<strong>Pure Post-Quantum:</strong> PQ_ONLY drops classical X25519 entirely, relying exclusively on ML-KEM-768 and ML-DSA-65. Handshake wire size is 6,344 B (~7.7x classical serialized) with optimal lattice-based performance.';
         }
-        if (compWire) compWire.textContent = '6,009 B vs 501 B';
-        if (compWireRatio) compWireRatio.textContent = '12.0x Total Overhead';
+        if (compWire) compWire.textContent = '6,344 B vs 820 B';
+        if (compWireRatio) compWireRatio.textContent = '7.7x Wire Overhead (12.0x Key Material)';
         if (compPk) compPk.textContent = '1,184 B (KEM pk)';
         if (compSig) compSig.textContent = '3,309 B (DSA sig)';
         if (compCpu) compCpu.textContent = '~1.20x (Fast lattice)';
@@ -443,16 +443,17 @@ function renderSizesChart(sizes) {
 function renderWireChart(sizes) {
     const canvas = document.getElementById('chart-wire');
     if (!canvas || !window.Chart) return;
-    const wire = sizes.filter(s => s.category === 'TOTAL_HANDSHAKE');
-    const labels = wire.map(s => s.suite);
-    const totals = wire.map(s => s.rawBytes);
+    const wire = sizes.filter(s => s.category === 'HANDSHAKE_WIRE');
+    const target = wire.length > 0 ? wire : sizes.filter(s => s.category === 'TOTAL_HANDSHAKE');
+    const labels = target.map(s => s.suite);
+    const totals = target.map(s => s.rawBytes);
 
     if (charts['wire']) charts['wire'].destroy();
     charts['wire'] = new Chart(canvas, {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [{ label: 'Total Handshake Wire Size (Bytes)', data: totals, backgroundColor: ['#3fb950', '#d29922', '#58a6ff'] }]
+            datasets: [{ label: 'Total Handshake Wire Size (Bytes, Serialized)', data: totals, backgroundColor: ['#3fb950', '#d29922', '#58a6ff'] }]
         },
         options: {
             responsive: true,
@@ -516,6 +517,9 @@ function initCryptoScanner() {
     const targetSelect = document.getElementById('scanner-target-select');
     if (!runBtn || !targetSelect) return;
 
+    // Load initial reports for comparison table
+    refreshScannerSummary();
+
     // Load initial report
     loadScanReport('vulnerable');
 
@@ -535,6 +539,7 @@ function initCryptoScanner() {
             })
             .then(report => {
                 renderScanReport(report, target);
+                refreshScannerSummary();
             })
             .catch(err => {
                 console.error('Scan failed:', err);
@@ -544,6 +549,50 @@ function initCryptoScanner() {
                 runBtn.disabled = false;
                 runBtn.innerHTML = '&#x1F50D; Scan Target';
             });
+    });
+}
+
+function selectScannerTarget(target) {
+    const targetSelect = document.getElementById('scanner-target-select');
+    if (targetSelect) {
+        targetSelect.value = target;
+        loadScanReport(target);
+    }
+}
+window.selectScannerTarget = selectScannerTarget;
+
+function refreshScannerSummary() {
+    const targets = ['vulnerable', 'migrated', 'self', 'self-production', 'self-tests'];
+    targets.forEach(tgt => {
+        fetch('/api/scan/' + encodeURIComponent(tgt))
+            .then(res => res.ok ? res.json() : null)
+            .then(report => {
+                if (!report || !report.summary) return;
+                const s = report.summary;
+                const pointsEl = document.getElementById('sum-points-' + tgt);
+                const scoreEl = document.getElementById('sum-score-' + tgt);
+                const gradeEl = document.getElementById('sum-grade-' + tgt);
+                const readinessEl = document.getElementById('sum-readiness-' + tgt);
+                const findingsEl = document.getElementById('sum-findings-' + tgt);
+
+                if (pointsEl) {
+                    pointsEl.innerHTML = `<span class="badge badge-secondary">${s.riskPoints !== undefined ? s.riskPoints : s.overallScore} pts</span>`;
+                }
+                if (scoreEl) {
+                    scoreEl.innerHTML = `<span class="badge ${s.overallScore >= 70 ? 'badge-danger' : (s.overallScore >= 30 ? 'badge-warning' : 'badge-success')}">${s.overallScore} / 100</span>`;
+                }
+                if (gradeEl) {
+                    gradeEl.innerHTML = `<strong class="${s.grade === 'F' ? 'text-danger' : (s.grade === 'A' ? 'text-success' : 'text-primary')}">${s.grade}</strong>`;
+                }
+                if (readinessEl) {
+                    const qr = s.quantumReadiness !== undefined ? s.quantumReadiness : (s.quantumReadinessScore ? s.quantumReadinessScore * 100 : 0);
+                    readinessEl.innerHTML = `<span class="badge ${qr >= 80 ? 'badge-success' : 'badge-warning'}">${qr.toFixed(1)}%</span>`;
+                }
+                if (findingsEl) {
+                    findingsEl.textContent = s.totalFindings;
+                }
+            })
+            .catch(() => {});
     });
 }
 
@@ -568,12 +617,19 @@ function renderScanReport(report, target) {
         scoreEl.textContent = summary.overallScore + ' / 100';
         scoreEl.className = summary.overallScore >= 70 ? 'metric-value text-danger' : (summary.overallScore >= 30 ? 'metric-value text-warning' : 'metric-value text-success');
     }
+    const pointsBadge = document.getElementById('scan-points-badge');
+    if (pointsBadge) {
+        pointsBadge.textContent = (summary.riskPoints !== undefined ? summary.riskPoints : summary.overallScore) + ' Points (higher = worse)';
+    }
     if (gradeEl) {
         gradeEl.textContent = summary.grade;
         gradeEl.className = summary.grade === 'F' ? 'metric-value text-danger' : (summary.grade === 'A' ? 'metric-value text-success' : 'metric-value text-primary');
     }
     if (targetDescEl) targetDescEl.textContent = target;
-    if (statusDescEl) statusDescEl.textContent = summary.overallScore === 0 ? 'Quantum-Safe' : 'Action Required';
+    if (statusDescEl) {
+        const qr = summary.quantumReadiness !== undefined ? summary.quantumReadiness : (summary.quantumReadinessScore ? summary.quantumReadinessScore * 100 : 0);
+        statusDescEl.textContent = 'Quantum Readiness: ' + qr.toFixed(1) + '%';
+    }
 
     const counts = summary.countsBySeverity || {};
     if (highCountEl) highCountEl.textContent = (counts.CRITICAL || 0) + (counts.HIGH || 0);

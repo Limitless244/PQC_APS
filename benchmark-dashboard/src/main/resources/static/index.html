@@ -272,13 +272,13 @@
                             </div>
                         </div>
                         <div id="comparison-callout" class="callout callout-warning">
-                            <strong>Bandwidth Cost:</strong> HYBRID incurs ~7.7x ClientHello bandwidth and ~12.2x total handshake wire overhead due to ML-KEM-768 public key (1,184 B) and ML-DSA-65 signature (3,309 B). In exchange, it guarantees post-quantum forward secrecy with sub-millisecond CPU overhead.
+                            <strong>Bandwidth Cost:</strong> HYBRID incurs ~7.8x total handshake wire overhead (6,433 B vs 820 B serialized, matching WireSizeComparisonTest) and ~12.2x on raw key material (6,098 B vs 501 B) due to ML-KEM-768 encapsulation key (1,184 B) and ML-DSA-65 signature (3,309 B). In exchange, it guarantees post-quantum forward secrecy with sub-millisecond CPU overhead.
                         </div>
                         <div class="comparison-grid">
                             <div class="metric-box">
                                 <h4>Total Handshake Wire</h4>
-                                <p id="comp-wire" class="metric-value">6,098 B vs 501 B</p>
-                                <span id="comp-wire-ratio" class="badge badge-warning">12.2x Overhead</span>
+                                <p id="comp-wire" class="metric-value">6,433 B vs 820 B</p>
+                                <span id="comp-wire-ratio" class="badge badge-warning">7.8x Wire Overhead (12.2x Key Material)</span>
                             </div>
                             <div class="metric-box">
                                 <h4>Public Key Size</h4>
@@ -325,9 +325,11 @@
                         <div class="control-group">
                             <label for="scanner-target-select"><strong>Target Repository:</strong></label>
                             <select id="scanner-target-select" class="select-input">
-                                <option value="vulnerable">samples/vulnerable-app (Legacy Classical Baseline)</option>
-                                <option value="migrated">samples/migrated-app (Post-Quantum Migrated)</option>
-                                <option value="self">. (PQC-APS Repository Root)</option>
+                                <option value="vulnerable">vulnerable-app (Legacy Classical Baseline)</option>
+                                <option value="migrated">migrated-app (Post-Quantum Migrated)</option>
+                                <option value="self">self (all) - Full Repository</option>
+                                <option value="self-production">self (production only) - Production Modules</option>
+                                <option value="self-tests">self (with tests) - Repository including Test Code</option>
                             </select>
                         </div>
                         <button id="btn-run-scan" class="btn btn-primary">
@@ -335,12 +337,40 @@
                         </button>
                     </div>
 
+                    <!-- Target Scan Comparison -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 12px;">Target Scan Comparison</h3>
+                        <div class="table-container">
+                            <table class="data-table" id="scanner-summary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Target</th>
+                                        <th>Risk Points</th>
+                                        <th>Reported Score <span class="caption-text">(higher = worse)</span></th>
+                                        <th>Security Grade</th>
+                                        <th>Quantum Readiness</th>
+                                        <th>Findings Count</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scanner-summary-tbody">
+                                    <tr data-target="vulnerable"><td><strong>vulnerable-app</strong></td><td id="sum-points-vulnerable">-</td><td id="sum-score-vulnerable">-</td><td id="sum-grade-vulnerable">-</td><td id="sum-readiness-vulnerable">-</td><td id="sum-findings-vulnerable">-</td><td><button class="btn btn-secondary btn-sm" onclick="selectScannerTarget('vulnerable')">View Details</button></td></tr>
+                                    <tr data-target="migrated"><td><strong>migrated-app</strong></td><td id="sum-points-migrated">-</td><td id="sum-score-migrated">-</td><td id="sum-grade-migrated">-</td><td id="sum-readiness-migrated">-</td><td id="sum-findings-migrated">-</td><td><button class="btn btn-secondary btn-sm" onclick="selectScannerTarget('migrated')">View Details</button></td></tr>
+                                    <tr data-target="self"><td><strong>self (all)</strong></td><td id="sum-points-self">-</td><td id="sum-score-self">-</td><td id="sum-grade-self">-</td><td id="sum-readiness-self">-</td><td id="sum-findings-self">-</td><td><button class="btn btn-secondary btn-sm" onclick="selectScannerTarget('self')">View Details</button></td></tr>
+                                    <tr data-target="self-production"><td><strong>self (production only)</strong></td><td id="sum-points-self-production">-</td><td id="sum-score-self-production">-</td><td id="sum-grade-self-production">-</td><td id="sum-readiness-self-production">-</td><td id="sum-findings-self-production">-</td><td><button class="btn btn-secondary btn-sm" onclick="selectScannerTarget('self-production')">View Details</button></td></tr>
+                                    <tr data-target="self-tests"><td><strong>self (with tests)</strong></td><td id="sum-points-self-tests">-</td><td id="sum-score-self-tests">-</td><td id="sum-grade-self-tests">-</td><td id="sum-readiness-self-tests">-</td><td id="sum-findings-self-tests">-</td><td><button class="btn btn-secondary btn-sm" onclick="selectScannerTarget('self-tests')">View Details</button></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div class="grid-cards">
                         <div class="card metric-card">
                             <div class="card-body">
-                                <h3>Overall Risk Score</h3>
+                                <h3>Overall Risk Score <small style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(higher = worse)</small></h3>
                                 <p class="metric-value" id="scan-score">- / 100</p>
                                 <p class="metric-sub" id="scan-target-desc">Selected Target</p>
+                                <span id="scan-points-badge" class="badge badge-secondary" style="margin-top: 4px; font-size: 0.72rem;">0 Points (higher = worse)</span>
                             </div>
                         </div>
                         <div class="card metric-card">

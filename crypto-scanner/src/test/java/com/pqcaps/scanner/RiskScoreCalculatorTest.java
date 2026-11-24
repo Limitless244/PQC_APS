@@ -54,28 +54,109 @@ class RiskScoreCalculatorTest {
     }
 
     @Test
-    @DisplayName("Verify project overallScore formula and grade boundaries")
+    @DisplayName("Verify exponential score formula round(100 * (1 - exp(-points/60))) and grade bands")
     void testOverallScoreAndGrade() {
-        ScanFinding f1 = createFinding(95, "CIPHER_BROKEN", false);
-        ScanFinding f2 = createFinding(85, "KEY_EXCHANGE_QV", true);
-        ScanFinding f3 = createFinding(70, "HASH_BROKEN", false);
+        ScanFinding f1 = createFinding(95, "CIPHER_BROKEN", false);   // CRITICAL (25)
+        ScanFinding f2 = createFinding(85, "KEY_EXCHANGE_QV", true);  // HIGH (10)
+        ScanFinding f3 = createFinding(70, "HASH_BROKEN", false);     // HIGH (10)
 
-        // max = 95, avg = (95+85+70)/3 = 83.333
-        // overall = 0.6 * 95 + 0.4 * 83.333 = 57 + 33.33 = 90
+        // points = 25*1 + 10*2 = 45 -> score = round(100 * (1 - exp(-45/60))) = 53 -> Grade D (51-75)
+        int points = RiskScoreCalculator.computeRiskPoints(List.of(f1, f2, f3));
+        assertThat(points).isEqualTo(45);
         int score = RiskScoreCalculator.computeOverallScore(List.of(f1, f2, f3));
-        assertThat(score).isEqualTo(90);
-        assertThat(RiskScoreCalculator.scoreToGrade(score)).isEqualTo("F");
+        assertThat(score).isEqualTo(53);
+        assertThat(RiskScoreCalculator.scoreToGrade(score)).isEqualTo("D");
 
-        // Grade boundaries
-        assertThat(RiskScoreCalculator.scoreToGrade(15)).isEqualTo("A");
-        assertThat(RiskScoreCalculator.scoreToGrade(20)).isEqualTo("A");
-        assertThat(RiskScoreCalculator.scoreToGrade(25)).isEqualTo("B");
-        assertThat(RiskScoreCalculator.scoreToGrade(40)).isEqualTo("B");
-        assertThat(RiskScoreCalculator.scoreToGrade(55)).isEqualTo("C");
-        assertThat(RiskScoreCalculator.scoreToGrade(60)).isEqualTo("C");
+        // Grade bands: A 0-10, B 11-30, C 31-50, D 51-75, F 76-100
+        assertThat(RiskScoreCalculator.scoreToGrade(0)).isEqualTo("A");
+        assertThat(RiskScoreCalculator.scoreToGrade(10)).isEqualTo("A");
+        assertThat(RiskScoreCalculator.scoreToGrade(11)).isEqualTo("B");
+        assertThat(RiskScoreCalculator.scoreToGrade(30)).isEqualTo("B");
+        assertThat(RiskScoreCalculator.scoreToGrade(31)).isEqualTo("C");
+        assertThat(RiskScoreCalculator.scoreToGrade(50)).isEqualTo("C");
+        assertThat(RiskScoreCalculator.scoreToGrade(51)).isEqualTo("D");
         assertThat(RiskScoreCalculator.scoreToGrade(75)).isEqualTo("D");
-        assertThat(RiskScoreCalculator.scoreToGrade(80)).isEqualTo("D");
-        assertThat(RiskScoreCalculator.scoreToGrade(85)).isEqualTo("F");
+        assertThat(RiskScoreCalculator.scoreToGrade(76)).isEqualTo("F");
+        assertThat(RiskScoreCalculator.scoreToGrade(100)).isEqualTo("F");
+    }
+
+    @Test
+    @DisplayName("Verify final reported scores ordering: self (with tests) > vulnerable-app > self (all) > self (production) = migrated-app = 0")
+    void testRiskScoreOrdering() {
+        // self (with tests): 14 CRITICAL, 14 HIGH -> 490 pts -> score 100
+        List<ScanFinding> selfWithTests = new java.util.ArrayList<>();
+        for (int i = 0; i < 14; i++) selfWithTests.add(createFinding(95, "CIPHER_BROKEN", false));
+        for (int i = 0; i < 14; i++) selfWithTests.add(createFinding(85, "KEY_EXCHANGE_QV", true));
+
+        // vulnerable-app: 9 CRITICAL, 5 HIGH -> 275 pts -> score 99
+        List<ScanFinding> vulnerableApp = new java.util.ArrayList<>();
+        for (int i = 0; i < 9; i++) vulnerableApp.add(createFinding(95, "CIPHER_BROKEN", false));
+        for (int i = 0; i < 5; i++) vulnerableApp.add(createFinding(85, "KEY_EXCHANGE_QV", true));
+
+        // self (all): 3 CRITICAL, 4 HIGH -> 115 pts -> score 85
+        List<ScanFinding> selfAll = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) selfAll.add(createFinding(95, "CIPHER_BROKEN", false));
+        for (int i = 0; i < 4; i++) selfAll.add(createFinding(85, "KEY_EXCHANGE_QV", true));
+
+        // self (production): 0 actionable findings -> 0 pts -> score 0
+        List<ScanFinding> selfProduction = List.of(
+                createFinding(0, "PQC_READY", false)
+        );
+
+        // migrated-app: 0 actionable findings -> 0 pts -> score 0
+        List<ScanFinding> migratedApp = List.of(
+                createFinding(0, "PQC_READY", false)
+        );
+
+        int selfTestsPoints = RiskScoreCalculator.computeRiskPoints(selfWithTests);
+        int vulnPoints = RiskScoreCalculator.computeRiskPoints(vulnerableApp);
+        int selfAllPoints = RiskScoreCalculator.computeRiskPoints(selfAll);
+        int selfProdPoints = RiskScoreCalculator.computeRiskPoints(selfProduction);
+        int migratedPoints = RiskScoreCalculator.computeRiskPoints(migratedApp);
+
+        assertThat(selfTestsPoints).isEqualTo(490);
+        assertThat(vulnPoints).isEqualTo(275);
+        assertThat(selfAllPoints).isEqualTo(115);
+        assertThat(selfProdPoints).isEqualTo(0);
+        assertThat(migratedPoints).isEqualTo(0);
+
+        int selfTestsScore = RiskScoreCalculator.computeOverallScore(selfWithTests);
+        int vulnScore = RiskScoreCalculator.computeOverallScore(vulnerableApp);
+        int selfAllScore = RiskScoreCalculator.computeOverallScore(selfAll);
+        int selfProdScore = RiskScoreCalculator.computeOverallScore(selfProduction);
+        int migratedScore = RiskScoreCalculator.computeOverallScore(migratedApp);
+
+        // Actual values checked: self (with tests) (100) > vulnerable-app (99) > self (all) (85) > self (production) (0) == migrated-app (0)
+        assertThat(selfTestsScore).isEqualTo(100);
+        assertThat(vulnScore).isEqualTo(99);
+        assertThat(selfAllScore).isEqualTo(85);
+        assertThat(selfProdScore).isEqualTo(0);
+        assertThat(migratedScore).isEqualTo(0);
+
+        assertThat(selfTestsScore).isGreaterThan(vulnScore);
+        assertThat(vulnScore).isGreaterThan(selfAllScore);
+        assertThat(selfAllScore).isGreaterThan(selfProdScore);
+        assertThat(selfProdScore).isEqualTo(migratedScore);
+        assertThat(migratedScore).isEqualTo(0);
+
+        assertThat(RiskScoreCalculator.scoreToGrade(selfTestsScore)).isEqualTo("F");
+        assertThat(RiskScoreCalculator.scoreToGrade(vulnScore)).isEqualTo("F");
+        assertThat(RiskScoreCalculator.scoreToGrade(selfAllScore)).isEqualTo("F");
+        assertThat(RiskScoreCalculator.scoreToGrade(selfProdScore)).isEqualTo("A");
+        assertThat(RiskScoreCalculator.scoreToGrade(migratedScore)).isEqualTo("A");
+    }
+
+    @Test
+    @DisplayName("Verify repository with only INFO findings scores 0 / A")
+    void testRepoWithOnlyInfoFindingsScoresZeroAndGradeA() {
+        List<ScanFinding> infoFindings = List.of(
+                createFinding(0, "PQC_READY", false),
+                createFinding(20, "SYMMETRIC_INFO", false)
+        );
+
+        int score = RiskScoreCalculator.computeOverallScore(infoFindings);
+        assertThat(score).isEqualTo(0);
+        assertThat(RiskScoreCalculator.scoreToGrade(score)).isEqualTo("A");
     }
 
     @Test

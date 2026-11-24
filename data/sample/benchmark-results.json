@@ -1,0 +1,264 @@
+{
+  "machine" : {
+    "jdkVersion" : "21.0.10",
+    "jdkVendor" : "Oracle Corporation",
+    "jvmName" : "Java HotSpot(TM) 64-Bit Server VM",
+    "osName" : "Windows 11",
+    "osArch" : "amd64",
+    "cpuCores" : 16,
+    "timestamp" : "2026-11-24T05:04:12.632580400Z"
+  },
+  "sizes" : [ {
+    "category" : "PRIMITIVE_KEY",
+    "item" : "X25519 Public Key",
+    "suite" : "CLASSICAL",
+    "rawBytes" : 32,
+    "encodedBytes" : 44,
+    "note" : "Raw Curve25519 point vs DER SubjectPublicKeyInfo"
+  }, {
+    "category" : "PRIMITIVE_KEY",
+    "item" : "ML-KEM-768 Encapsulation Key",
+    "suite" : "HYBRID/PQ",
+    "rawBytes" : 1184,
+    "encodedBytes" : 1206,
+    "note" : "NIST FIPS 203 encapsulation key"
+  }, {
+    "category" : "PRIMITIVE_KEY",
+    "item" : "ML-KEM-768 Ciphertext",
+    "suite" : "HYBRID/PQ",
+    "rawBytes" : 1088,
+    "encodedBytes" : 1088,
+    "note" : "NIST FIPS 203 KEM ciphertext"
+  }, {
+    "category" : "PRIMITIVE_KEY",
+    "item" : "ML-DSA-65 Public Key",
+    "suite" : "HYBRID/PQ",
+    "rawBytes" : 1952,
+    "encodedBytes" : 1974,
+    "note" : "NIST FIPS 204 verification key"
+  }, {
+    "category" : "SIGNATURE",
+    "item" : "ML-DSA-65 Signature",
+    "suite" : "HYBRID/PQ",
+    "rawBytes" : 3309,
+    "encodedBytes" : 3309,
+    "note" : "NIST FIPS 204 signature"
+  }, {
+    "category" : "SIGNATURE",
+    "item" : "RSA-2048 Signature",
+    "suite" : "CLASSICAL",
+    "rawBytes" : 256,
+    "encodedBytes" : 256,
+    "note" : "PKCS#1 v1.5 RSA-2048 signature"
+  }, {
+    "category" : "HANDSHAKE_WIRE",
+    "item" : "Total Handshake Wire",
+    "suite" : "CLASSICAL",
+    "rawBytes" : 820,
+    "encodedBytes" : 820,
+    "note" : "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest)"
+  }, {
+    "category" : "HANDSHAKE_WIRE",
+    "item" : "Total Handshake Wire",
+    "suite" : "HYBRID",
+    "rawBytes" : 6433,
+    "encodedBytes" : 6433,
+    "note" : "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest: 7.8x overhead)"
+  }, {
+    "category" : "HANDSHAKE_WIRE",
+    "item" : "Total Handshake Wire",
+    "suite" : "PQ_ONLY",
+    "rawBytes" : 6344,
+    "encodedBytes" : 6344,
+    "note" : "Total wire bytes via ObjectOutputStream (7.7x overhead)"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "ClientHello",
+    "suite" : "CLASSICAL",
+    "rawBytes" : 111,
+    "encodedBytes" : 111,
+    "note" : "X25519 pk + nonce + suite list"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "ServerHello",
+    "suite" : "CLASSICAL",
+    "rawBytes" : 390,
+    "encodedBytes" : 390,
+    "note" : "X25519 pk + RSA-2048 sig + nonce"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "Finished",
+    "suite" : "CLASSICAL",
+    "rawBytes" : 0,
+    "encodedBytes" : 0,
+    "note" : "N/A in Phase 1 Classical baseline"
+  }, {
+    "category" : "TOTAL_HANDSHAKE",
+    "item" : "Total Handshake",
+    "suite" : "CLASSICAL",
+    "rawBytes" : 501,
+    "encodedBytes" : 501,
+    "note" : "Raw key material / unframed payload (12.2x ratio baseline)"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "ClientHello",
+    "suite" : "HYBRID",
+    "rawBytes" : 1356,
+    "encodedBytes" : 1356,
+    "note" : "X25519 pk + ML-KEM-768 pk + nonce + suites"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "ServerHello",
+    "suite" : "HYBRID",
+    "rawBytes" : 4488,
+    "encodedBytes" : 4488,
+    "note" : "X25519 pk + ML-KEM ct + ML-DSA-65 sig + nonce"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "Finished (x2)",
+    "suite" : "HYBRID",
+    "rawBytes" : 254,
+    "encodedBytes" : 254,
+    "note" : "Mutual Finished messages (Client + Server)"
+  }, {
+    "category" : "TOTAL_HANDSHAKE",
+    "item" : "Total Handshake",
+    "suite" : "HYBRID",
+    "rawBytes" : 6098,
+    "encodedBytes" : 6098,
+    "note" : "Raw key material / unframed payload (12.2x key material ratio)"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "ClientHello",
+    "suite" : "PQ_ONLY",
+    "rawBytes" : 1311,
+    "encodedBytes" : 1311,
+    "note" : "ML-KEM-768 pk + nonce + suites"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "ServerHello",
+    "suite" : "PQ_ONLY",
+    "rawBytes" : 4444,
+    "encodedBytes" : 4444,
+    "note" : "ML-KEM ct + ML-DSA-65 sig + nonce"
+  }, {
+    "category" : "WIRE_MESSAGE",
+    "item" : "Finished (x2)",
+    "suite" : "PQ_ONLY",
+    "rawBytes" : 254,
+    "encodedBytes" : 254,
+    "note" : "Mutual Finished messages (Client + Server)"
+  }, {
+    "category" : "TOTAL_HANDSHAKE",
+    "item" : "Total Handshake",
+    "suite" : "PQ_ONLY",
+    "rawBytes" : 6009,
+    "encodedBytes" : 6009,
+    "note" : "Complete PQ-Only handshake"
+  } ],
+  "latency" : [ {
+    "operation" : "keygen",
+    "suiteOrAlgorithm" : "X25519",
+    "avgMicroseconds" : 620.75,
+    "p95Microseconds" : 924.5
+  }, {
+    "operation" : "keygen",
+    "suiteOrAlgorithm" : "ML-KEM-768",
+    "avgMicroseconds" : 273.84,
+    "p95Microseconds" : 387.9
+  }, {
+    "operation" : "keygen",
+    "suiteOrAlgorithm" : "ML-DSA-65",
+    "avgMicroseconds" : 568.38,
+    "p95Microseconds" : 1053.2
+  }, {
+    "operation" : "keygen",
+    "suiteOrAlgorithm" : "RSA-2048",
+    "avgMicroseconds" : 79722.63,
+    "p95Microseconds" : 177321.8
+  }, {
+    "operation" : "encapsulate",
+    "suiteOrAlgorithm" : "ML-KEM-768",
+    "avgMicroseconds" : 341.28,
+    "p95Microseconds" : 548.2
+  }, {
+    "operation" : "decapsulate",
+    "suiteOrAlgorithm" : "ML-KEM-768",
+    "avgMicroseconds" : 277.21,
+    "p95Microseconds" : 547.4
+  }, {
+    "operation" : "sign",
+    "suiteOrAlgorithm" : "RSA-2048",
+    "avgMicroseconds" : 926.75,
+    "p95Microseconds" : 1336.5
+  }, {
+    "operation" : "verify",
+    "suiteOrAlgorithm" : "RSA-2048",
+    "avgMicroseconds" : 66.67,
+    "p95Microseconds" : 111.9
+  }, {
+    "operation" : "sign",
+    "suiteOrAlgorithm" : "ML-DSA-65",
+    "avgMicroseconds" : 1021.91,
+    "p95Microseconds" : 1408.7
+  }, {
+    "operation" : "verify",
+    "suiteOrAlgorithm" : "ML-DSA-65",
+    "avgMicroseconds" : 229.21,
+    "p95Microseconds" : 418.3
+  }, {
+    "operation" : "handshake",
+    "suiteOrAlgorithm" : "CLASSICAL",
+    "avgMicroseconds" : 1617.38,
+    "p95Microseconds" : 2113.0
+  }, {
+    "operation" : "handshake",
+    "suiteOrAlgorithm" : "HYBRID",
+    "avgMicroseconds" : 1599.49,
+    "p95Microseconds" : 2548.5
+  }, {
+    "operation" : "handshake",
+    "suiteOrAlgorithm" : "PQ_ONLY",
+    "avgMicroseconds" : 976.54,
+    "p95Microseconds" : 1832.5
+  } ],
+  "cpu" : [ {
+    "suite" : "CLASSICAL",
+    "avgCpuMicroseconds" : 1406.25,
+    "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
+  }, {
+    "suite" : "HYBRID",
+    "avgCpuMicroseconds" : 1250.0,
+    "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
+  }, {
+    "suite" : "PQ_ONLY",
+    "avgCpuMicroseconds" : 1093.75,
+    "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
+  } ],
+  "throughput" : [ {
+    "recordSize" : "1 KB",
+    "operation" : "Encrypt",
+    "throughputMBps" : 39.9
+  }, {
+    "recordSize" : "1 KB",
+    "operation" : "Decrypt",
+    "throughputMBps" : 134.2
+  }, {
+    "recordSize" : "64 KB",
+    "operation" : "Encrypt",
+    "throughputMBps" : 2248.1
+  }, {
+    "recordSize" : "64 KB",
+    "operation" : "Decrypt",
+    "throughputMBps" : 2351.2
+  } ],
+  "summary" : {
+    "handshakeWireOverheadRatio" : 7.85,
+    "keyMaterialOverheadRatio" : 12.17,
+    "hybridWireOverheadRatio" : 12.17,
+    "hybridCpuOverheadRatio" : 1.25,
+    "classicalHandshakeWireBytes" : 820,
+    "hybridHandshakeWireBytes" : 6433,
+    "analysis" : "HYBRID incurs ~7.8x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). Key material and primitive payload alone incurs ~12.2x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). In return, it provides post-quantum forward secrecy with sub-millisecond CPU overhead."
+  }
+}

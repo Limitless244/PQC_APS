@@ -22,8 +22,8 @@ public final class SourceScanner {
             "java", "py", "js", "ts", "properties", "yml", "yaml", "xml", "conf", "pem"
     );
 
-    private static final Set<String> IGNORED_DIRECTORIES = Set.of(
-            "target", ".git", "node_modules", ".m2", ".idea", ".vscode", "bin", "build", "dist"
+    private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = Set.of(
+            "target", ".git", "node_modules", "data", ".m2", ".idea", ".vscode", "bin", "build", "dist"
     );
 
     // Java JCA getInstance pattern
@@ -62,14 +62,55 @@ public final class SourceScanner {
 
     private final RuleRegistry ruleRegistry;
     private final int dataLifetimeYears;
+    private final boolean includeSamples;
+    private final boolean includeTests;
+    private final Set<String> excludedModules;
 
     public SourceScanner() {
-        this(RuleRegistry.getInstance(), RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS);
+        this(RuleRegistry.getInstance(), RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS, false, false, Collections.emptySet());
     }
 
     public SourceScanner(RuleRegistry ruleRegistry, int dataLifetimeYears) {
+        this(ruleRegistry, dataLifetimeYears, false, false, Collections.emptySet());
+    }
+
+    public SourceScanner(boolean includeSamples) {
+        this(RuleRegistry.getInstance(), RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS, includeSamples, false, Collections.emptySet());
+    }
+
+    public SourceScanner(RuleRegistry ruleRegistry, int dataLifetimeYears, boolean includeSamples) {
+        this(ruleRegistry, dataLifetimeYears, includeSamples, false, Collections.emptySet());
+    }
+
+    public SourceScanner(RuleRegistry ruleRegistry, int dataLifetimeYears, boolean includeSamples,
+                         boolean includeTests, Set<String> excludedModules) {
         this.ruleRegistry = ruleRegistry;
         this.dataLifetimeYears = dataLifetimeYears;
+        this.includeSamples = includeSamples;
+        this.includeTests = includeTests;
+        if (excludedModules == null || excludedModules.isEmpty()) {
+            this.excludedModules = Collections.emptySet();
+        } else {
+            Set<String> set = new HashSet<>();
+            for (String m : excludedModules) {
+                if (m != null && !m.trim().isEmpty()) {
+                    set.add(m.trim().toLowerCase());
+                }
+            }
+            this.excludedModules = Collections.unmodifiableSet(set);
+        }
+    }
+
+    public boolean isIncludeSamples() {
+        return includeSamples;
+    }
+
+    public boolean isIncludeTests() {
+        return includeTests;
+    }
+
+    public Set<String> getExcludedModules() {
+        return excludedModules;
     }
 
     public List<ScanFinding> scanDirectory(Path rootPath) throws IOException {
@@ -81,8 +122,10 @@ public final class SourceScanner {
         Files.walkFileTree(rootPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                String dirName = dir.getFileName() != null ? dir.getFileName().toString() : "";
-                if (IGNORED_DIRECTORIES.contains(dirName)) {
+                if (dir.equals(rootPath)) {
+                    return FileVisitResult.CONTINUE;
+                }
+                if (isPathIgnored(rootPath, dir)) {
                     return FileVisitResult.SKIP_SUBTREE;
                 }
                 return FileVisitResult.CONTINUE;
@@ -90,6 +133,9 @@ public final class SourceScanner {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                if (isPathIgnored(rootPath, file)) {
+                    return FileVisitResult.CONTINUE;
+                }
                 if (attrs.isRegularFile()) {
                     if (attrs.size() > MAX_FILE_SIZE) {
                         return FileVisitResult.CONTINUE; // Skip files > 1 MB
@@ -104,6 +150,45 @@ public final class SourceScanner {
         });
 
         return findings;
+    }
+
+    private boolean isPathIgnored(Path rootPath, Path path) {
+        if (path.equals(rootPath)) {
+            return false;
+        }
+        Path rel;
+        try {
+            rel = rootPath.relativize(path);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+
+        String fileName = path.getFileName() != null ? path.getFileName().toString() : "";
+        if (!includeTests && "rules.yaml".equalsIgnoreCase(fileName)) {
+            return true;
+        }
+
+        String relStr = rel.toString().replace('\\', '/');
+        if (!includeTests) {
+            String relNorm = "/" + relStr + "/";
+            if (relNorm.contains("/src/test/")) {
+                return true;
+            }
+        }
+
+        for (Path segment : rel) {
+            String name = segment.toString();
+            if (DEFAULT_IGNORED_DIRECTORIES.contains(name)) {
+                return true;
+            }
+            if (!includeSamples && "samples".equalsIgnoreCase(name)) {
+                return true;
+            }
+            if (excludedModules.contains(name.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<ScanFinding> scanSingleFile(Path rootPath, Path file) throws IOException {
@@ -131,12 +216,16 @@ public final class SourceScanner {
         String relPath = rootPath.relativize(file).toString().replace('\\', '/');
         String ext = getFileExtension(file);
 
+        if ("xml".equals(ext)) {
+            lines = maskXmlTags(lines, Set.of("description", "name"));
+        }
+
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             int lineNum = i + 1;
 
             // 1. Check Hardcoded PEM Private Key
-            if (PEM_PRIVATE_KEY_PATTERN.matcher(line).find()) {
+            if (PEM_PRIVATE_KEY_PATTERN.matcher(line).find() && !line.contains("[REDACTED]")) {
                 addFinding(findings, "RULE-HARDCODED-SECRET", relPath, lineNum,
                         "-----BEGIN PRIVATE KEY----- [REDACTED]", "PEM_PRIVATE_KEY", null);
                 continue;
@@ -365,5 +454,30 @@ public final class SourceScanner {
             }
         } catch (IOException ignored) {}
         return false;
+    }
+
+    private List<String> maskXmlTags(List<String> lines, Set<String> tagNames) {
+        if (lines == null || lines.isEmpty() || tagNames == null || tagNames.isEmpty()) {
+            return lines;
+        }
+        String fullText = String.join("\n", lines);
+        String tagRegex = String.join("|", tagNames);
+        Pattern p = Pattern.compile("(?is)<(" + tagRegex + ")\\b[^>]*>(.*?)</\\1>");
+        Matcher m = p.matcher(fullText);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String inner = m.group(2);
+            StringBuilder maskedInner = new StringBuilder(inner.length());
+            for (int k = 0; k < inner.length(); k++) {
+                char c = inner.charAt(k);
+                maskedInner.append((c == '\n' || c == '\r') ? c : ' ');
+            }
+            String replacement = Matcher.quoteReplacement(
+                    fullText.substring(m.start(), m.start(2)) + maskedInner + fullText.substring(m.end(2), m.end())
+            );
+            m.appendReplacement(sb, replacement);
+        }
+        m.appendTail(sb);
+        return Arrays.asList(sb.toString().split("\n", -1));
     }
 }

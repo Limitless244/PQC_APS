@@ -20,6 +20,8 @@ public final class BenchmarkCli {
         boolean quick = (args == null || args.length == 0 || !"full".equalsIgnoreCase(args[0]));
         System.out.printf(">>> Executing PQC-APS Cryptographic Benchmarks (Mode: %s)...%n", quick ? "QUICK" : "FULL");
         BenchmarkReport report = BenchmarkRunner.run(quick);
-        System.out.printf(">>> Benchmark complete. Hybrid wire overhead ratio: %.2fx%n", report.summary().hybridWireOverheadRatio());
+        System.out.printf(">>> Benchmark complete. Handshake wire overhead ratio: %.2fx (key material only: %.2fx)%n",
+                report.summary().handshakeWireOverheadRatio(),
+                report.summary().keyMaterialOverheadRatio());
     }
 }

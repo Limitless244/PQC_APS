@@ -1,19 +1,48 @@
 {
-  "scanId": "sample-migrated-001",
-  "target": "samples/migrated-app",
-  "timestamp": "2026-11-23T20:58:00Z",
-  "summary": {
-    "totalFindings": 0,
-    "countsBySeverity": {
-      "CRITICAL": 0,
-      "HIGH": 0,
-      "MEDIUM": 0,
-      "LOW": 0,
-      "INFO": 0
+  "scanId" : "7049aec8-0843-43cd-b066-2458519b1a36",
+  "target" : "Directory: samples/migrated-app",
+  "timestamp" : "2026-11-24T05:04:09.646362800Z",
+  "summary" : {
+    "totalFindings" : 2,
+    "countsBySeverity" : {
+      "CRITICAL" : 0,
+      "HIGH" : 0,
+      "MEDIUM" : 0,
+      "LOW" : 0,
+      "INFO" : 2
     },
-    "overallScore": 0,
-    "grade": "A",
-    "quantumReadiness": 1.0
+    "overallScore" : 0,
+    "riskPoints" : 0,
+    "grade" : "A",
+    "quantumReadiness" : 100.0
   },
-  "findings": []
+  "findings" : [ {
+    "id" : "b4618f3d-3dc0-4059-9b99-8a8b0109abd9",
+    "ruleId" : "RULE-PQC-READY",
+    "category" : "PQC_READY",
+    "file" : "src/main/java/com/example/migrated/ModernCrypto.java",
+    "line" : 21,
+    "redactedSnippet" : "KeyPairGenerator kemGen = KeyPairGenerator.getInstance(\"ML-KEM-768\");",
+    "algorithm" : "ML-KEM-768",
+    "quantumVulnerable" : false,
+    "severity" : "INFO",
+    "riskScore" : 0,
+    "explanation" : "The code employs NIST-standardized Post-Quantum Cryptography (ML-KEM or ML-DSA).",
+    "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
+    "migrationTarget" : "Already Quantum-Resistant"
+  }, {
+    "id" : "61d27647-408d-4943-9996-f5bff9abd327",
+    "ruleId" : "RULE-PQC-READY",
+    "category" : "PQC_READY",
+    "file" : "src/main/java/com/example/migrated/ModernCrypto.java",
+    "line" : 25,
+    "redactedSnippet" : "KeyPairGenerator dsaGen = KeyPairGenerator.getInstance(\"ML-DSA-65\");",
+    "algorithm" : "ML-DSA-65",
+    "quantumVulnerable" : false,
+    "severity" : "INFO",
+    "riskScore" : 0,
+    "explanation" : "The code employs NIST-standardized Post-Quantum Cryptography (ML-KEM or ML-DSA).",
+    "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
+    "migrationTarget" : "Already Quantum-Resistant"
+  } ]
 }

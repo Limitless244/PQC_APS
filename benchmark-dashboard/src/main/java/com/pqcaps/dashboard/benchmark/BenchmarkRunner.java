@@ -12,11 +12,13 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Executes comprehensive benchmarks comparing CLASSICAL, HYBRID, and PQ_ONLY suites.
@@ -46,15 +48,17 @@ public final class BenchmarkRunner {
         List<CpuMetric> cpu = measureCpuTimes(warmup, Math.max(iterations, 100));
         List<ThroughputMetric> throughput = measureThroughput();
 
-        double wireOverhead = 6098.0 / 501.0; // ~12.17x total handshake wire overhead
+        double handshakeWireOverhead = Math.round((6433.0 / 820.0) * 100.0) / 100.0; // ~7.85x total handshake wire overhead (matching WireSizeComparisonTest)
+        double keyMaterialOverhead = Math.round((6098.0 / 501.0) * 100.0) / 100.0;    // ~12.17x key material / raw payload overhead
         double cpuOverhead = 1.25;
 
         BenchmarkSummary summary = new BenchmarkSummary(
-                wireOverhead,
+                handshakeWireOverhead,
+                keyMaterialOverhead,
                 cpuOverhead,
-                "HYBRID incurs ~12.2x total wire size overhead (6098 B vs 501 B) and ~7.7x on ClientHello " +
-                "due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). In return, " +
-                "it provides post-quantum forward secrecy with sub-millisecond CPU and latency overhead."
+                "HYBRID incurs ~7.8x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). " +
+                "Key material and primitive payload alone incurs ~12.2x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). " +
+                "In return, it provides post-quantum forward secrecy with sub-millisecond CPU overhead."
         );
 
         BenchmarkReport report = new BenchmarkReport(machine, sizes, latency, cpu, throughput, summary);
@@ -94,16 +98,21 @@ public final class BenchmarkRunner {
         list.add(new SizeMetric("SIGNATURE", "ML-DSA-65 Signature", "HYBRID/PQ", 3309, 3309, "NIST FIPS 204 signature"));
         list.add(new SizeMetric("SIGNATURE", "RSA-2048 Signature", "CLASSICAL", 256, 256, "PKCS#1 v1.5 RSA-2048 signature"));
 
-        // 2. Wire Messages
+        // 2. Total Handshake Wire Sizes (Matching WireSizeComparisonTest: 820 B vs 6433 B)
+        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "CLASSICAL", 820, 820, "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest)"));
+        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "HYBRID", 6433, 6433, "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest: 7.8x overhead)"));
+        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "PQ_ONLY", 6344, 6344, "Total wire bytes via ObjectOutputStream (7.7x overhead)"));
+
+        // 3. Raw Wire Messages & Primitive Key Material
         list.add(new SizeMetric("WIRE_MESSAGE", "ClientHello", "CLASSICAL", 111, 111, "X25519 pk + nonce + suite list"));
         list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "CLASSICAL", 390, 390, "X25519 pk + RSA-2048 sig + nonce"));
         list.add(new SizeMetric("WIRE_MESSAGE", "Finished", "CLASSICAL", 0, 0, "N/A in Phase 1 Classical baseline"));
-        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "CLASSICAL", 501, 501, "Complete Classical handshake"));
+        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "CLASSICAL", 501, 501, "Raw key material / unframed payload (12.2x ratio baseline)"));
 
         list.add(new SizeMetric("WIRE_MESSAGE", "ClientHello", "HYBRID", 1356, 1356, "X25519 pk + ML-KEM-768 pk + nonce + suites"));
         list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "HYBRID", 4488, 4488, "X25519 pk + ML-KEM ct + ML-DSA-65 sig + nonce"));
         list.add(new SizeMetric("WIRE_MESSAGE", "Finished (x2)", "HYBRID", 254, 254, "Mutual Finished messages (Client + Server)"));
-        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "HYBRID", 6098, 6098, "Complete Hybrid handshake (7.7x CH, 12.2x Total)"));
+        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "HYBRID", 6098, 6098, "Raw key material / unframed payload (12.2x key material ratio)"));
 
         list.add(new SizeMetric("WIRE_MESSAGE", "ClientHello", "PQ_ONLY", 1311, 1311, "ML-KEM-768 pk + nonce + suites"));
         list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "PQ_ONLY", 4444, 4444, "ML-KEM ct + ML-DSA-65 sig + nonce"));
@@ -213,7 +222,7 @@ public final class BenchmarkRunner {
         AesGcmCipher cipher = new AesGcmCipher();
         byte[] key = new byte[32];
         new SecureRandom().nextBytes(key);
-        byte[] nonce = new byte[12];
+        AtomicLong counter = new AtomicLong(1);
         byte[] aad = new byte[8];
 
         int[] sizes = {1024, 65536};
@@ -228,16 +237,19 @@ public final class BenchmarkRunner {
             // Warmup
             byte[] ct = null;
             for (int i = 0; i < 50; i++) {
-                ct = cipher.encrypt(key, nonce, aad, plaintext);
-                cipher.decrypt(key, nonce, aad, ct);
+                byte[] warmupNonce = nextCounterNonce(counter.incrementAndGet());
+                ct = cipher.encrypt(key, warmupNonce, aad, plaintext);
+                cipher.decrypt(key, warmupNonce, aad, ct);
             }
 
             int iters = (size == 1024) ? 2000 : 300;
 
-            // Encrypt
+            // Encrypt with per-operation counter nonce
             long start = System.nanoTime();
+            byte[] lastNonce = null;
             for (int i = 0; i < iters; i++) {
-                ct = cipher.encrypt(key, nonce, aad, plaintext);
+                lastNonce = nextCounterNonce(counter.incrementAndGet());
+                ct = cipher.encrypt(key, lastNonce, aad, plaintext);
             }
             long durEncrypt = System.nanoTime() - start;
             double encMBps = (double) (size * (long) iters) / (durEncrypt / 1e9) / (1024.0 * 1024.0);
@@ -246,7 +258,7 @@ public final class BenchmarkRunner {
             // Decrypt
             start = System.nanoTime();
             for (int i = 0; i < iters; i++) {
-                cipher.decrypt(key, nonce, aad, ct);
+                cipher.decrypt(key, lastNonce, aad, ct);
             }
             long durDecrypt = System.nanoTime() - start;
             double decMBps = (double) (size * (long) iters) / (durDecrypt / 1e9) / (1024.0 * 1024.0);
@@ -254,6 +266,12 @@ public final class BenchmarkRunner {
         }
 
         return list;
+    }
+
+    private static byte[] nextCounterNonce(long counterVal) {
+        byte[] buf = new byte[12];
+        ByteBuffer.wrap(buf, 4, 8).putLong(counterVal);
+        return buf;
     }
 
     // ── In-Memory Handshake Simulations (Zero Sockets) ───────────────────────

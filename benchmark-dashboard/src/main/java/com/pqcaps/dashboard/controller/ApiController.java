@@ -115,8 +115,8 @@ public class ApiController {
 
     @PostMapping("/scan/run")
     public ScanReport runScan(@RequestParam(value = "target", defaultValue = "vulnerable") String target) {
-        if (!List.of("vulnerable", "migrated", "self").contains(target.toLowerCase())) {
-            throw new IllegalArgumentException("Invalid scan target: '" + target + "'. Allowed: vulnerable, migrated, self");
+        if (!List.of("vulnerable", "migrated", "self", "self-production", "self-tests").contains(target.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid scan target: '" + target + "'. Allowed: vulnerable, migrated, self, self-production, self-tests");
         }
         return dataService.runScan(target);
     }

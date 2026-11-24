@@ -79,35 +79,65 @@ public final class RiskScoreCalculator {
     }
 
     /**
-     * Computes the project-level overall risk score:
-     * {@code overallScore = 0.6 * max(scores) + 0.4 * average(scores)}
+     * Computes the raw risk points:
+     * {@code points = 25*CRITICAL + 10*HIGH + 3*MEDIUM + 1*LOW}, with {@code INFO = 0}.
      */
-    public static int computeOverallScore(List<ScanFinding> findings) {
-        List<Integer> riskScores = findings.stream()
-                .filter(f -> !"PQC_READY".equalsIgnoreCase(f.category()))
-                .map(ScanFinding::riskScore)
-                .toList();
-
-        if (riskScores.isEmpty()) {
+    public static int computeRiskPoints(List<ScanFinding> findings) {
+        if (findings == null || findings.isEmpty()) {
             return 0;
         }
 
-        int max = riskScores.stream().mapToInt(Integer::intValue).max().orElse(0);
-        double avg = riskScores.stream().mapToInt(Integer::intValue).average().orElse(0.0);
+        int critical = 0;
+        int high = 0;
+        int medium = 0;
+        int low = 0;
 
-        int overall = (int) Math.round(0.6 * max + 0.4 * avg);
-        return Math.min(100, Math.max(0, overall));
+        for (ScanFinding f : findings) {
+            String sev = f.severity() != null ? f.severity().toUpperCase() : "";
+            switch (sev) {
+                case "CRITICAL" -> critical++;
+                case "HIGH" -> high++;
+                case "MEDIUM" -> medium++;
+                case "LOW" -> low++;
+                default -> {} // INFO = 0
+            }
+        }
+
+        return 25 * critical + 10 * high + 3 * medium + 1 * low;
+    }
+
+    /**
+     * Converts raw risk points into the non-linear reported risk score (0 to 100):
+     * {@code score = round(100 * (1 - exp(-points / 60.0)))}.
+     * This ensures monotonic growth with severity and count without premature hard capping.
+     */
+    public static int pointsToScore(int points) {
+        if (points <= 0) {
+            return 0;
+        }
+        double normalized = 100.0 * (1.0 - Math.exp(-points / 60.0));
+        return (int) Math.round(normalized);
+    }
+
+    /**
+     * Computes the project-level overall risk score:
+     * {@code score = round(100 * (1 - exp(-points / 60.0)))} where
+     * {@code points = 25*CRITICAL + 10*HIGH + 3*MEDIUM + 1*LOW}.
+     */
+    public static int computeOverallScore(List<ScanFinding> findings) {
+        int points = computeRiskPoints(findings);
+        return pointsToScore(points);
     }
 
     /**
      * Computes the Letter Grade from the overall score:
-     * 0-20: A, 21-40: B, 41-60: C, 61-80: D, 81-100: F.
+     * A: 0-10, B: 11-30, C: 31-50, D: 51-75, F: 76-100.
      */
     public static String scoreToGrade(int overallScore) {
-        if (overallScore <= 20) return "A";
-        if (overallScore <= 40) return "B";
-        if (overallScore <= 60) return "C";
-        if (overallScore <= 80) return "D";
+        if (overallScore <= 10) return "A";
+        if (overallScore <= 30) return "B";
+        if (overallScore <= 50) return "C";
+        if (overallScore <= 75) return "D";
         return "F";
     }
 
@@ -149,10 +179,11 @@ public final class RiskScoreCalculator {
             counts.put(sev, counts.getOrDefault(sev, 0) + 1);
         }
 
-        int overallScore = computeOverallScore(findings);
+        int riskPoints = computeRiskPoints(findings);
+        int overallScore = pointsToScore(riskPoints);
         String grade = scoreToGrade(overallScore);
         double quantumReadiness = computeQuantumReadiness(findings);
 
-        return new ScanSummary(findings.size(), counts, overallScore, grade, quantumReadiness);
+        return new ScanSummary(findings.size(), counts, overallScore, riskPoints, grade, quantumReadiness);
     }
 }
