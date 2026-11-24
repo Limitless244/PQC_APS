@@ -1,11 +1,14 @@
 package com.pqcaps.dashboard.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -15,6 +18,11 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public void handleAsyncRequestTimeout(AsyncRequestTimeoutException e) {
+        log.debug("Async request timed out on SSE endpoint: {}", e.getMessage());
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException e) {
@@ -49,13 +57,25 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Throwable.class)
-    public ResponseEntity<Map<String, Object>> handleGeneralException(Throwable e) {
+    public ResponseEntity<Map<String, Object>> handleGeneralException(Throwable e, HttpServletRequest request) {
         log.error("Unhandled server exception: {}", e.getMessage(), e);
+        if (request != null) {
+            String accept = request.getHeader("Accept");
+            String contentType = request.getContentType();
+            if ((accept != null && accept.contains(MediaType.TEXT_EVENT_STREAM_VALUE))
+                    || (contentType != null && contentType.contains(MediaType.TEXT_EVENT_STREAM_VALUE))) {
+                return null;
+            }
+        }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Internal Server Error",
                 "message", "An unexpected error occurred. Details suppressed for security.",
                 "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "timestamp", Instant.now().toString()
         ));
+    }
+
+    public ResponseEntity<Map<String, Object>> handleGeneralException(Throwable e) {
+        return handleGeneralException(e, null);
     }
 }

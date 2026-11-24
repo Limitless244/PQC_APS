@@ -80,7 +80,7 @@ public class ApiController {
         if (!List.of("CLASSICAL", "HYBRID", "PQ_ONLY").contains(suite.toUpperCase())) {
             throw new IllegalArgumentException("Invalid suite: '" + suite + "'. Allowed: CLASSICAL, HYBRID, PQ_ONLY");
         }
-        SseEmitter emitter = new SseEmitter(60_000L);
+        SseEmitter emitter = new SseEmitter(1_800_000L); // 30 minutes
         visualizerService.streamHandshake(suite, emitter);
         return emitter;
     }

@@ -182,6 +182,17 @@ class ApiControllerTest {
     }
 
     @Test
+    @DisplayName("AsyncRequestTimeoutException on SSE endpoint produces no body and no exception")
+    void sseEndpoint_onTimeout_returnsNoBodyAndNoException() throws Exception {
+        Mockito.when(dataService.registerEmitter())
+                .thenThrow(new org.springframework.web.context.request.async.AsyncRequestTimeoutException());
+
+        mockMvc.perform(get("/api/events/stream").accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(status().isOk())
+                .andExpect(content().string(""));
+    }
+
+    @Test
     @DisplayName("POST /api/demo/run-attacks returns 15 results")
     void runAttacks_returns15Rows() throws Exception {
         List<SecurityMatrixResult> matrix = buildFakeMatrix(15);

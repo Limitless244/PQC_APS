@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PQC-APS :: Bob (Server :8083)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #09131c;
+      --card-bg: #122130;
+      --border: #233b52;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0ea5e9;
+      --primary-hover: #0284c7;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-server { background-color: #0c4a6e; color: #7dd3fc; }
+    .badge-status { background-color: #374151; color: #9ca3af; }
+    .badge-accepted { background-color: #064e3b; color: #6ee7b7; }
+    .badge-rejected { background-color: #7f1d1d; color: #fca5a5; }
+    .badge-event { background-color: #831843; color: #fbcfe8; }
+    .reconnect-badge {
+      display: none;
+      background-color: var(--warning);
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .banner {
+      display: none;
+      background-color: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--warning);
+      color: #fde68a;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #cbd5e1; display: flex; justify-content: space-between; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
+    select, button {
+      background-color: #09131c;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    button {
+      background-color: var(--primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    button:hover { background-color: var(--primary-hover); }
+    button.btn-stop { background-color: var(--danger); }
+    button.btn-secondary { background-color: #334155; }
+    .status-panel {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat-box {
+      background: #09131c;
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+    .stat-val { font-size: 0.95rem; font-weight: bold; margin-top: 4px; font-family: var(--font-mono); }
+    .table-container { max-height: 400px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background-color: #09131c; color: var(--text-muted); position: sticky; top: 0; }
+    .mono { font-family: var(--font-mono); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>
+      <span>Bob (Secure Server)</span>
+      <span class="badge badge-server">Port :8083 (TCP :9001)</span>
+    </h1>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
+      <span id="serverStatusBadge" class="badge badge-accepted">RUNNING</span>
+    </div>
+  </div>
+
+  <div id="mismatchBanner" class="banner">
+    ⚠️ <strong>Mode Mismatch Alert:</strong> Server is configured for <span id="bannerServerMode"></span>, but Alice (Client) is running <span id="bannerClientMode"></span>. The handshake will fail or trigger downgrade!
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <label for="modeSelect" style="color:var(--text-muted); font-size:0.9rem;">Server Defence Mode:</label>
+      <select id="modeSelect">
+        <option value="HYBRID" selected>HYBRID (ML-KEM-768 + X25519 & ML-DSA-65, Strict Guards)</option>
+        <option value="CLASSICAL-HARDENED">CLASSICAL-HARDENED (RSA-2048 + ReplayGuard & TamperGuard)</option>
+        <option value="CLASSICAL-VULNERABLE">CLASSICAL-VULNERABLE (VULN-1..4 Active, No Guards)</option>
+      </select>
+
+      <button id="toggleRunBtn" class="btn-stop" onclick="toggleServerRun()">Stop Server</button>
+      <button class="btn-secondary" onclick="resetServer()">Reset</button>
+
+      <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:var(--text-muted); cursor:pointer; margin-left:auto;">
+        <input type="checkbox" id="rejectClassicalCheck" checked onchange="toggleRejectClassical()">
+        Reject Classical Downgrade
+      </label>
+    </div>
+
+    <div class="status-panel">
+      <div class="stat-box">
+        <div class="stat-label">TCP Listener</div>
+        <div id="statListen" class="stat-val">127.0.0.1:9001</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Active Mode</div>
+        <div id="statMode" class="stat-val">HYBRID</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Processed Messages</div>
+        <div id="statMessages" class="stat-val">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Security Events</div>
+        <div id="statEvents" class="stat-val">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Received Messages Table with ACCEPTED / REJECTED and Guard Name -->
+    <div class="card">
+      <h2>
+        <span>Received Messages & Guard Verification</span>
+        <span id="msgCountBadge" class="badge badge-status">0 Messages</span>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Seq</th>
+              <th>Status</th>
+              <th>Guard Fired</th>
+              <th>Message Content / Plaintext</th>
+            </tr>
+          </thead>
+          <tbody id="messagesTableBody">
+            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No messages received yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Forensic Detection Events Table (EventLog) -->
+    <div class="card">
+      <h2>
+        <span>Internal Detection Telemetry (EventLog)</span>
+        <span id="eventCountBadge" class="badge badge-event">0 Events</span>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Action</th>
+              <th>Component</th>
+              <th>Forensic Detail (detection-events.jsonl)</th>
+            </tr>
+          </thead>
+          <tbody id="eventsTableBody">
+            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No security attacks detected yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sseSource = null;
+    let isServerRunning = true;
+
+    function init() {
+      fetchStatus();
+      connectSse();
+      checkClientMode();
+      setInterval(checkClientMode, 3000);
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/server/status');
+        const data = await res.json();
+        updateStatusUI(data);
+
+        const msgRes = await fetch('/api/server/messages');
+        const messages = await msgRes.json();
+        renderMessages(messages);
+
+        const evRes = await fetch('/api/server/events');
+        const events = await evRes.json();
+        renderEvents(events);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function updateStatusUI(data) {
+      isServerRunning = data.running;
+      document.getElementById('statListen').innerText = '127.0.0.1:' + data.tcpPort;
+      document.getElementById('statMode').innerText = data.mode;
+      document.getElementById('statMessages').innerText = data.messageCount || 0;
+      document.getElementById('statEvents').innerText = data.eventCount || 0;
+
+      const badge = document.getElementById('serverStatusBadge');
+      const btn = document.getElementById('toggleRunBtn');
+      if (data.running) {
+        badge.innerText = 'RUNNING';
+        badge.className = 'badge badge-accepted';
+        btn.innerText = 'Stop Server';
+        btn.className = 'btn-stop';
+      } else {
+        badge.innerText = 'STOPPED';
+        badge.className = 'badge badge-rejected';
+        btn.innerText = 'Start Server';
+        btn.className = '';
+      }
+
+      if (data.mode) {
+        document.getElementById('modeSelect').value = data.mode;
+      }
+      if (typeof data.rejectClassical === 'boolean') {
+        const chk = document.getElementById('rejectClassicalCheck');
+        if (chk) chk.checked = data.rejectClassical;
+      }
+    }
+
+    async function toggleRejectClassical() {
+      const chk = document.getElementById('rejectClassicalCheck');
+      const val = chk ? chk.checked : true;
+      try {
+        await fetch('/api/server/reject-classical', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rejectClassical: val })
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function toggleServerRun() {
+      if (isServerRunning) {
+        await fetch('/api/server/stop', { method: 'POST' });
+      } else {
+        await fetch('/api/server/start', { method: 'POST' });
+      }
+      fetchStatus();
+    }
+
+    async function resetServer() {
+      await fetch('/api/server/reset', { method: 'POST' });
+      fetchStatus();
+    }
+
+    document.getElementById('modeSelect').addEventListener('change', async (e) => {
+      await fetch('/api/server/mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: e.target.value })
+      });
+      fetchStatus();
+    });
+
+    async function checkClientMode() {
+      try {
+        const res = await fetch('http://127.0.0.1:8081/api/client/status');
+        if (res.ok) {
+          const data = await res.json();
+          const clientMode = data.mode;
+          const serverMode = document.getElementById('modeSelect').value;
+          const banner = document.getElementById('mismatchBanner');
+          if (clientMode && serverMode && clientMode !== serverMode) {
+            document.getElementById('bannerClientMode').innerText = clientMode;
+            document.getElementById('bannerServerMode').innerText = serverMode;
+            banner.style.display = 'block';
+          } else {
+            banner.style.display = 'none';
+          }
+        }
+      } catch (e) {}
+    }
+
+    function renderMessages(messages) {
+      const tbody = document.getElementById('messagesTableBody');
+      document.getElementById('msgCountBadge').innerText = messages.length + ' Messages';
+      if (!messages || messages.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No messages received yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = messages.map(m => {
+        const isAccepted = m.status.startsWith('ACCEPTED');
+        return `
+          <tr>
+            <td class="mono">${m.sequenceNumber}</td>
+            <td><span class="badge ${isAccepted ? 'badge-accepted' : 'badge-rejected'}">${m.status}</span></td>
+            <td><strong style="color:#f59e0b;">${m.guardFired || '-'}</strong></td>
+            <td>${m.text}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderEvents(events) {
+      const tbody = document.getElementById('eventsTableBody');
+      document.getElementById('eventCountBadge').innerText = events.length + ' Events';
+      if (!events || events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No security attacks detected yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = events.map(e => `
+        <tr>
+          <td><span class="badge badge-event">${e.attackType}</span></td>
+          <td><span class="badge ${e.action === 'BLOCKED' ? 'badge-rejected' : 'badge-status'}">${e.action}</span></td>
+          <td class="mono">${e.component}</td>
+          <td style="color:#cbd5e1;">${e.detail}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ── SSE Stream Setup with < 2s Reconnect Badge Clear ───────────────────
+    function connectSse() {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource('/api/server/stream');
+
+      sseSource.onopen = () => {
+        clearReconnectBadge();
+      };
+
+      sseSource.addEventListener('init', () => {
+        clearReconnectBadge();
+      });
+
+      sseSource.addEventListener('server-message', () => {
+        clearReconnectBadge();
+        fetchStatus();
+      });
+
+      sseSource.addEventListener('detection-event', () => {
+        clearReconnectBadge();
+        fetchStatus();
+      });
+
+      sseSource.onerror = () => {
+        showReconnectBadge();
+        sseSource.close();
+        setTimeout(connectSse, 2000);
+      };
+    }
+
+    function showReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge) badge.style.display = 'inline-block';
+    }
+
+    function clearReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge && badge.style.display !== 'none') {
+        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears within 2 seconds
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

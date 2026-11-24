@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PQC-APS :: Mallory (Attacker TCP Proxy :8082)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #161e2e;
+      --border: #293548;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-attacker { background-color: #581c87; color: #d8b4fe; }
+    .badge-status { background-color: #374151; color: #9ca3af; }
+    .badge-active { background-color: #064e3b; color: #6ee7b7; }
+    .badge-tampered { background-color: #7f1d1d; color: #fca5a5; }
+    .reconnect-badge {
+      display: none;
+      background-color: var(--warning);
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #cbd5e1; display: flex; justify-content: space-between; }
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+    button {
+      background-color: var(--primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      transition: background 0.2s;
+    }
+    button:hover { background-color: var(--primary-hover); }
+    button.btn-danger { background-color: var(--danger); }
+    button.btn-danger:hover { background-color: var(--danger-hover); }
+    button.btn-warning { background-color: #d97706; }
+    button.btn-toggle-on { background-color: #b91c1c; border: 2px solid #ef4444; }
+    button.btn-toggle-off { background-color: #1e293b; color: var(--text-muted); border: 1px solid var(--border); }
+    .status-panel {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat-box {
+      background: #0b0f19;
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+    .stat-val { font-size: 0.95rem; font-weight: bold; margin-top: 4px; font-family: var(--font-mono); }
+    .table-container { max-height: 480px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background-color: #0b0f19; color: var(--text-muted); position: sticky; top: 0; }
+    .mono { font-family: var(--font-mono); }
+    .log-box {
+      background-color: #0b0f19;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      height: 480px;
+      overflow-y: auto;
+      font-size: 0.82rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .log-item {
+      padding: 8px;
+      border-radius: 4px;
+      background: #161e2e;
+      border-left: 3px solid var(--primary);
+    }
+    .log-item.tamper { border-left-color: var(--danger); }
+    .log-item.mitm { border-left-color: #ec4899; }
+    .log-time { font-size: 0.7rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>
+      <span>Mallory (Active TCP Proxy Attacker)</span>
+      <span class="badge badge-attacker">Listen :9000 &rarr; Forward :9001</span>
+    </h1>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
+      <span id="proxyBadge" class="badge badge-active">PROXY LISTENING</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="btn-group">
+      <button class="btn-warning" onclick="replayRecord()">Replay Last Record</button>
+      <button class="btn-danger" onclick="flipBitRecord()">Flip a Bit (in Record)</button>
+      <button id="stripHybridBtn" class="btn-toggle-off" onclick="toggleStripHybrid()">Strip HYBRID (Downgrade): OFF</button>
+      <button id="mitmBtn" class="btn-toggle-off" onclick="toggleMitm()">Enable MITM: OFF</button>
+      <button id="dropBtn" class="btn-toggle-off" onclick="toggleDrop()">Drop Next Record: OFF</button>
+      <button id="pauseBtn" class="btn-toggle-off" onclick="togglePause()">Pause Forwarding: OFF</button>
+      <button style="background:#475569;" onclick="resetAttacker()">Reset</button>
+    </div>
+
+    <div class="status-panel">
+      <div class="stat-box">
+        <div class="stat-label">Proxy Listening</div>
+        <div id="statListen" class="stat-val">127.0.0.1:9000</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Forward Target</div>
+        <div id="statTarget" class="stat-val">127.0.0.1:9001</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Captured Records</div>
+        <div id="statRecords" class="stat-val">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Attacker Actions</div>
+        <div id="statActions" class="stat-val">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Live Table of Captured Records -->
+    <div class="card">
+      <h2>
+        <span>Live Intercepted Wire Records (TCP Socket Stream)</span>
+        <span id="trafficCountBadge" class="badge badge-status">0 Items</span>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Direction</th>
+              <th>Seq</th>
+              <th>Bytes</th>
+              <th>Hex4</th>
+              <th>Attacker Observation</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="trafficTableBody">
+            <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Listening on port 9000. Waiting for traffic...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Attacker Action Telemetry Log -->
+    <div class="card">
+      <h2>Mallory Action Telemetry ("Forwarded / What We Saw")</h2>
+      <div id="actionLogBox" class="log-box">
+        <div style="color:var(--text-muted); text-align:center; margin-top:150px;">No attack actions dispatched yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sseSource = null;
+
+    function init() {
+      fetchStatus();
+      connectSse();
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/attacker/status');
+        const data = await res.json();
+        updateStatusUI(data);
+
+        const trafRes = await fetch('/api/attacker/traffic');
+        const traffic = await trafRes.json();
+        renderTraffic(traffic);
+
+        const actRes = await fetch('/api/attacker/actions');
+        const actions = await actRes.json();
+        renderActions(actions);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function updateStatusUI(data) {
+      document.getElementById('statListen').innerText = '127.0.0.1:' + data.listenPort;
+      document.getElementById('statTarget').innerText = '127.0.0.1:' + data.targetPort;
+      document.getElementById('statRecords').innerText = data.capturedCount || 0;
+      document.getElementById('statActions').innerText = data.actionCount || 0;
+
+      // Update toggles
+      updateToggleButton('stripHybridBtn', data.stripHybrid, 'Strip HYBRID (Downgrade)');
+      updateToggleButton('mitmBtn', data.enableMitm, 'Enable MITM');
+      updateToggleButton('dropBtn', data.dropNextRecord, 'Drop Next Record');
+      updateToggleButton('pauseBtn', data.paused, 'Pause Forwarding');
+    }
+
+    function updateToggleButton(id, active, label) {
+      const btn = document.getElementById(id);
+      if (active) {
+        btn.className = 'btn-toggle-on';
+        btn.innerText = label + ': ON';
+      } else {
+        btn.className = 'btn-toggle-off';
+        btn.innerText = label + ': OFF';
+      }
+    }
+
+    async function replayRecord() {
+      try {
+        const res = await fetch('/api/attacker/replay', { method: 'POST' });
+        const outcome = await res.json();
+        fetchStatus();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function flipBitRecord() {
+      try {
+        const res = await fetch('/api/attacker/flip-bit', { method: 'POST' });
+        const outcome = await res.json();
+        fetchStatus();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function toggleStripHybrid() {
+      await fetch('/api/attacker/strip-hybrid', { method: 'POST' });
+      fetchStatus();
+    }
+
+    async function toggleMitm() {
+      await fetch('/api/attacker/enable-mitm', { method: 'POST' });
+      fetchStatus();
+    }
+
+    async function toggleDrop() {
+      await fetch('/api/attacker/drop-record', { method: 'POST' });
+      fetchStatus();
+    }
+
+    async function togglePause() {
+      await fetch('/api/attacker/pause', { method: 'POST' });
+      fetchStatus();
+    }
+
+    async function resetAttacker() {
+      await fetch('/api/attacker/reset', { method: 'POST' });
+      fetchStatus();
+    }
+
+    function renderTraffic(traffic) {
+      const tbody = document.getElementById('trafficTableBody');
+      document.getElementById('trafficCountBadge').innerText = traffic.length + ' Items';
+      if (!traffic || traffic.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Listening on port 9000. Waiting for traffic...</td></tr>';
+        return;
+      }
+      tbody.innerHTML = traffic.map(t => {
+        let statusBadge = 'badge-status';
+        if (t.status === 'DECRYPTED') statusBadge = 'badge-active';
+        if (t.status === 'TAMPERED' || t.status === 'DROPPED') statusBadge = 'badge-tampered';
+
+        return `
+          <tr>
+            <td><span class="badge ${t.direction === 'CLIENT_TO_SERVER' ? 'badge-status' : 'badge-attacker'}">${t.direction === 'CLIENT_TO_SERVER' ? 'C &rarr; S' : 'S &rarr; C'}</span></td>
+            <td class="mono">${t.sequenceNumber !== null ? t.sequenceNumber : '-'}</td>
+            <td class="mono">${t.length} B</td>
+            <td class="mono">${t.hex4}</td>
+            <td><strong style="${t.status === 'DECRYPTED' ? 'color:#10b981;' : ''}">${t.attackerView}</strong></td>
+            <td><span class="badge ${statusBadge}">${t.status}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderActions(actions) {
+      const box = document.getElementById('actionLogBox');
+      if (!actions || actions.length === 0) {
+        box.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin-top:150px;">No attack actions dispatched yet.</div>';
+        return;
+      }
+      box.innerHTML = actions.map(a => `
+        <div class="log-item ${a.action === 'TAMPER' ? 'tamper' : (a.action === 'MITM' ? 'mitm' : '')}">
+          <div style="display:flex; justify-content:space-between;">
+            <strong>[${a.action}] ${a.status}</strong>
+            <span class="log-time">${new Date(a.timestamp).toLocaleTimeString()}</span>
+          </div>
+          <div style="margin-top:4px; color:#e2e8f0;">${a.detail}</div>
+        </div>
+      `).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ── SSE Stream Setup with < 2s Reconnect Badge Clear ───────────────────
+    function connectSse() {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource('/api/attacker/stream');
+
+      sseSource.onopen = () => {
+        clearReconnectBadge();
+      };
+
+      sseSource.addEventListener('init', () => {
+        clearReconnectBadge();
+      });
+
+      sseSource.addEventListener('traffic-record', () => {
+        clearReconnectBadge();
+        fetchStatus();
+      });
+
+      sseSource.addEventListener('attacker-action', () => {
+        clearReconnectBadge();
+        fetchStatus();
+      });
+
+      sseSource.onerror = () => {
+        showReconnectBadge();
+        sseSource.close();
+        setTimeout(connectSse, 2000);
+      };
+    }
+
+    function showReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge) badge.style.display = 'inline-block';
+    }
+
+    function clearReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge && badge.style.display !== 'none') {
+        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears within 2 seconds
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

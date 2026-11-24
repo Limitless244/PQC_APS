@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PQC-APS :: Alice (Client :8081)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-client { background-color: #1e3a8a; color: #93c5fd; }
+    .badge-status { background-color: #374151; color: #9ca3af; }
+    .badge-connected { background-color: #064e3b; color: #6ee7b7; }
+    .badge-failed { background-color: #7f1d1d; color: #fca5a5; }
+    .reconnect-badge {
+      display: none;
+      background-color: var(--warning);
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .banner {
+      display: none;
+      background-color: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--warning);
+      color: #fde68a;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #cbd5e1; display: flex; justify-content: space-between; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
+    select, input[type="text"], button {
+      background-color: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--primary); }
+    button {
+      background-color: var(--primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    button:hover { background-color: var(--primary-hover); }
+    button.btn-secondary { background-color: #475569; }
+    button.btn-secondary:hover { background-color: #334155; }
+    button.btn-danger { background-color: var(--danger); }
+    .status-panel {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+    .stat-val { font-size: 0.95rem; font-weight: bold; margin-top: 4px; font-family: var(--font-mono); }
+    .table-container { max-height: 320px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background-color: #0f172a; color: var(--text-muted); position: sticky; top: 0; }
+    .mono { font-family: var(--font-mono); }
+    .chat-box {
+      height: 250px;
+      background-color: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .msg-bubble {
+      padding: 8px 12px;
+      border-radius: 8px;
+      max-width: 80%;
+      font-size: 0.9rem;
+    }
+    .msg-alice { background-color: #1e3a8a; align-self: flex-end; }
+    .msg-meta { font-size: 0.7rem; color: #93c5fd; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>
+      <span>Alice (Secure Client)</span>
+      <span class="badge badge-client">Port :8081</span>
+    </h1>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
+      <span id="connBadge" class="badge badge-status">DISCONNECTED</span>
+    </div>
+  </div>
+
+  <div id="mismatchBanner" class="banner">
+    ⚠️ <strong>Mode Mismatch Alert:</strong> Alice is set to <span id="bannerClientMode"></span>, but Bob (Server) is running <span id="bannerServerMode"></span>. The handshake will fail or trigger downgrade!
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <label for="modeSelect" style="color:var(--text-muted); font-size:0.9rem;">Suite Mode:</label>
+      <select id="modeSelect">
+        <option value="HYBRID" selected>HYBRID (ML-KEM-768 + X25519 & ML-DSA-65)</option>
+        <option value="CLASSICAL-HARDENED">CLASSICAL-HARDENED (RSA-2048 + Strict Pinned Key)</option>
+        <option value="CLASSICAL-VULNERABLE">CLASSICAL-VULNERABLE (VULN-1..4 Active)</option>
+      </select>
+
+      <label for="targetPortInput" style="color:var(--text-muted); font-size:0.9rem;">Target Port:</label>
+      <input type="text" id="targetPortInput" value="9000" style="width: 80px;" title="9000 for Attacker Proxy, 9001 for Direct Server">
+
+      <button id="connectBtn" onclick="connectSession()">Connect</button>
+      <button class="btn-secondary" onclick="disconnectSession()">Disconnect</button>
+      <button class="btn-danger" onclick="resetSession()">Reset</button>
+    </div>
+
+    <div class="status-panel">
+      <div class="stat-box">
+        <div class="stat-label">Connection Status</div>
+        <div id="statStatus" class="stat-val">DISCONNECTED</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Negotiated Suite</div>
+        <div id="statSuite" class="stat-val">NONE</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Key Pinned</div>
+        <div id="statPinned" class="stat-val">NO</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Last Error</div>
+        <div id="statError" class="stat-val" style="color:var(--danger);">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Live 8-step Handshake Panel -->
+    <div class="card">
+      <h2>
+        <span>Cryptographic Handshake Telemetry (8 Steps)</span>
+        <span id="stepCountBadge" class="badge badge-status">0 Steps</span>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Step Name</th>
+              <th>Flow</th>
+              <th>Bytes</th>
+              <th>Hex4</th>
+              <th>Outcome</th>
+            </tr>
+          </thead>
+          <tbody id="stepsTableBody">
+            <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No handshake initiated yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Chat / Message Box -->
+    <div class="card">
+      <h2>Chat Application (Real Encrypted TCP Channel)</h2>
+      <div id="chatHistory" class="chat-box">
+        <div style="color:var(--text-muted); text-align:center; margin-top:80px;">Connect to server to start chatting.</div>
+      </div>
+      <div class="controls" style="margin-bottom:0;">
+        <input type="text" id="msgInput" placeholder="Enter message to encrypt and send..." style="flex:1;">
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sseSource = null;
+    let reconnectTimeout = null;
+
+    function init() {
+      fetchStatus();
+      connectSse();
+      checkServerMode();
+      setInterval(checkServerMode, 3000);
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/client/status');
+        const data = await res.json();
+        updateStatusUI(data);
+
+        const stepsRes = await fetch('/api/client/steps');
+        const steps = await stepsRes.json();
+        renderSteps(steps);
+
+        const histRes = await fetch('/api/client/history');
+        const history = await histRes.json();
+        renderHistory(history);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function updateStatusUI(data) {
+      document.getElementById('statStatus').innerText = data.status;
+      document.getElementById('statSuite').innerText = data.chosenSuite || 'NONE';
+      document.getElementById('statPinned').innerText = data.keyPinned ? 'YES (Strict)' : 'NO (Vulnerable)';
+      document.getElementById('statError').innerText = data.lastError || '-';
+
+      const connBadge = document.getElementById('connBadge');
+      connBadge.innerText = data.status;
+      if (data.status === 'CONNECTED') {
+        connBadge.className = 'badge badge-connected';
+      } else if (data.status === 'FAILED') {
+        connBadge.className = 'badge badge-failed';
+      } else {
+        connBadge.className = 'badge badge-status';
+      }
+
+      if (data.mode) {
+        document.getElementById('modeSelect').value = data.mode;
+      }
+      if (data.targetPort) {
+        document.getElementById('targetPortInput').value = data.targetPort;
+      }
+    }
+
+    async function connectSession() {
+      const mode = document.getElementById('modeSelect').value;
+      const port = parseInt(document.getElementById('targetPortInput').value, 10);
+      try {
+        const res = await fetch('/api/client/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ host: '127.0.0.1', port: port, mode: mode })
+        });
+        const data = await res.json();
+        fetchStatus();
+      } catch (e) {
+        fetchStatus();
+      }
+    }
+
+    async function disconnectSession() {
+      await fetch('/api/client/disconnect', { method: 'POST' });
+      fetchStatus();
+    }
+
+    async function resetSession() {
+      await fetch('/api/client/reset', { method: 'POST' });
+      fetchStatus();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text) return;
+      try {
+        await fetch('/api/client/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        input.value = '';
+        fetchStatus();
+      } catch (e) {
+        alert('Failed to send: ' + e.message);
+      }
+    }
+
+    document.getElementById('msgInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    document.getElementById('modeSelect').addEventListener('change', async (e) => {
+      await fetch('/api/client/mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: e.target.value })
+      });
+      fetchStatus();
+    });
+
+    async function checkServerMode() {
+      try {
+        const res = await fetch('http://127.0.0.1:8083/api/server/mode');
+        if (res.ok) {
+          const data = await res.json();
+          const serverMode = data.mode;
+          const clientMode = document.getElementById('modeSelect').value;
+          const banner = document.getElementById('mismatchBanner');
+          if (serverMode && clientMode && serverMode !== clientMode) {
+            document.getElementById('bannerClientMode').innerText = clientMode;
+            document.getElementById('bannerServerMode').innerText = serverMode;
+            banner.style.display = 'block';
+          } else {
+            banner.style.display = 'none';
+          }
+        }
+      } catch (e) {}
+    }
+
+    function renderSteps(steps) {
+      const tbody = document.getElementById('stepsTableBody');
+      document.getElementById('stepCountBadge').innerText = steps.length + ' Steps';
+      if (!steps || steps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No handshake initiated yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = steps.map((s, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><strong>${s.stepName}</strong></td>
+          <td><span class="badge badge-status">${s.direction}</span></td>
+          <td class="mono">${s.messageBytes} B</td>
+          <td class="mono">${s.hex4}</td>
+          <td><span class="badge ${s.outcome === 'OK' ? 'badge-connected' : 'badge-failed'}">${s.outcome}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderHistory(history) {
+      const box = document.getElementById('chatHistory');
+      if (!history || history.length === 0) {
+        box.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin-top:80px;">Connected session ready. Send a message!</div>';
+        return;
+      }
+      box.innerHTML = history.map(m => `
+        <div class="msg-bubble msg-alice">
+          <div><strong>${m.sender}</strong> (seq=${m.sequenceNumber}): ${m.text}</div>
+          <div class="msg-meta">${m.status}</div>
+        </div>
+      `).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ── SSE Stream Setup with < 2s Reconnect Badge Clear ───────────────────
+    function connectSse() {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource('/api/client/stream');
+
+      sseSource.onopen = () => {
+        clearReconnectBadge();
+      };
+
+      sseSource.addEventListener('init', () => {
+        clearReconnectBadge();
+      });
+
+      sseSource.addEventListener('handshake-step', (e) => {
+        clearReconnectBadge();
+        const step = JSON.parse(e.data);
+        fetchStatus();
+      });
+
+      sseSource.addEventListener('chat-message', (e) => {
+        clearReconnectBadge();
+        fetchStatus();
+      });
+
+      sseSource.addEventListener('connection-status', (e) => {
+        clearReconnectBadge();
+        fetchStatus();
+      });
+
+      sseSource.onerror = () => {
+        showReconnectBadge();
+        sseSource.close();
+        setTimeout(connectSse, 2000);
+      };
+    }
+
+    function showReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge) badge.style.display = 'inline-block';
+    }
+
+    function clearReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge && badge.style.display !== 'none') {
+        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears well within 2 seconds
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

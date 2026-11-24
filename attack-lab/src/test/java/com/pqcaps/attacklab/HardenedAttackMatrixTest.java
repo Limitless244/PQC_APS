@@ -31,15 +31,40 @@ class HardenedAttackMatrixTest {
         List<SecurityMatrixResult> loaded = SecurityMatrixResult.loadFromJson(jsonFile);
         assertThat(loaded).hasSize(15);
 
+        // Verify Tampering/CLASSICAL-VULNERABLE status is UNDETECTED
+        // Verify Tampering/CLASSICAL-VULNERABLE status is UNDETECTED with attackSucceeded=false and detected=false
+        SecurityMatrixResult tamperVuln = findResult(matrix, "Tampering", "CLASSICAL-VULNERABLE");
+        assertThat(tamperVuln).isNotNull();
+        assertThat(tamperVuln.status()).isEqualTo("UNDETECTED");
+        assertThat(tamperVuln.attackSucceeded()).isFalse();
+        assertThat(tamperVuln.detected()).isFalse();
+
+        SecurityMatrixResult loadedTamperVuln = findResult(loaded, "Tampering", "CLASSICAL-VULNERABLE");
+        assertThat(loadedTamperVuln).isNotNull();
+        assertThat(loadedTamperVuln.status()).isEqualTo("UNDETECTED");
+        assertThat(loadedTamperVuln.attackSucceeded()).isFalse();
+        assertThat(loadedTamperVuln.detected()).isFalse();
+
         List<String> attacks = List.of("Downgrade", "MITM", "Replay", "Nonce Reuse", "Tampering");
 
         for (String attack : attacks) {
-            // 1. CLASSICAL-VULNERABLE: Attack must SUCCEED, defence NOT triggered
+            // 1. CLASSICAL-VULNERABLE: Attack must SUCCEED (or UNDETECTED for Tampering), defence NOT triggered
             SecurityMatrixResult vuln = findResult(matrix, attack, "CLASSICAL-VULNERABLE");
             assertThat(vuln).isNotNull();
-            assertThat(vuln.attackSucceeded())
-                    .as("Attack " + attack + " should succeed in CLASSICAL-VULNERABLE mode")
-                    .isTrue();
+            if ("Tampering".equals(attack)) {
+                assertThat(vuln.attackSucceeded())
+                        .as("Tampering in CLASSICAL-VULNERABLE does not succeed (decryption fails)")
+                        .isFalse();
+                assertThat(vuln.detected())
+                        .as("Tampering in CLASSICAL-VULNERABLE is undetected")
+                        .isFalse();
+                assertThat(vuln.status())
+                        .isEqualTo("UNDETECTED");
+            } else {
+                assertThat(vuln.attackSucceeded())
+                        .as("Attack " + attack + " should succeed in CLASSICAL-VULNERABLE mode")
+                        .isTrue();
+            }
             assertThat(vuln.defenceTriggered())
                     .as("Defence should NOT be triggered in CLASSICAL-VULNERABLE mode")
                     .isFalse();
@@ -56,6 +81,9 @@ class HardenedAttackMatrixTest {
             assertThat(hardened.eventId())
                     .as("DetectionEvent id must be recorded for " + attack + " in CLASSICAL-HARDENED mode")
                     .isNotBlank();
+            assertThat(hardened.detail())
+                    .as("Detail must not contain [VULN- for " + attack)
+                    .doesNotContain("[VULN-");
 
             // 3. HYBRID: Attack must be BLOCKED, defence TRIGGERED, eventId recorded
             SecurityMatrixResult hybrid = findResult(matrix, attack, "HYBRID");
@@ -120,6 +148,51 @@ class HardenedAttackMatrixTest {
         assertThat(result.success())
                 .as("Nonce reuse keystream leak MUST succeed when nonce guard is mutated to disabled")
                 .isTrue();
+    }
+
+    @Test
+    @DisplayName("Assert that no [VULN-] warnings are emitted in any CLASSICAL-HARDENED cell")
+    void testNoVulnWarningsInClassicalHardenedCells() throws Exception {
+        SecurityMatrixRunner runner = new SecurityMatrixRunner();
+        List<String> attacks = List.of("Downgrade", "MITM", "Replay", "Nonce Reuse", "Tampering");
+        for (String attack : attacks) {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            java.io.PrintStream origOut = System.out;
+            java.io.PrintStream tee = new java.io.PrintStream(new java.io.OutputStream() {
+                @Override public void write(int b) { origOut.write(b); baos.write(b); }
+                @Override public void write(byte[] b, int off, int len) { origOut.write(b, off, len); baos.write(b, off, len); }
+                @Override public void flush() { origOut.flush(); }
+            });
+            System.setOut(tee);
+            try {
+                switch (attack) {
+                    case "Downgrade" -> runner.runDowngrade("CLASSICAL-HARDENED");
+                    case "MITM" -> runner.runMitm("CLASSICAL-HARDENED");
+                    case "Replay" -> runner.runReplay("CLASSICAL-HARDENED");
+                    case "Nonce Reuse" -> runner.runNonceReuse("CLASSICAL-HARDENED");
+                    case "Tampering" -> runner.runTampering("CLASSICAL-HARDENED");
+                }
+            } finally {
+                System.setOut(origOut);
+            }
+            String output = baos.toString(java.nio.charset.StandardCharsets.UTF_8);
+            assertThat(output)
+                    .as("No [VULN- text should be emitted in CLASSICAL-HARDENED cell for " + attack)
+                    .doesNotContain("[VULN-");
+        }
+    }
+
+    @Test
+    @DisplayName("Verify DOWNGRADE/HYBRID policy enforcement vs signed transcript verification")
+    void testHybridDowngradeBothControls() throws Exception {
+        SecurityMatrixRunner runner = new SecurityMatrixRunner();
+        // Control 1: rejectClassical=true -> server policy enforcement blocks it
+        boolean policyResult = runner.executeHybridDowngrade(true);
+        assertThat(policyResult).isFalse();
+
+        // Control 2: rejectClassical=false -> client ML-DSA-65 signed transcript mismatch blocks it
+        boolean transcriptResult = runner.executeHybridDowngrade(false);
+        assertThat(transcriptResult).isFalse();
     }
 
     private SecurityMatrixResult findResult(List<SecurityMatrixResult> matrix, String attack, String mode) {

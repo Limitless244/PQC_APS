@@ -46,12 +46,16 @@ public final class ClassicalHandshake {
 
     public static HandshakeOutcome clientHandshakeFull(Socket socket, HandshakeConfig config,
                                                         PublicKey pinnedServerKey, List<String> suites) throws IOException, ClassNotFoundException {
-        ClassicalCryptoSuite suite = ClassicalCryptoSuite.getInstance();
-        SecureRandom rng = new SecureRandom();
-
         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
         out.flush();
         ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+        return clientHandshakeFull(out, in, config, pinnedServerKey, suites);
+    }
+
+    public static HandshakeOutcome clientHandshakeFull(ObjectOutputStream out, ObjectInputStream in, HandshakeConfig config,
+                                                        PublicKey pinnedServerKey, List<String> suites) throws IOException, ClassNotFoundException {
+        ClassicalCryptoSuite suite = ClassicalCryptoSuite.getInstance();
+        SecureRandom rng = new SecureRandom();
 
         // ── Step 1: generate ephemeral X25519 keypair ─────────────────────────
         KeyPair xKp = suite.keyExchange().generateKeyPair();
@@ -80,6 +84,7 @@ public final class ClassicalHandshake {
             byte[] transcript = buildTranscript(hello, sh, config);
             boolean ok = suite.signatureScheme().verify(pinnedServerKey, transcript, sh.signature());
             if (!ok) {
+                log("[CLIENT] [ERROR] Server identity signature INVALID! Aborting.");
                 // If suite signature was enabled, signature failure might be downgrade or MITM
                 if (!config.isSkipSuiteSignature()) {
                     SecurityEventSink.emit("DOWNGRADE", "HIGH", "ClassicalHandshake", sh.chosenSuite(), "BLOCKED",
@@ -115,12 +120,16 @@ public final class ClassicalHandshake {
 
     public static HandshakeOutcome serverHandshakeFull(Socket socket, HandshakeConfig config,
                                                        KeyPair serverIdentity) throws IOException, ClassNotFoundException {
-        ClassicalCryptoSuite suite = ClassicalCryptoSuite.getInstance();
-        SecureRandom rng = new SecureRandom();
-
         ObjectInputStream in   = new ObjectInputStream(socket.getInputStream());
         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
         out.flush();
+        return serverHandshakeFull(in, out, config, serverIdentity);
+    }
+
+    public static HandshakeOutcome serverHandshakeFull(ObjectInputStream in, ObjectOutputStream out, HandshakeConfig config,
+                                                       KeyPair serverIdentity) throws IOException, ClassNotFoundException {
+        ClassicalCryptoSuite suite = ClassicalCryptoSuite.getInstance();
+        SecureRandom rng = new SecureRandom();
 
         // ── Step 1: receive ClientHello ───────────────────────────────────────
         ClientHello hello = (ClientHello) in.readObject();

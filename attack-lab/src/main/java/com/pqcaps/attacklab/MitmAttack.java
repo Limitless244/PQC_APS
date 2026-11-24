@@ -10,6 +10,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -65,8 +66,8 @@ public final class MitmAttack {
         KeyPair realServerIdentity = ClassicalCryptoSuite.getInstance().signatureScheme().generateKeyPair();
         KeyPair attackerIdentity   = ClassicalCryptoSuite.getInstance().signatureScheme().generateKeyPair();
 
-        HandshakeConfig serverConfig = HandshakeConfig.vulnerable();
-        HandshakeConfig clientConfig = HandshakeConfig.vulnerable().withSkipKeyPinning(skipKeyPinning);
+        HandshakeConfig serverConfig = skipKeyPinning ? HandshakeConfig.vulnerable() : HandshakeConfig.hardened();
+        HandshakeConfig clientConfig = skipKeyPinning ? HandshakeConfig.vulnerable() : HandshakeConfig.hardened();
 
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch proxyReady  = new CountDownLatch(1);
@@ -111,15 +112,15 @@ public final class MitmAttack {
 
                         // Handshake with client as the fake server (using attacker's keypair)
                         SessionKeys keysClientProxy = ClassicalHandshake.serverHandshake(
-                                clientSocket, HandshakeConfig.vulnerable(), attackerIdentity);
+                                clientSocket, serverConfig, attackerIdentity);
 
                         // Handshake with real server as a client
                         SessionKeys keysProxyServer = ClassicalHandshake.clientHandshake(
-                                serverSocket, HandshakeConfig.vulnerable(), null);
+                                serverSocket, serverConfig, skipKeyPinning ? null : realServerIdentity.getPublic(), List.of("CLASSICAL"));
 
                         // Secure channels on both legs
-                        try (ClassicalSecureChannel channelCP = new ClassicalSecureChannel(clientSocket, keysClientProxy, false, HandshakeConfig.vulnerable());
-                             ClassicalSecureChannel channelPS = new ClassicalSecureChannel(serverSocket, keysProxyServer, true, HandshakeConfig.vulnerable())) {
+                        try (ClassicalSecureChannel channelCP = new ClassicalSecureChannel(clientSocket, keysClientProxy, false, serverConfig);
+                             ClassicalSecureChannel channelPS = new ClassicalSecureChannel(serverSocket, keysProxyServer, true, serverConfig)) {
 
                             // Intercept Client -> Server message
                             byte[] rawC2S = channelCP.receive();

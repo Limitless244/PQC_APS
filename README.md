@@ -1,109 +1,92 @@
 # PQC-APS — Post-Quantum Cryptography Attack Prevention System
 
-A capstone project demonstrating the migration of a client-server communication
-layer from classical cryptography to a **hybrid classical + post-quantum** scheme,
-with active attack detection and prevention, and a live performance dashboard.
+A comprehensive research prototype and evaluation framework demonstrating the migration of secure network channels from classical cryptography (X25519, RSA, AES-GCM) to **NIST FIPS 203 (ML-KEM-768) and FIPS 204 (ML-DSA-65) hybrid post-quantum cryptography**, paired with real-time attack detection guards, an offensive exploit harness, a static AST/regex cryptographic scanner, and an interactive evaluation dashboard.
 
 ---
 
-## 🏗️ Architecture
+## ⚡ 5-Command Quick Start
 
-| Module | Purpose |
-|--------|---------|
-| `crypto-scanner` | Static analyser for vulnerable crypto patterns (RSA<3072, MD5, hardcoded keys …) |
-| `hybrid-kex` | X25519 + ML-KEM-768 hybrid key exchange; HKDF-SHA256 session key derivation |
-| `pq-auth` | ML-DSA-65 signatures over the full handshake transcript |
-| `secure-channel` | AES-256-GCM record layer with counter nonces and sequence numbers |
-| `attack-engine` | 8 attack detectors/preventers (downgrade, MITM, replay, nonce reuse, …) |
-| `crypto-agility` | YAML-driven algorithm suite selection (CLASSICAL / HYBRID / PQ_ONLY) |
-| `benchmark-dashboard` | JMH benchmarks + Spring Boot backend + React dashboard |
+Execute these 5 commands from the project root in PowerShell:
 
----
-
-## ⚡ Quick Start
-
-### Prerequisites
-- **JDK 21+** (JDK 24 enables native ML-KEM/ML-DSA; JDK 21 falls back to Bouncy Castle automatically)
-- **Node.js 18+** (for the dashboard frontend)
-- No global Maven required — use the included `mvnw` / `mvnw.cmd` wrapper
-
-### Build everything
-```bash
-# Windows
-mvnw.cmd clean package -DskipTests
-
-# macOS / Linux
-./mvnw clean package -DskipTests
-```
-
-### Run all tests
-```bash
-mvnw.cmd verify
-```
-
-### Generate All Artifacts
 ```powershell
-# Runs 15-cell attack matrix, scans 3 targets, and generates benchmark results
-.\scripts\generate-all.ps1
+# 1. Build all 11 reactor modules and run test suite (192/192 tests pass)
+powershell -File .\mvn.ps1 clean install
+
+# 2. Run the 15-cell attack matrix, 5 target scans, and JMH benchmarks
+powershell -File .\scripts\generate-all.ps1
+
+# 3. Generate the automated results report (docs/RESULTS.md) from live JSON data
+powershell -File .\scripts\generate-docs.ps1
+
+# 4. Start the interactive Spring Boot dashboard
+powershell -File .\mvn.ps1 spring-boot:run -pl benchmark-dashboard
+
+# 5. Open the interactive dashboard in your browser
+Start-Process "http://localhost:8080"
 ```
 
-### Run the Interactive Dashboard
-```powershell
-# Starts the Spring Boot backend serving the live HTML/JS + Chart.js dashboard
-.\mvnw.cmd spring-boot:run -pl benchmark-dashboard "-Dpqcaps.dataDir=data"
-# Open in browser: http://127.0.0.1:8080
-```
+*(Note: On systems with standard Maven or Linux shells, `./mvnw` or `mvnw.cmd` can be used identically).*
 
 ---
 
-## 🔐 Cryptographic Design
+## 🏗️ The 11 Reactor Modules
 
-### Handshake (Hybrid)
-```
-Client                                          Server
-  |-- xpk_c, kpk_c, suites, nonce_c ---------->|
-  |                                             | ss1 = X25519(xsk_s, xpk_c)
-  |                                             | (ct, ss2) = ML-KEM.Enc(kpk_c)
-  |                                             | sig = ML-DSA.Sign(transcript)
-  |<-- xpk_s, ct, nonce_s, suite, sig ----------|
-  | verify sig ✓                                |
-  | ss1 = X25519(xsk_c, xpk_s)                  |
-  | ss2 = ML-KEM.Dec(ksk_c, ct)                 |
-  |-- session_key = HKDF(ss1||ss2||H(transcript))|
-```
-
-### Algorithm Suites
-| Suite | Key Exchange | Authentication | Symmetric |
-|-------|-------------|---------------|----------|
-| CLASSICAL | X25519 / RSA-2048 | ECDSA | AES-256-GCM |
-| HYBRID | X25519 + ML-KEM-768 | ML-DSA-65 | AES-256-GCM |
-| PQ_ONLY | ML-KEM-768 | ML-DSA-65 | AES-256-GCM |
-
-### Attack Prevention Summary
-| Attack | Prevention Mechanism |
-|--------|---------------------|
-| Suite Downgrade | ML-DSA signed suite list |
-| MITM | Signature over full transcript (xpk_c, xpk_s, ct, nonces) |
-| Replay | Nonce + timestamp + per-direction sequence numbers |
-| GCM Nonce Reuse | Counter nonce manager, rekeying before overflow |
-| Timing Side Channel | `MessageDigest.isEqual` constant-time comparison |
-| Weak Randomness | Scanner rule + runtime `SecureRandom` guard |
-| Key Reuse | Fresh ephemeral keys per session (forward secrecy) |
-| Ciphertext Tampering | GCM tag verification, no oracle error messages |
+| # | Module | Artifact ID | Description |
+|---|--------|-------------|-------------|
+| 1 | **Parent Aggregator** | `pqc-aps` | Top-level Maven reactor POM managing dependencies, compiler flags (Java 21), and plugins. |
+| 2 | **Common** | `common` | Shared protocol objects (`EncryptedRecord`, `SessionKeys`, `HandshakeConfig`, `DataPaths`). |
+| 3 | **Classical Baseline** | `classical` | RFC 7748 Curve25519 ECDH, PKCS#1 v1.5 RSA-2048, and AES-256-GCM record channel baseline. |
+| 4 | **Crypto Agility** | `crypto-agility` | Runtime algorithm registry and dynamic cryptographic suite factory (`AlgorithmRegistry`). |
+| 5 | **Crypto Scanner** | `crypto-scanner` | Static AST and regex analysis engine scanning codebases for weak algorithms and quantum readiness. |
+| 6 | **Hybrid Key Exchange** | `hybrid-kex` | Dual-PRK HKDF combiner uniting X25519 and NIST FIPS 203 ML-KEM-768 (`HybridKeySchedule`). |
+| 7 | **PQ Authentication** | `pq-auth` | NIST FIPS 204 ML-DSA-65 digital signature scheme for full transcript authentication. |
+| 8 | **Secure Channel** | `secure-channel` | 8-step hybrid handshake protocol with mutual Finished key confirmation (`HybridHandshake`). |
+| 9 | **Attack Engine** | `attack-engine` | 8 real-time defensive guards (`DowngradeGuard`, `ReplayGuard`, etc.) and append-only `EventLog`. |
+| 10 | **Attack Lab** | `attack-lab` | Offensive exploit test harness executing the 15-cell evaluation matrix and two-leg MITM TCP proxy. |
+| 11 | **Benchmark Dashboard** | `benchmark-dashboard` | Spring Boot backend (REST + SSE) and Chart.js UI serving live benchmarks, scan reports, and chat demo. |
 
 ---
 
-## 📚 Technology Stack
-- **Language**: Java 21 (LTS)
-- **PQC Library**: Bouncy Castle 1.80 (bcprov-jdk18on, bcpkix-jdk18on)
-- **Build**: Maven (via wrapper)
-- **Backend**: Spring Boot 3.4.5
-- **Frontend**: React + Vite + Chart.js
-- **Tests**: JUnit 5 + AssertJ
-- **Benchmarks**: JMH 1.37
+## 📚 Complete Project Documentation (`docs/`)
+
+All documentation, empirical evaluation tables, threat models, diagrams, and viva preparation materials are organized in the `docs/` directory:
+
+### Core Documentation & Reports
+- 📊 **[docs/RESULTS.md](docs/RESULTS.md)**: **Automated evaluation results**. Contains the 192/192 test summary, 15-cell attack matrix, wire sizes (6,433 B vs 820 B), primitive dimensions, CPU impact (+312.5 µs), throughput (>2,200 MB/s), and scanner comparison across 5 targets. Generated by `scripts/generate-docs.ps1`.
+- 🛡️ **[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)**: Threat model defining protected assets, Dolev-Yao active network attackers, Harvest-Now-Decrypt-Later (HNDL) adversaries, trust assumptions, the 8 defensive guards, and explicit out-of-scope boundaries.
+- ⚖️ **[docs/LIMITATIONS.md](docs/LIMITATIONS.md)**: Honest engineering constraints: Chat Demo MITM simulation vs Attack Lab TCP proxy, quantum threat distinction between Hardened and Hybrid, Java serialization wire framing, JDK 21 Bouncy Castle dependency, and future roadmap.
+- 📑 **[docs/REPORT_OUTLINE.md](docs/REPORT_OUTLINE.md)**: 15-chapter dissertation outline with target page counts and mapping to tables and figures.
+- 🖥️ **[docs/PPT_STRUCTURE.md](docs/PPT_STRUCTURE.md)**: 15-slide capstone viva presentation deck with 3 bullet points per slide, visual mappings, and 20-second speaker notes.
+- 📸 **[docs/SCREENSHOTS.md](docs/SCREENSHOTS.md)**: Step-by-step checklist of screenshots to capture across Overview, Handshake Visualizer, Attack Matrix, Scanner, and Chat Demo.
+- 🎓 **[docs/VIVA_QA.md](docs/VIVA_QA.md)**: 20 likely examiner viva questions with 2–3 sentence model answers covering lattice definitions, quantum threats, wire overhead, and MITM mechanics.
+
+### Architectural & Protocol Diagrams (`docs/diagrams/`)
+- 🏛️ **[docs/diagrams/architecture.md](docs/diagrams/architecture.md)**: Mermaid graph of all 11 modules, dependency hierarchies, and `data/` file flows.
+- 🔄 **[docs/diagrams/handshake-hybrid.md](docs/diagrams/handshake-hybrid.md)**: Mermaid sequence diagram of the 8-step `HYBRID` handshake protocol with mutual Finished confirmation.
+- ⚠️ **[docs/diagrams/handshake-classical.md](docs/diagrams/handshake-classical.md)**: Mermaid sequence diagram of the classical baseline highlighting vulnerabilities `VULN-1` through `VULN-4`.
+- ⚔️ **[docs/diagrams/attack-flows.md](docs/diagrams/attack-flows.md)**: Sequence diagrams demonstrating exactly how each defensive guard intercepts attacks.
+- 🔑 **[docs/diagrams/key-schedule.md](docs/diagrams/key-schedule.md)**: Detailed flowchart of the HKDF dual-PRK key combiner and mathematical explanation of secret independence.
 
 ---
 
-## 📄 License
-MIT — for educational/research use only. Do not use this code in production without
-a full security audit by qualified cryptographers.
+## 🔐 Cryptographic Suites & Performance Highlights
+
+| Metric / Dimension | `CLASSICAL` | `HYBRID` | `PQ_ONLY` | Ratio (Hybrid / Classical) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Key Exchange** | X25519 (ECDH) | X25519 + ML-KEM-768 | ML-KEM-768 | Hybrid dual-security |
+| **Authentication** | RSA-2048 PKCS#1 v1.5 | ML-DSA-65 | ML-DSA-65 | Post-quantum lattice |
+| **Record Encryption** | AES-256-GCM | AES-256-GCM | AES-256-GCM | Quantum-safe symmetric (128-bit margin) |
+| **Unframed Key Material** | 501 B | 6,098 B | 6,009 B | **12.17x** key payload expansion |
+| **Total Handshake Wire** | 820 B | 6,433 B | 6,344 B | **7.85x** serialized wire overhead |
+| **Handshake CPU Time** | 1,406.25 µs | 1,718.75 µs | 937.50 µs | **+312.50 µs (1.22x)** overhead |
+| **AES-256-GCM Throughput** | > 2,200 MB/s | > 2,200 MB/s | > 2,200 MB/s | Sustained wire speed (64 KB records) |
+| **Active Network Attacks** | ❌ 0/5 Defended (Vuln) | ✔ 5/5 Defended | ✔ 5/5 Defended | Complete 15-cell matrix defense |
+| **HNDL Quantum Protection**| ❌ Vulnerable | ✔ **Protected** | ✔ **Protected** | Immune to retroactive decryption |
+
+---
+
+## 🧪 Verification & Testing Status
+
+- **Total Reactor Tests**: **192 / 192 Passing (100%)**
+- **Test Modules**: Evaluated across 10 submodules (`common`, `classical`, `crypto-agility`, `crypto-scanner`, `hybrid-kex`, `pq-auth`, `secure-channel`, `attack-engine`, `attack-lab`, `benchmark-dashboard`).
+- **JDK Environment**: Tested and verified under OpenJDK 21.0.10 LTS with Bouncy Castle 1.80.

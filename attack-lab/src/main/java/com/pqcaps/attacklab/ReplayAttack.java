@@ -62,7 +62,7 @@ public final class ReplayAttack {
     public static AttackResult execute(boolean vulnerable) {
         ensureLocalhost();
         KeyPair serverIdentity = ClassicalCryptoSuite.getInstance().signatureScheme().generateKeyPair();
-        HandshakeConfig config = HandshakeConfig.vulnerable().withSkipSequenceCheck(vulnerable);
+        HandshakeConfig config = vulnerable ? HandshakeConfig.vulnerable() : HandshakeConfig.hardened();
 
         CountDownLatch serverReady = new CountDownLatch(1);
         int[] portHolder = new int[1];
@@ -109,7 +109,7 @@ public final class ReplayAttack {
             serverReady.await();
             try (Socket socket = new Socket(LOCALHOST, portHolder[0])) {
                 SessionKeys keys = ClassicalHandshake.clientHandshake(
-                        socket, config.withSkipKeyPinning(true), null);
+                        socket, config, vulnerable ? null : serverIdentity.getPublic(), List.of("CLASSICAL"));
 
                 ObjectOutputStream wireOut = new ObjectOutputStream(socket.getOutputStream());
                 wireOut.flush();

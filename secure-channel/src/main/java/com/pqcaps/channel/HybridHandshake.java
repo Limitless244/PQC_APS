@@ -105,7 +105,11 @@ public final class HybridHandshake {
         // ── Step 4: Receive ServerHello ────────────────────────────────────
         ServerHello serverHello = (ServerHello) in.readObject();
         log("[CLIENT] [4/8] Received ServerHello (chosenSuite=%s)", serverHello.chosenSuite());
-        log("[CLIENT]       ML-KEM ct      : 1088 B (%s...)", hex4(serverHello.ct()));
+        if ("CLASSICAL".equalsIgnoreCase(serverHello.chosenSuite())) {
+            log("[CLIENT]       ML-KEM ct      : none (suite CLASSICAL)");
+        } else {
+            log("[CLIENT]       ML-KEM ct      : 1088 B (%s...)", hex4(serverHello.ct()));
+        }
         log("[CLIENT]       ML-DSA-65 sig  : %d B (%s...)",
                 serverHello.signature() != null ? serverHello.signature().length : 0, hex4(serverHello.signature()));
 

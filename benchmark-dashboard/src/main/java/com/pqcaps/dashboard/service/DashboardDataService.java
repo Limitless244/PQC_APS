@@ -12,8 +12,10 @@ import com.pqcaps.dashboard.benchmark.BenchmarkReport;
 import com.pqcaps.dashboard.benchmark.BenchmarkRunner;
 import com.pqcaps.scanner.ScanReport;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -25,6 +27,9 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class DashboardDataService {
@@ -42,7 +47,16 @@ public class DashboardDataService {
     private final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
 
+    @Value("${pqcaps.sse.timeout-ms:1800000}")
+    private long sseTimeoutMs = 1_800_000L; // 30 minutes default (configurable)
+
     private final List<SseEmitter> sseEmitters = new CopyOnWriteArrayList<>();
+
+    private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "sse-heartbeat");
+        t.setDaemon(true);
+        return t;
+    });
 
     @PostConstruct
     public void init() {
@@ -56,6 +70,14 @@ public class DashboardDataService {
                 broadcastEvent(event);
             } catch (Exception ignored) {}
         });
+
+        // Send a heartbeat comment every 15s so connected SSE clients do not time out
+        heartbeatScheduler.scheduleAtFixedRate(this::sendHeartbeat, 15, 15, TimeUnit.SECONDS);
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        heartbeatScheduler.shutdownNow();
     }
 
     public List<SecurityMatrixResult> loadAttacks() {
@@ -220,7 +242,7 @@ public class DashboardDataService {
     }
 
     public SseEmitter registerEmitter() {
-        SseEmitter emitter = new SseEmitter(180_000L); // 3 minutes timeout
+        SseEmitter emitter = new SseEmitter(sseTimeoutMs);
         sseEmitters.add(emitter);
 
         emitter.onCompletion(() -> sseEmitters.remove(emitter));
@@ -237,6 +259,31 @@ public class DashboardDataService {
         }
 
         return emitter;
+    }
+
+    public void sendHeartbeat() {
+        if (sseEmitters.isEmpty()) return;
+        List<SseEmitter> dead = new ArrayList<>();
+        for (SseEmitter emitter : sseEmitters) {
+            try {
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+            } catch (Exception e) {
+                dead.add(emitter);
+            }
+        }
+        sseEmitters.removeAll(dead);
+    }
+
+    public long getSseTimeoutMs() {
+        return sseTimeoutMs;
+    }
+
+    public void setSseTimeoutMs(long sseTimeoutMs) {
+        this.sseTimeoutMs = sseTimeoutMs;
+    }
+
+    public List<SseEmitter> getSseEmitters() {
+        return Collections.unmodifiableList(sseEmitters);
     }
 
     public void broadcastEvent(DetectionEvent event) {

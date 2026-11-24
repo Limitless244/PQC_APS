@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -93,6 +94,31 @@ public final class SecurityMatrixRunner {
         return result;
     }
 
+    public <T> T runClassicalHardenedWithVulnCheck(String attack, Callable<T> action) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream origOut = System.out;
+        PrintStream tee = new PrintStream(new java.io.OutputStream() {
+            @Override public void write(int b) { origOut.write(b); baos.write(b); }
+            @Override public void write(byte[] b, int off, int len) { origOut.write(b, off, len); baos.write(b, off, len); }
+            @Override public void flush() { origOut.flush(); }
+        });
+        System.setOut(tee);
+        try {
+            T res = action.call();
+            String output = baos.toString(StandardCharsets.UTF_8);
+            if (output.contains("[VULN-")) {
+                throw new AssertionError("CLASSICAL-HARDENED cell " + attack + " emitted [VULN- warning: " + output);
+            }
+            return res;
+        } catch (AssertionError ae) {
+            throw ae;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            System.setOut(origOut);
+        }
+    }
+
     // ── 1. Downgrade ─────────────────────────────────────────────────────────
 
     public SecurityMatrixResult runDowngrade(String mode) {
@@ -103,15 +129,37 @@ public final class SecurityMatrixRunner {
                 return recordAndPrint(new SecurityMatrixResult("Downgrade", mode, res.success(), !res.success(), null,
                         "ClientHello suites [HYBRID, CLASSICAL] stripped to [CLASSICAL] -> accepted by vulnerable server without detection"));
             } else if ("CLASSICAL-HARDENED".equals(mode)) {
-                boolean success = executeHardenedClassicalDowngrade();
+                boolean success = runClassicalHardenedWithVulnCheck("Downgrade", () -> executeHardenedClassicalDowngrade());
                 DetectionEvent ev = getNewEvent(initialEventCount, DetectionEvent.AttackType.DOWNGRADE);
                 return recordAndPrint(new SecurityMatrixResult("Downgrade", mode, success, !success, ev != null ? ev.id() : null,
                         "ClientHello suites stripped -> signature verification over transcript failed, suite tampering blocked"));
             } else {
-                boolean success = executeHybridDowngrade();
-                DetectionEvent ev = getNewEvent(initialEventCount, DetectionEvent.AttackType.DOWNGRADE);
-                return recordAndPrint(new SecurityMatrixResult("Downgrade", mode, success, !success, ev != null ? ev.id() : null,
-                        "ClientHello suites stripped -> ML-DSA-65 signed transcript mismatch, downgrade blocked"));
+                // 1. Policy enforcement case (rejectClassical = true)
+                int eventCountBeforePolicy = eventLog.getEvents().size();
+                boolean successPolicy = executeHybridDowngrade(true);
+                DetectionEvent evPolicy = getNewEvent(eventCountBeforePolicy, DetectionEvent.AttackType.DOWNGRADE);
+                String eventPolicyPart = evPolicy != null ? ", event " + evPolicy.id() : "";
+                System.out.printf("[EVIDENCE] DOWNGRADE/HYBRID: Server policy (rejectClassical=true) - ClientHello suites stripped -> server policy rejected classical-only suite, downgrade blocked%s%n",
+                        eventPolicyPart);
+
+                // 2. Signed transcript verification case (rejectClassical = false)
+                int eventCountBeforeTranscript = eventLog.getEvents().size();
+                boolean successTranscript = executeHybridDowngrade(false);
+                DetectionEvent evTranscript = getNewEvent(eventCountBeforeTranscript, DetectionEvent.AttackType.DOWNGRADE);
+                String eventTranscriptPart = evTranscript != null ? ", event " + evTranscript.id() : "";
+                System.out.printf("[EVIDENCE] DOWNGRADE/HYBRID: Signed transcript (rejectClassical=false) - ClientHello suites stripped -> ML-DSA-65 signed transcript mismatch, downgrade blocked%s%n",
+                        eventTranscriptPart);
+
+                boolean overallSuccess = successPolicy || successTranscript;
+                DetectionEvent ev = evTranscript != null ? evTranscript : evPolicy;
+                return new SecurityMatrixResult(
+                        "Downgrade",
+                        mode,
+                        overallSuccess,
+                        !overallSuccess,
+                        ev != null ? ev.id() : null,
+                        "Server policy (rejectClassical=true) rejected classical-only suite; signed transcript check (rejectClassical=false) detected ML-DSA-65 signature mismatch"
+                );
             }
         } catch (Exception e) {
             DetectionEvent ev = getNewEvent(initialEventCount, DetectionEvent.AttackType.DOWNGRADE);
@@ -169,6 +217,10 @@ public final class SecurityMatrixRunner {
     }
 
     public boolean executeHybridDowngrade() throws Exception {
+        return executeHybridDowngrade(true);
+    }
+
+    public boolean executeHybridDowngrade(boolean rejectClassical) throws Exception {
         MlDsaSignatureScheme dsa = new MlDsaSignatureScheme();
         KeyPair sKp = dsa.generateKeyPair();
         try (ServerSocket server = new ServerSocket(0); ServerSocket proxy = new ServerSocket(0)) {
@@ -178,7 +230,7 @@ public final class SecurityMatrixRunner {
 
             exec.submit(() -> {
                 try (Socket s = server.accept()) {
-                    HybridHandshake.serverHandshake(s, sKp.getPrivate(), true); // rejectClassical=true
+                    HybridHandshake.serverHandshake(s, sKp.getPrivate(), rejectClassical);
                 } catch (Exception ignored) {}
             });
 
@@ -233,7 +285,7 @@ public final class SecurityMatrixRunner {
                 return recordAndPrint(new SecurityMatrixResult("MITM", mode, res.success(), !res.success(), null,
                         "Rogue server presented untrusted RSA key -> accepted by vulnerable client with key pinning disabled"));
             } else if ("CLASSICAL-HARDENED".equals(mode)) {
-                boolean success = MitmAttack.execute(false).success();
+                boolean success = runClassicalHardenedWithVulnCheck("MITM", () -> MitmAttack.execute(false).success());
                 DetectionEvent ev = getNewEvent(initialEventCount, DetectionEvent.AttackType.MITM);
                 return recordAndPrint(new SecurityMatrixResult("MITM", mode, success, !success, ev != null ? ev.id() : null,
                         "Rogue server presented untrusted RSA key -> pinned key check failed, rogue server rejected"));
@@ -292,7 +344,7 @@ public final class SecurityMatrixRunner {
                 return recordAndPrint(new SecurityMatrixResult("Replay", mode, res.success(), !res.success(), null,
                         "Record seq=0 re-sent -> accepted duplicate record by vulnerable channel without sequence validation"));
             } else if ("CLASSICAL-HARDENED".equals(mode)) {
-                boolean success = ReplayAttack.execute(false).success();
+                boolean success = runClassicalHardenedWithVulnCheck("Replay", () -> ReplayAttack.execute(false).success());
                 DetectionEvent ev = getNewEvent(initialEventCount, DetectionEvent.AttackType.REPLAY);
                 return recordAndPrint(new SecurityMatrixResult("Replay", mode, success, !success, ev != null ? ev.id() : null,
                         "Record seq=0 re-sent -> rejected duplicate sequence number by ReplayGuard"));
@@ -363,7 +415,7 @@ public final class SecurityMatrixRunner {
                 return recordAndPrint(new SecurityMatrixResult("Nonce Reuse", mode, res.success(), !res.success(), null,
                         "Two plaintexts encrypted under same nonce=0 -> keystream reused, C1^C2 leaked P1^P2"));
             } else if ("CLASSICAL-HARDENED".equals(mode)) {
-                boolean success = executeHardenedClassicalNonceReuse();
+                boolean success = runClassicalHardenedWithVulnCheck("Nonce Reuse", () -> executeHardenedClassicalNonceReuse());
                 DetectionEvent ev = getNewEvent(initialEventCount, DetectionEvent.AttackType.NONCE_REUSE);
                 return recordAndPrint(new SecurityMatrixResult("Nonce Reuse", mode, success, !success, ev != null ? ev.id() : null,
                         "Attempted nonce counter reset -> reset refused by NonceGuard"));
@@ -413,11 +465,11 @@ public final class SecurityMatrixRunner {
         int initialEventCount = eventLog.getEvents().size();
         try {
             if ("CLASSICAL-VULNERABLE".equals(mode)) {
-                boolean success = executeVulnerableClassicalTamper();
-                return recordAndPrint(new SecurityMatrixResult("Tampering", mode, success, !success, null,
-                        "Attacker flipped bit in ciphertext -> GCM decryption threw raw exception with zero detection telemetry logged (error oracle risk)"));
+                executeVulnerableClassicalTamper();
+                return recordAndPrint(new SecurityMatrixResult("Tampering", mode, "UNDETECTED", false, false, false, null,
+                        "Attacker flipped bit in ciphertext -> GCM decryption threw raw exception with zero detection telemetry logged (no detection telemetry; UNDETECTED tampering)"));
             } else if ("CLASSICAL-HARDENED".equals(mode)) {
-                boolean success = executeHardenedClassicalTamper();
+                boolean success = runClassicalHardenedWithVulnCheck("Tampering", () -> executeHardenedClassicalTamper());
                 DetectionEvent ev = getNewEvent(initialEventCount, DetectionEvent.AttackType.TAMPER);
                 return recordAndPrint(new SecurityMatrixResult("Tampering", mode, success, !success, ev != null ? ev.id() : null,
                         "Ciphertext bit flipped -> TamperGuard caught tag mismatch"));
@@ -453,7 +505,7 @@ public final class SecurityMatrixRunner {
             return false;
         } catch (SecurityException e) {
             // Decryption failed as expected, but in vulnerable mode, zero SecurityEvents are logged.
-            // Attacker achieved undetectable tampering (error oracle risk).
+            // Attacker achieved undetectable tampering (no detection telemetry).
             return true;
         }
     }
@@ -564,12 +616,19 @@ public final class SecurityMatrixRunner {
             String hyb  = getStatus(results, atk, "HYBRID");
             System.out.printf("%-16s | %-18s | %-18s | %-12s%n", atk, vuln, hard, hyb);
         }
-        System.out.println("==========================================================================\n");
+        System.out.println("==========================================================================");
+        System.out.println("  * Tampering/CLASSICAL-VULN is UNDETECTED: decryption failed with 0 detection events logged (no detection telemetry).\n");
     }
 
     private static String getStatus(List<SecurityMatrixResult> results, String attack, String mode) {
         for (SecurityMatrixResult r : results) {
             if (r.attack().equalsIgnoreCase(attack) && r.mode().equalsIgnoreCase(mode)) {
+                if (r.status() != null && !r.status().isBlank()) {
+                    return r.status();
+                }
+                if ("Tampering".equalsIgnoreCase(attack) && "CLASSICAL-VULNERABLE".equalsIgnoreCase(mode)) {
+                    return "UNDETECTED";
+                }
                 return r.attackSucceeded() ? "SUCCEEDED" : "BLOCKED";
             }
         }

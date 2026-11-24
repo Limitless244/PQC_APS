@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PQC-APS :: Chat Lab Hub (All-in-One :8090)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --border-focus: #3b82f6;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --warning: #f59e0b;
+      --purple: #8b5cf6;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 12px 16px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .badge-hub { background-color: #1e3a8a; color: #bfdbfe; }
+    .badge-mode { background-color: #312e81; color: #c7d2fe; }
+    .badge-ok { background-color: #064e3b; color: #6ee7b7; }
+    .badge-warn { background-color: #78350f; color: #fde68a; }
+    .badge-err { background-color: #7f1d1d; color: #fca5a5; }
+    .badge-idle { background-color: #374151; color: #9ca3af; }
+    .reconnect-badge {
+      display: none;
+      background-color: var(--warning);
+      color: #000;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.75rem;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* Control Bars */
+    .control-deck {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    select, button {
+      background-color: #1f2937;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: all 0.15s;
+    }
+    select:focus { border-color: var(--border-focus); }
+    button {
+      background-color: var(--primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover { background-color: var(--primary-hover); }
+    button.btn-danger { background-color: var(--danger); }
+    button.btn-danger:hover { background-color: var(--danger-hover); }
+    button.btn-secondary { background-color: #374151; }
+    button.btn-secondary:hover { background-color: #4b5563; }
+    button.btn-demo {
+      background-color: #4c1d95;
+      color: #ede9fe;
+      border: 1px solid #6d28d9;
+    }
+    button.btn-demo:hover { background-color: #5b21b6; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Guided Demos Section */
+    .demo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      padding-top: 8px;
+    }
+    .demo-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #a78bfa;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .demo-result-box {
+      flex: 1;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .result-blocked { color: #6ee7b7; font-weight: 600; }
+    .result-succeeded { color: #fca5a5; font-weight: 600; }
+    .result-info { color: #93c5fd; }
+
+    /* 3-Column Iframes Layout */
+    .hub-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      flex: 1;
+      min-height: 0;
+    }
+    .column-panel {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--card-bg);
+    }
+    .column-header {
+      background: #111827;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .column-header.alice { border-top: 3px solid #3b82f6; }
+    .column-header.mallory { border-top: 3px solid #8b5cf6; }
+    .column-header.bob { border-top: 3px solid #0ea5e9; }
+    .column-panel iframe {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: var(--bg);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <div class="header">
+    <h1>
+      <span>🛡️ PQC-APS Chat Lab Hub</span>
+      <span class="badge badge-hub">All-in-One (:8090)</span>
+      <span id="globalModeBadge" class="badge badge-mode">HYBRID</span>
+    </h1>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">Real Localhost TCP: :9000 &rarr; :9001</span>
+    </div>
+  </div>
+
+  <!-- Global Control Deck -->
+  <div class="control-deck">
+    <!-- Row 1: Global Controls & Status -->
+    <div class="control-row">
+      <div class="control-group">
+        <label for="globalModeSelect" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Global Mode:</label>
+        <select id="globalModeSelect" onchange="applyGlobalMode()">
+          <option value="HYBRID" selected>HYBRID (ML-KEM-768 + X25519 & ML-DSA-65, Strict Guards)</option>
+          <option value="CLASSICAL-HARDENED">CLASSICAL-HARDENED (RSA-2048 + Guards)</option>
+          <option value="CLASSICAL-VULNERABLE">CLASSICAL-VULNERABLE (VULN-1..4 Active, No Guards)</option>
+        </select>
+        <button onclick="connectAll()">🔗 Connect Alice</button>
+        <button class="btn-secondary" onclick="resetAll()">🔄 Reset All</button>
+        <button class="btn-danger" onclick="stopAll()">⏹ Stop All</button>
+      </div>
+
+      <div class="status-group">
+        <div class="status-pill">
+          <span>Alice (Client):</span>
+          <span id="pillAlice" class="badge badge-idle">DISCONNECTED</span>
+        </div>
+        <div class="status-pill">
+          <span>Mallory (Proxy):</span>
+          <span id="pillMallory" class="badge badge-ok">RUNNING</span>
+        </div>
+        <div class="status-pill">
+          <span>Bob (Server):</span>
+          <span id="pillBob" class="badge badge-ok">RUNNING</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Guided Attack Demos -->
+    <div class="demo-bar">
+      <div class="control-group">
+        <span class="demo-label">Guided Demos:</span>
+        <button class="btn-demo" onclick="runGuidedDemo('replay')">⚡ Replay</button>
+        <button class="btn-demo" onclick="runGuidedDemo('downgrade')">📉 Downgrade</button>
+        <button class="btn-demo" onclick="runGuidedDemo('mitm')">👤 MITM</button>
+        <button class="btn-demo" onclick="runGuidedDemo('tamper')">✂️ Tamper</button>
+      </div>
+      <div id="demoResultBox" class="demo-result-box">
+        <span class="result-info">Select a guided attack demo above to execute automated real TCP test across Alice, Mallory, and Bob.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 Columns Grid -->
+  <div class="hub-grid">
+    <!-- Alice: Client View -->
+    <div class="column-panel">
+      <div class="column-header alice">
+        <span>Alice (Client :8081)</span>
+        <span style="font-family: var(--font-mono); font-weight: normal; color: var(--text-muted);">Target: 127.0.0.1:9000</span>
+      </div>
+      <iframe id="aliceFrame" src="/client.html" title="Alice Client UI"></iframe>
+    </div>
+
+    <!-- Mallory: Attacker Proxy View -->
+    <div class="column-panel">
+      <div class="column-header mallory">
+        <span>Mallory (Attacker Proxy :8082)</span>
+        <span style="font-family: var(--font-mono); font-weight: normal; color: var(--text-muted);">Listen :9000 &rarr; Target :9001</span>
+      </div>
+      <iframe id="malloryFrame" src="/attacker.html" title="Mallory Proxy UI"></iframe>
+    </div>
+
+    <!-- Bob: Server View -->
+    <div class="column-panel">
+      <div class="column-header bob">
+        <span>Bob (Secure Server :8083)</span>
+        <span style="font-family: var(--font-mono); font-weight: normal; color: var(--text-muted);">TCP Server :9001</span>
+      </div>
+      <iframe id="bobFrame" src="/server.html" title="Bob Server UI"></iframe>
+    </div>
+  </div>
+
+  <script>
+    let sseSource = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchHubStatus();
+      connectSse();
+      setInterval(fetchHubStatus, 3000);
+    });
+
+    async function fetchHubStatus() {
+      try {
+        const res = await fetch('/api/hub/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        updateUI(data);
+      } catch (e) {
+        console.debug('Status poll error:', e);
+      }
+    }
+
+    function updateUI(data) {
+      if (data.globalMode) {
+        document.getElementById('globalModeBadge').innerText = data.globalMode;
+        const select = document.getElementById('globalModeSelect');
+        if (select && select.value !== data.globalMode) {
+          select.value = data.globalMode;
+        }
+      }
+
+      // Alice status
+      const pillAlice = document.getElementById('pillAlice');
+      if (data.client) {
+        const st = data.client.status || 'DISCONNECTED';
+        pillAlice.innerText = st;
+        if (st === 'CONNECTED') {
+          pillAlice.className = 'badge badge-ok';
+        } else if (st === 'FAILED') {
+          pillAlice.className = 'badge badge-err';
+        } else {
+          pillAlice.className = 'badge badge-idle';
+        }
+      }
+
+      // Mallory status
+      const pillMallory = document.getElementById('pillMallory');
+      if (data.attacker) {
+        const isRunning = data.attacker.running;
+        const isPaused = data.attacker.paused;
+        if (!isRunning) {
+          pillMallory.innerText = 'STOPPED';
+          pillMallory.className = 'badge badge-err';
+        } else if (isPaused) {
+          pillMallory.innerText = 'PAUSED';
+          pillMallory.className = 'badge badge-warn';
+        } else {
+          pillMallory.innerText = 'ACTIVE';
+          pillMallory.className = 'badge badge-ok';
+        }
+      }
+
+      // Bob status
+      const pillBob = document.getElementById('pillBob');
+      if (data.server) {
+        const isRunning = data.server.running;
+        pillBob.innerText = isRunning ? 'RUNNING' : 'STOPPED';
+        pillBob.className = isRunning ? 'badge badge-ok' : 'badge badge-err';
+      }
+    }
+
+    async function applyGlobalMode() {
+      const mode = document.getElementById('globalModeSelect').value;
+      try {
+        const res = await fetch('/api/hub/mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode })
+        });
+        const data = await res.json();
+        updateUI(data);
+        refreshIframes();
+      } catch (e) {
+        console.error('Failed to set global mode:', e);
+      }
+    }
+
+    async function connectAll() {
+      try {
+        showDemoMessage('Initiating connection Alice -> Mallory -> Bob...');
+        const res = await fetch('/api/hub/connect', { method: 'POST' });
+        const data = await res.json();
+        updateUI(data);
+        setTimeout(refreshIframes, 500);
+      } catch (e) {
+        console.error('Failed to connect:', e);
+      }
+    }
+
+    async function resetAll() {
+      try {
+        const res = await fetch('/api/hub/reset-all', { method: 'POST' });
+        const data = await res.json();
+        updateUI(data);
+        refreshIframes();
+        showDemoMessage('All session state reset across Alice, Mallory, and Bob.');
+      } catch (e) {
+        console.error('Failed to reset all:', e);
+      }
+    }
+
+    async function stopAll() {
+      try {
+        const res = await fetch('/api/hub/stop-all', { method: 'POST' });
+        const data = await res.json();
+        updateUI(data);
+        refreshIframes();
+        showDemoMessage('All sockets stopped.');
+      } catch (e) {
+        console.error('Failed to stop all:', e);
+      }
+    }
+
+    async function runGuidedDemo(attackType) {
+      const mode = document.getElementById('globalModeSelect').value;
+      const resultBox = document.getElementById('demoResultBox');
+      resultBox.innerHTML = '<span class="result-info">Running guided demo <strong>' + attackType.toUpperCase() + '</strong> in mode ' + mode + '...</span>';
+
+      try {
+        const res = await fetch('/api/hub/demo/' + attackType, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode })
+        });
+
+        if (!res.ok) {
+          resultBox.innerHTML = '<span class="result-succeeded">Demo Error: HTTP ' + res.status + '</span>';
+          return;
+        }
+
+        const data = await res.json();
+        const isBlocked = data.status === 'BLOCKED';
+        const colorClass = isBlocked ? 'result-blocked' : 'result-succeeded';
+        const badgeText = isBlocked ? '🛡️ BLOCKED' : '⚠️ ' + data.status;
+
+        resultBox.innerHTML = `
+          <span class="${colorClass}">[${badgeText}]</span>&nbsp;
+          <span>${data.outcome}</span>
+          ${data.eventId ? `&nbsp;<span style="color:#a78bfa;">(ID: ${data.eventId})</span>` : ''}
+        `;
+
+        fetchHubStatus();
+        setTimeout(refreshIframes, 300);
+      } catch (e) {
+        resultBox.innerHTML = '<span class="result-succeeded">Demo Execution Failed: ' + e.message + '</span>';
+      }
+    }
+
+    function showDemoMessage(msg) {
+      const resultBox = document.getElementById('demoResultBox');
+      if (resultBox) {
+        resultBox.innerHTML = '<span class="result-info">' + msg + '</span>';
+      }
+    }
+
+    function refreshIframes() {
+      try {
+        const a = document.getElementById('aliceFrame');
+        const m = document.getElementById('malloryFrame');
+        const b = document.getElementById('bobFrame');
+        if (a && a.contentWindow && a.contentWindow.fetchStatus) a.contentWindow.fetchStatus();
+        if (m && m.contentWindow && m.contentWindow.fetchStatus) m.contentWindow.fetchStatus();
+        if (b && b.contentWindow && b.contentWindow.fetchStatus) b.contentWindow.fetchStatus();
+      } catch (ignored) {}
+    }
+
+    /* SSE Live Stream with < 2s Reconnect Badge Clear */
+    function connectSse() {
+      if (sseSource) {
+        sseSource.close();
+      }
+
+      sseSource = new EventSource('/api/client/stream');
+
+      sseSource.onopen = () => {
+        clearReconnectBadge();
+      };
+
+      sseSource.addEventListener('init', () => {
+        clearReconnectBadge();
+      });
+
+      sseSource.addEventListener('handshake-step', () => {
+        clearReconnectBadge();
+        fetchHubStatus();
+      });
+
+      sseSource.addEventListener('chat-message', () => {
+        clearReconnectBadge();
+        fetchHubStatus();
+      });
+
+      sseSource.addEventListener('connection-status', () => {
+        clearReconnectBadge();
+        fetchHubStatus();
+      });
+
+      sseSource.onerror = () => {
+        showReconnectBadge();
+        sseSource.close();
+        setTimeout(connectSse, 2000);
+      };
+    }
+
+    function showReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge) badge.style.display = 'inline-block';
+    }
+
+    function clearReconnectBadge() {
+      const badge = document.getElementById('reconnectBadge');
+      if (badge && badge.style.display !== 'none') {
+        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears in < 2 seconds
+      }
+    }
+  </script>
+</body>
+</html>

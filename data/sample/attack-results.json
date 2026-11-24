@@ -1,6 +1,7 @@
 [ {
   "attack" : "Downgrade",
   "mode" : "CLASSICAL-VULNERABLE",
+  "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
   "eventId" : null,
@@ -8,20 +9,23 @@
 }, {
   "attack" : "Downgrade",
   "mode" : "CLASSICAL-HARDENED",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "ac50e5dc-f4f6-4fd9-91d7-63a8f28b6704",
+  "eventId" : "2c7a3124-674f-4c21-be20-5df27856f0fc",
   "detail" : "ClientHello suites stripped -> signature verification over transcript failed, suite tampering blocked"
 }, {
   "attack" : "Downgrade",
   "mode" : "HYBRID",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "9f4a96bb-053c-4cc6-8bb1-94dc66848112",
-  "detail" : "ClientHello suites stripped -> ML-DSA-65 signed transcript mismatch, downgrade blocked"
+  "eventId" : "5ab76443-adaf-4c93-8cbf-cda0b2792ce1",
+  "detail" : "Server policy (rejectClassical=true) rejected classical-only suite; signed transcript check (rejectClassical=false) detected ML-DSA-65 signature mismatch"
 }, {
   "attack" : "MITM",
   "mode" : "CLASSICAL-VULNERABLE",
+  "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
   "eventId" : null,
@@ -29,20 +33,23 @@
 }, {
   "attack" : "MITM",
   "mode" : "CLASSICAL-HARDENED",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "146fbc30-1ff0-4568-b9e8-a89757fe0a6d",
+  "eventId" : "59695d51-230e-4bc1-903a-c7e31efb758a",
   "detail" : "Rogue server presented untrusted RSA key -> pinned key check failed, rogue server rejected"
 }, {
   "attack" : "MITM",
   "mode" : "HYBRID",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "07e79567-9f2b-4dae-b8a9-9ce7c7dff2b1",
+  "eventId" : "fd5453f0-b708-4d7a-822f-70be44a7ef19",
   "detail" : "Rogue server presented unpinned ML-DSA-65 key -> signature verification against pinned key failed"
 }, {
   "attack" : "Replay",
   "mode" : "CLASSICAL-VULNERABLE",
+  "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
   "eventId" : null,
@@ -50,20 +57,23 @@
 }, {
   "attack" : "Replay",
   "mode" : "CLASSICAL-HARDENED",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "91fbeb34-fecd-4a46-a6d9-93381509f688",
+  "eventId" : "abceb7e3-aad1-46cc-8cb1-2e9af00b041a",
   "detail" : "Record seq=0 re-sent -> rejected duplicate sequence number by ReplayGuard"
 }, {
   "attack" : "Replay",
   "mode" : "HYBRID",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "cab55f63-01ca-453b-9c5b-ac4cb7955a4b",
+  "eventId" : "9b769250-6643-4b59-8f96-dc84db3b1a89",
   "detail" : "Record seq=0 re-sent -> rejected by ReplayGuard"
 }, {
   "attack" : "Nonce Reuse",
   "mode" : "CLASSICAL-VULNERABLE",
+  "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
   "eventId" : null,
@@ -71,36 +81,41 @@
 }, {
   "attack" : "Nonce Reuse",
   "mode" : "CLASSICAL-HARDENED",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "1a11053b-0188-416e-850b-d1c2b239860f",
+  "eventId" : "b3d89ad6-271e-4d26-a94e-bdb08b1b93a4",
   "detail" : "Attempted nonce counter reset -> reset refused by NonceGuard"
 }, {
   "attack" : "Nonce Reuse",
   "mode" : "HYBRID",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "25142119-f770-4889-831e-69089cb7a770",
+  "eventId" : "02964228-8741-4173-bce0-1647c76d6c49",
   "detail" : "Duplicate nonce presented -> blocked by NonceManager"
 }, {
   "attack" : "Tampering",
   "mode" : "CLASSICAL-VULNERABLE",
+  "status" : "UNDETECTED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
   "eventId" : null,
-  "detail" : "Attacker flipped bit in ciphertext -> GCM decryption threw raw exception with zero detection telemetry logged (error oracle risk)"
+  "detail" : "Attacker flipped bit in ciphertext -> GCM decryption threw raw exception with zero detection telemetry logged (error oracle risk; UNDETECTED tampering)"
 }, {
   "attack" : "Tampering",
   "mode" : "CLASSICAL-HARDENED",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "700bddbb-e3a1-4942-b869-0acdf7fd353b",
+  "eventId" : "95d95fcb-3962-48d1-a509-a1370767b960",
   "detail" : "Ciphertext bit flipped -> TamperGuard caught tag mismatch"
 }, {
   "attack" : "Tampering",
   "mode" : "HYBRID",
+  "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "bcc372a8-2c78-4e99-ba70-22de73b8f125",
+  "eventId" : "6cb0358d-b1a9-41c5-98b2-967dcc3d0523",
   "detail" : "ML-KEM ciphertext bit flipped -> Finished verification failed via implicit rejection"
 } ]
