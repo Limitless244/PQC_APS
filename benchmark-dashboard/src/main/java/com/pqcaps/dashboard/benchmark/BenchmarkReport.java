@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 public record BenchmarkReport(
+        @JsonProperty("mode") String mode,
         @JsonProperty("machine") MachineInfo machine,
         @JsonProperty("sizes") List<SizeMetric> sizes,
         @JsonProperty("latency") List<LatencyMetric> latency,
@@ -16,6 +17,10 @@ public record BenchmarkReport(
         @JsonProperty("throughput") List<ThroughputMetric> throughput,
         @JsonProperty("summary") BenchmarkSummary summary
 ) {
+    public BenchmarkReport(MachineInfo machine, List<SizeMetric> sizes, List<LatencyMetric> latency, List<CpuMetric> cpu, List<ThroughputMetric> throughput, BenchmarkSummary summary) {
+        this("QUICK", machine, sizes, latency, cpu, throughput, summary);
+    }
+
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
 

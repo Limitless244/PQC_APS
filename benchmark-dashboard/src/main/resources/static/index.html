@@ -142,6 +142,9 @@
                         <button id="btn-run-handshake" class="btn btn-primary">
                             <span id="hs-btn-icon">&#x25B6;</span> Run In-Process Handshake
                         </button>
+                        <button id="btn-run-x5" class="btn btn-secondary" title="Execute 5 consecutive handshakes and report mean and min of the last 4 runs">
+                            &#x21BB; Run x5
+                        </button>
                     </div>
 
                     <div class="handshake-layout">
@@ -265,7 +268,10 @@
                             <h3 id="machine-info-header">Host Environment: Loading...</h3>
                             <p id="cpu-limitation-text" class="caption-text">Measurements executed with JMH and ThreadMXBean.</p>
                         </div>
-                        <button id="btn-refresh-benchmarks" class="btn btn-secondary btn-sm">&#x21BB; Refresh Results</button>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="benchmark-mode-badge" class="badge badge-secondary font-mono" style="font-size: 0.85rem;">quick mode</span>
+                            <button id="btn-refresh-benchmarks" class="btn btn-secondary btn-sm">&#x21BB; Refresh Results</button>
+                        </div>
                     </div>
 
                     <!-- Suite Comparison Switcher -->

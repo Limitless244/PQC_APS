@@ -68,6 +68,20 @@ class HandshakeVisualizerServiceTest {
     }
 
     @Test
+    @DisplayName("executeHandshakeX5 returns 5 runs and computes valid mean and min of last 4 runs")
+    void executeHandshakeX5ReturnsValidStatistics() {
+        HandshakeVisualizerService.HandshakeX5Result res = service.executeHandshakeX5("HYBRID");
+
+        assertThat(res.suite()).isEqualTo("HYBRID");
+        assertThat(res.runsMillis()).hasSize(5);
+        assertThat(res.coldStartMillis()).isEqualTo(res.runsMillis().get(0));
+        assertThat(res.meanLast4Millis()).isPositive();
+        assertThat(res.minLast4Millis()).isPositive().isLessThanOrEqualTo(res.meanLast4Millis());
+        assertThat(res.totalWireBytes()).isEqualTo(6433);
+        assertThat(res.payloadBytes()).isEqualTo(6098);
+    }
+
+    @Test
     @DisplayName("Invalid suite throws IllegalArgumentException")
     void invalidSuiteThrowsException() {
         assertThatThrownBy(() -> service.executeHandshake("INVALID_SUITE"))

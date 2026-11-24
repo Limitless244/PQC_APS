@@ -77,6 +77,45 @@ class ChatDemoTest {
     }
 
     @Test
+    @DisplayName("In HYBRID mode, replaying last message is rejected by ReplayGuard with exactly one REPLAY event; flipping bit emits exactly one TAMPER event")
+    void hybridGuardsEmitExactlyOneEventEach() {
+        chatService.initSession("HYBRID");
+        chatService.sendMessage("Mission critical payload");
+
+        int initialReplays = EventLog.getInstance().getEventsByType(DetectionEvent.AttackType.REPLAY).size();
+        ChatDemoService.AttackerActionResult replayRes = chatService.replayLastMessage();
+
+        assertThat(replayRes.action()).isEqualTo("REPLAY");
+        assertThat(replayRes.outcome()).isEqualTo("BLOCKED");
+        assertThat(replayRes.detail()).contains("ReplayGuard");
+
+        int postReplays = EventLog.getInstance().getEventsByType(DetectionEvent.AttackType.REPLAY).size();
+        assertThat(postReplays - initialReplays).isEqualTo(1);
+
+        DetectionEvent replayEvt = EventLog.getInstance().getLastEvent();
+        assertThat(replayEvt.attackType()).isEqualTo(DetectionEvent.AttackType.REPLAY);
+        assertThat(replayEvt.component()).isEqualTo("ReplayGuard");
+        assertThat(replayEvt.action()).isEqualTo(DetectionEvent.Action.BLOCKED);
+        assertThat(replayRes.eventId()).isEqualTo(replayEvt.id());
+
+        int initialTampers = EventLog.getInstance().getEventsByType(DetectionEvent.AttackType.TAMPER).size();
+        ChatDemoService.AttackerActionResult tamperRes = chatService.flipBit();
+
+        assertThat(tamperRes.action()).isEqualTo("TAMPER");
+        assertThat(tamperRes.outcome()).isEqualTo("BLOCKED");
+        assertThat(tamperRes.detail()).contains("TamperGuard");
+
+        int postTampers = EventLog.getInstance().getEventsByType(DetectionEvent.AttackType.TAMPER).size();
+        assertThat(postTampers - initialTampers).isEqualTo(1);
+
+        DetectionEvent tamperEvt = EventLog.getInstance().getLastEvent();
+        assertThat(tamperEvt.attackType()).isEqualTo(DetectionEvent.AttackType.TAMPER);
+        assertThat(tamperEvt.component()).isEqualTo("TamperGuard");
+        assertThat(tamperEvt.action()).isEqualTo(DetectionEvent.Action.BLOCKED);
+        assertThat(tamperRes.eventId()).isEqualTo(tamperEvt.id());
+    }
+
+    @Test
     @DisplayName("In CLASSICAL-VULNERABLE mode, attacker observes plaintext and replay succeeds")
     void classicalVulnerableAllowsMitmAndReplay() {
         chatService.initSession("CLASSICAL-VULNERABLE");

@@ -1,11 +1,11 @@
 ﻿{
     "available":  true,
-    "totalTests":  174,
-    "passed":  174,
+    "totalTests":  192,
+    "passed":  192,
     "failures":  0,
     "errors":  0,
     "skipped":  0,
     "moduleCount":  10,
     "caption":  "Across 10 modules",
-    "timestamp":  "2026-11-24T08:29:49Z"
+    "timestamp":  "2026-11-24T14:01:45Z"
 }

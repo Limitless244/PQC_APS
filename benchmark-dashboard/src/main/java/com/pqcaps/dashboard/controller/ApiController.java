@@ -94,6 +94,15 @@ public class ApiController {
         return visualizerService.executeHandshake(suite);
     }
 
+    @PostMapping("/handshake/run-x5")
+    public HandshakeVisualizerService.HandshakeX5Result runHandshakeX5(
+            @RequestParam(value = "suite", defaultValue = "HYBRID") String suite) {
+        if (!List.of("CLASSICAL", "HYBRID", "PQ_ONLY").contains(suite.toUpperCase())) {
+            throw new IllegalArgumentException("Invalid suite: '" + suite + "'. Allowed: CLASSICAL, HYBRID, PQ_ONLY");
+        }
+        return visualizerService.executeHandshakeX5(suite);
+    }
+
     // ── 2. Attack Simulator Endpoint ──────────────────────────────────────
 
     public record SimulationRequest(String attack, String mode) {}

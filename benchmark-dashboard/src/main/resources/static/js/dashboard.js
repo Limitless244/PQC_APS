@@ -113,6 +113,9 @@ function initNavigation() {
             if (pageKey === 'benchmarks') {
                 renderAllCharts();
             }
+            if (pageKey === 'scanner') {
+                refreshScannerSummary();
+            }
         });
     });
 }
@@ -246,8 +249,11 @@ function updateOverviewThroughput(data) {
 
 // ── 1. LIVE HANDSHAKE VISUALIZER ──────────────────────────────────────────
 
+const warmSuites = new Set();
+
 function initHandshakeVisualizer() {
     const runBtn = document.getElementById('btn-run-handshake');
+    const runX5Btn = document.getElementById('btn-run-x5');
     const suiteSelect = document.getElementById('hs-suite-select');
     if (!runBtn || !suiteSelect) return;
 
@@ -300,14 +306,17 @@ function initHandshakeVisualizer() {
             es.addEventListener('complete', (e) => {
                 try {
                     const res = JSON.parse(e.data);
+                    const isCold = !warmSuites.has(suite);
+                    warmSuites.add(suite);
+
                     if (bytesEl) bytesEl.textContent = Number(res.totalWireBytes).toLocaleString() + ' B';
                     if (payloadEl && res.payloadBytes != null) {
                         payloadEl.textContent = '(payload before framing: ' + Number(res.payloadBytes).toLocaleString() + ' B)';
                     }
+                    // Pure crypto time as main figure, never mixed with animation delay
                     if (timeEl) timeEl.textContent = Number(res.elapsedMillis).toFixed(2) + ' ms';
                     if (timeBreakdownEl) {
-                        const anim = res.displayMillis > 0 ? ` + ${Math.round(res.displayMillis)} ms animation delay` : '';
-                        timeBreakdownEl.textContent = `crypto execution time${anim} (first run includes JIT warm-up)`;
+                        timeBreakdownEl.textContent = isCold ? 'crypto time (cold start)' : 'crypto time (warm)';
                     }
                     if (statusEl) {
                         statusEl.textContent = '\u2714 SECURE';
@@ -334,6 +343,65 @@ function initHandshakeVisualizer() {
             runBtn.innerHTML = '&#x25B6; Run In-Process Handshake';
         }
     });
+
+    if (runX5Btn) {
+        runX5Btn.addEventListener('click', () => {
+            const suite = suiteSelect.value;
+            const arrowsContainer = document.getElementById('handshake-arrows');
+            const statusEl = document.getElementById('hs-session-status');
+            const bytesEl = document.getElementById('hs-total-bytes');
+            const payloadEl = document.getElementById('hs-payload-bytes');
+            const timeEl = document.getElementById('hs-elapsed-time');
+            const timeBreakdownEl = document.getElementById('hs-time-breakdown');
+            const selectedSuiteEl = document.getElementById('hs-selected-suite');
+
+            runX5Btn.disabled = true;
+            runX5Btn.textContent = 'Running x5...';
+            if (arrowsContainer) arrowsContainer.innerHTML = '<div class="arrow-row arrow-internal"><span class="font-mono text-muted">Executing 5 sequential in-process handshakes...</span></div>';
+            if (statusEl) {
+                statusEl.textContent = 'RUNNING x5...';
+                statusEl.className = 'summary-value text-warning';
+            }
+            if (selectedSuiteEl) selectedSuiteEl.textContent = suite;
+
+            fetch('/api/handshake/run-x5?suite=' + encodeURIComponent(suite), { method: 'POST' })
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(res => {
+                    if (bytesEl) bytesEl.textContent = Number(res.totalWireBytes).toLocaleString() + ' B';
+                    if (payloadEl) payloadEl.textContent = '(payload before framing: ' + Number(res.payloadBytes).toLocaleString() + ' B)';
+                    // Main figure: crypto time mean of last 4 runs
+                    if (timeEl) timeEl.textContent = res.meanLast4Millis.toFixed(2) + ' ms';
+                    if (timeBreakdownEl) {
+                        timeBreakdownEl.textContent = `Mean: ${res.meanLast4Millis.toFixed(2)} ms, Min: ${res.minLast4Millis.toFixed(2)} ms (last 4 runs) | Run 1: ${res.coldStartMillis.toFixed(2)} ms (cold start)`;
+                    }
+                    if (statusEl) {
+                        statusEl.textContent = '\u2714 SECURE (5 runs completed)';
+                        statusEl.className = 'summary-value text-success font-bold';
+                    }
+                    warmSuites.add(suite);
+                    if (arrowsContainer) {
+                        const div = document.createElement('div');
+                        div.className = 'arrow-row arrow-secure';
+                        div.textContent = `\u2714 5 Runs Completed: [${res.runsMillis.map(m => m.toFixed(2) + ' ms').join(', ')}] — Last 4 Mean: ${res.meanLast4Millis.toFixed(2)} ms, Min: ${res.minLast4Millis.toFixed(2)} ms`;
+                        arrowsContainer.appendChild(div);
+                    }
+                })
+                .catch(err => {
+                    if (statusEl) {
+                        statusEl.textContent = '\u2718 FAILED';
+                        statusEl.className = 'summary-value text-danger';
+                    }
+                    alert('Run x5 failed: ' + err.message);
+                })
+                .finally(() => {
+                    runX5Btn.disabled = false;
+                    runX5Btn.innerHTML = '&#x21BB; Run x5';
+                });
+        });
+    }
 }
 
 function renderHandshakeStep(step, container) {
@@ -509,6 +577,12 @@ function loadBenchmarks(onComplete) {
                 hdr.textContent = 'Host Environment: ' + data.machine.jdkVersion + ' (' + data.machine.jvmName + ') | ' +
                     data.machine.osName + ' ' + data.machine.osArch + ' | ' + data.machine.cpuCores + ' CPU Cores';
             }
+            const modeBadge = document.getElementById('benchmark-mode-badge');
+            if (modeBadge) {
+                const isFull = (data.mode && data.mode.toUpperCase() === 'FULL');
+                modeBadge.textContent = isFull ? 'full mode' : 'quick mode';
+                modeBadge.className = isFull ? 'badge badge-primary font-mono' : 'badge badge-secondary font-mono';
+            }
             updateOverviewThroughput(data);
             renderAllCharts();
             updateSuiteComparison('HYBRID');
@@ -553,7 +627,21 @@ function updateSuiteComparison(selectedSuite) {
     const mlDsaSig = findSize('SIGNATURE', 'ML-DSA-65 Signature') || 3309;
     const rsaSig = findSize('SIGNATURE', 'RSA-2048 Signature') || 256;
 
-    const cpuRatio = summary.hybridCpuOverheadRatio || 1.25;
+    const cpuList = (benchmarkReportData && benchmarkReportData.cpu) ? benchmarkReportData.cpu : [];
+    const classicalCpuObj = cpuList.find(c => c.suite === 'CLASSICAL');
+    const hybridCpuObj = cpuList.find(c => c.suite === 'HYBRID');
+    const pqOnlyCpuObj = cpuList.find(c => c.suite === 'PQ_ONLY');
+
+    const classicalCpu = classicalCpuObj ? classicalCpuObj.avgCpuMicroseconds : 1250.0;
+    const hybridCpu = hybridCpuObj ? hybridCpuObj.avgCpuMicroseconds : 1406.25;
+    const pqOnlyCpu = pqOnlyCpuObj ? pqOnlyCpuObj.avgCpuMicroseconds : 937.5;
+
+    const hybridDiff = hybridCpu - classicalCpu;
+    const hybridRatio = classicalCpu > 0 ? (hybridCpu / classicalCpu) : 1.13;
+
+    const pqDiff = pqOnlyCpu - classicalCpu;
+    const pqRatio = classicalCpu > 0 ? (pqOnlyCpu / classicalCpu) : 0.75;
+
     const kexRatio = x25519Pk > 0 ? (mlKemPk / x25519Pk) : 37.0;
     const sigRatio = rsaSig > 0 ? (mlDsaSig / rsaSig) : 12.9;
 
@@ -565,7 +653,7 @@ function updateSuiteComparison(selectedSuite) {
             callout.innerHTML = '<strong>Bandwidth Cost:</strong> HYBRID incurs ~' + escapeHtml(wireRatio) + 'x total handshake wire overhead (' +
                 escapeHtml(hybridWire.toLocaleString()) + ' B vs ' + escapeHtml(classicalWire.toLocaleString()) + ' B serialized, matching WireSizeComparisonTest) and ~' +
                 escapeHtml(keyRatio) + 'x on raw key material (' + escapeHtml(hybridRaw.toLocaleString()) + ' B vs ' + escapeHtml(classicalRaw.toLocaleString()) + ' B) due to ML-KEM-768 encapsulation key (' +
-                escapeHtml(mlKemPk.toLocaleString()) + ' B) and ML-DSA-65 signature (' + escapeHtml(mlDsaSig.toLocaleString()) + ' B). In return, it guarantees post-quantum forward secrecy with sub-millisecond CPU overhead.';
+                escapeHtml(mlKemPk.toLocaleString()) + ' B) and ML-DSA-65 signature (' + escapeHtml(mlDsaSig.toLocaleString()) + ' B). In return, it guarantees post-quantum forward secrecy with minimal CPU overhead.';
         }
         if (compWire) compWire.textContent = hybridWire.toLocaleString() + ' B vs ' + classicalWire.toLocaleString() + ' B';
         if (compWireRatio) compWireRatio.textContent = wireRatio + 'x Wire Overhead (' + keyRatio + 'x Key Material)';
@@ -573,8 +661,8 @@ function updateSuiteComparison(selectedSuite) {
         if (compPkRatio) compPkRatio.textContent = kexRatio.toFixed(0) + 'x Overhead';
         if (compSig) compSig.textContent = mlDsaSig.toLocaleString() + ' B vs ' + rsaSig.toLocaleString() + ' B';
         if (compSigRatio) compSigRatio.textContent = sigRatio.toFixed(1) + 'x Overhead';
-        if (compCpu) compCpu.textContent = '~' + cpuRatio.toFixed(2) + 'x';
-        if (compCpuBadge) compCpuBadge.textContent = 'Sub-millisecond CPU impact';
+        if (compCpu) compCpu.textContent = Math.round(hybridCpu).toLocaleString() + ' \u00B5s vs ' + Math.round(classicalCpu).toLocaleString() + ' \u00B5s (' + hybridRatio.toFixed(2) + 'x)';
+        if (compCpuBadge) compCpuBadge.textContent = (hybridDiff >= 0 ? '+' : '') + hybridDiff.toFixed(1) + ' \u00B5s CPU diff (HYBRID - CLASSICAL)';
     } else {
         const wireRatio = (classicalWire > 0 ? (pqOnlyWire / classicalWire) : 7.74).toFixed(1);
         const keyRatio = (classicalRaw > 0 ? (pqOnlyRaw / classicalRaw) : 12.0).toFixed(1);
@@ -589,8 +677,8 @@ function updateSuiteComparison(selectedSuite) {
         if (compPkRatio) compPkRatio.textContent = 'Lattice KEM';
         if (compSig) compSig.textContent = mlDsaSig.toLocaleString() + ' B (DSA sig)';
         if (compSigRatio) compSigRatio.textContent = 'Lattice DSA';
-        if (compCpu) compCpu.textContent = '~1.20x';
-        if (compCpuBadge) compCpuBadge.textContent = 'Fast lattice operations';
+        if (compCpu) compCpu.textContent = Math.round(pqOnlyCpu).toLocaleString() + ' \u00B5s vs ' + Math.round(classicalCpu).toLocaleString() + ' \u00B5s (' + pqRatio.toFixed(2) + 'x)';
+        if (compCpuBadge) compCpuBadge.textContent = (pqDiff >= 0 ? '+' : '') + pqDiff.toFixed(1) + ' \u00B5s CPU diff (PQ_ONLY - CLASSICAL)';
     }
 }
 

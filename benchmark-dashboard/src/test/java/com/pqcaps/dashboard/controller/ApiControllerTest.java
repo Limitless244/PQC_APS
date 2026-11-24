@@ -14,6 +14,8 @@ import com.pqcaps.scanner.ScanReport;
 import com.pqcaps.scanner.ScanSummary;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -89,6 +91,21 @@ class ApiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary.grade", is("F")))
                 .andExpect(jsonPath("$.summary.overallScore", is(92)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"vulnerable", "migrated", "self", "self-production", "self-tests"})
+    @DisplayName("GET /api/scan/{target} returns 200 with score, grade and points")
+    void getScan_allFiveTargets_returns200WithScoreGradeAndPoints(String target) throws Exception {
+        ScanSummary summary = new ScanSummary(10, Map.of("HIGH", 2), 45, 60, "C", 50.0);
+        ScanReport report = new ScanReport("scan-" + target, "Directory: " + target, Instant.now().toString(), summary, Collections.emptyList());
+        Mockito.when(dataService.loadScanReport(target)).thenReturn(report);
+
+        mockMvc.perform(get("/api/scan/" + target).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.overallScore", is(45)))
+                .andExpect(jsonPath("$.summary.grade", is("C")))
+                .andExpect(jsonPath("$.summary.riskPoints", is(60)));
     }
 
     @Test
@@ -216,6 +233,22 @@ class ApiControllerTest {
                 .andExpect(jsonPath("$.totalWireBytes", is(6433)))
                 .andExpect(jsonPath("$.payloadBytes", is(6098)))
                 .andExpect(jsonPath("$.outcome", is("SECURE")));
+    }
+
+    @Test
+    @DisplayName("POST /api/handshake/run-x5 with valid suite returns 5 runs and mean/min stats")
+    void runHandshakeX5_validSuite_returnsResult() throws Exception {
+        HandshakeVisualizerService.HandshakeX5Result fakeRes =
+                new HandshakeVisualizerService.HandshakeX5Result("HYBRID", List.of(5.0, 2.0, 1.8, 1.9, 1.8), 1.88, 1.80, 5.0, 6433, 6098);
+        Mockito.when(visualizerService.executeHandshakeX5("HYBRID")).thenReturn(fakeRes);
+
+        mockMvc.perform(post("/api/handshake/run-x5").param("suite", "HYBRID"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suite", is("HYBRID")))
+                .andExpect(jsonPath("$.meanLast4Millis", is(1.88)))
+                .andExpect(jsonPath("$.minLast4Millis", is(1.80)))
+                .andExpect(jsonPath("$.coldStartMillis", is(5.0)))
+                .andExpect(jsonPath("$.totalWireBytes", is(6433)));
     }
 
     // ── 2. Attack Simulator Endpoints ─────────────────────────────────────

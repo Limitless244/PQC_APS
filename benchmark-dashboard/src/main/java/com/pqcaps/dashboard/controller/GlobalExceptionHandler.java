@@ -48,8 +48,8 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneralException(Exception e) {
+    @ExceptionHandler(Throwable.class)
+    public ResponseEntity<Map<String, Object>> handleGeneralException(Throwable e) {
         log.error("Unhandled server exception: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Internal Server Error",

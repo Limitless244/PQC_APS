@@ -15,23 +15,30 @@ public final class DataPaths {
     private DataPaths() {}
 
     /**
-     * Resolves the configured data directory (e.g. "data" or "../data").
+     * Resolves the project root directory by searching upward for pom.xml and root markers.
+     */
+    public static Path getProjectRoot() {
+        Path current = Path.of("").toAbsolutePath();
+        while (current != null) {
+            if (Files.exists(current.resolve("pom.xml")) &&
+                (Files.exists(current.resolve("samples")) || Files.exists(current.resolve("benchmark-dashboard")))) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        return Path.of("").toAbsolutePath();
+    }
+
+    /**
+     * Resolves the configured data directory (e.g. "<projectRoot>/data").
      */
     public static Path getDataDir() {
         String prop = System.getProperty("pqcaps.dataDir", "data");
         Path p = Path.of(prop);
-        if (Files.exists(p) && Files.isDirectory(p)) {
+        if (p.isAbsolute()) {
             return p;
         }
-        // If running from inside a subproject, check if parent directory has dataDir or pom.xml
-        Path parentData = Path.of("..", prop);
-        if (Files.exists(parentData) && Files.isDirectory(parentData)) {
-            return parentData;
-        }
-        if (Files.exists(Path.of("..", "pom.xml"))) {
-            return parentData;
-        }
-        return p;
+        return getProjectRoot().resolve(prop);
     }
 
     /**

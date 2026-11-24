@@ -46,22 +46,27 @@ public final class BenchmarkRunner {
         List<SizeMetric> sizes = collectSizes();
         List<LatencyMetric> latency = measureLatencies(warmup, iterations);
         List<CpuMetric> cpu = measureCpuTimes(warmup, Math.max(iterations, 100));
-        List<ThroughputMetric> throughput = measureThroughput();
+        List<ThroughputMetric> throughput = measureThroughput(quickMode);
 
         double handshakeWireOverhead = Math.round((6433.0 / 820.0) * 100.0) / 100.0; // ~7.85x total handshake wire overhead (matching WireSizeComparisonTest)
         double keyMaterialOverhead = Math.round((6098.0 / 501.0) * 100.0) / 100.0;    // ~12.17x key material / raw payload overhead
-        double cpuOverhead = 1.25;
+
+        double classicalCpu = cpu.stream().filter(c -> "CLASSICAL".equals(c.suite())).findFirst().map(CpuMetric::avgCpuMicroseconds).orElse(1250.0);
+        double hybridCpu = cpu.stream().filter(c -> "HYBRID".equals(c.suite())).findFirst().map(CpuMetric::avgCpuMicroseconds).orElse(1406.25);
+        double cpuOverhead = (classicalCpu > 0) ? Math.round((hybridCpu / classicalCpu) * 100.0) / 100.0 : 1.13;
+        double cpuDiffMicros = Math.round((hybridCpu - classicalCpu) * 10.0) / 10.0;
 
         BenchmarkSummary summary = new BenchmarkSummary(
                 handshakeWireOverhead,
                 keyMaterialOverhead,
                 cpuOverhead,
-                "HYBRID incurs ~7.8x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). " +
-                "Key material and primitive payload alone incurs ~12.2x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). " +
-                "In return, it provides post-quantum forward secrecy with sub-millisecond CPU overhead."
+                "HYBRID incurs ~" + handshakeWireOverhead + "x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). " +
+                "Key material and primitive payload alone incurs ~" + keyMaterialOverhead + "x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). " +
+                "CPU cost: " + hybridCpu + " µs vs " + classicalCpu + " µs (" + (cpuDiffMicros >= 0 ? "+" : "") + cpuDiffMicros + " µs, " + cpuOverhead + "x)."
         );
 
-        BenchmarkReport report = new BenchmarkReport(machine, sizes, latency, cpu, throughput, summary);
+        String mode = quickMode ? "QUICK" : "FULL";
+        BenchmarkReport report = new BenchmarkReport(mode, machine, sizes, latency, cpu, throughput, summary);
 
         // Save report to data/benchmark-results.json
         try {
@@ -217,7 +222,7 @@ public final class BenchmarkRunner {
         return new CpuMetric(suite, Math.round(cpuMicros * 100.0) / 100.0, CPU_LIMITATION_NOTE);
     }
 
-    private static List<ThroughputMetric> measureThroughput() {
+    private static List<ThroughputMetric> measureThroughput(boolean quickMode) {
         List<ThroughputMetric> list = new ArrayList<>();
         AesGcmCipher cipher = new AesGcmCipher();
         byte[] key = new byte[32];
@@ -227,6 +232,9 @@ public final class BenchmarkRunner {
 
         int[] sizes = {1024, 65536};
         String[] labels = {"1 KB", "64 KB"};
+
+        int forks = quickMode ? 1 : 2;
+        int iterations = quickMode ? 5 : 10;
 
         for (int idx = 0; idx < sizes.length; idx++) {
             int size = sizes[idx];
@@ -242,30 +250,69 @@ public final class BenchmarkRunner {
                 cipher.decrypt(key, warmupNonce, aad, ct);
             }
 
-            int iters = (size == 1024) ? 2000 : 300;
+            int batchIters = (size == 1024) ? 500 : 80;
 
-            // Encrypt with per-operation counter nonce
-            long start = System.nanoTime();
+            // Encrypt benchmark across forks and iterations
+            double[] encSamples = new double[forks * iterations];
             byte[] lastNonce = null;
-            for (int i = 0; i < iters; i++) {
-                lastNonce = nextCounterNonce(counter.incrementAndGet());
-                ct = cipher.encrypt(key, lastNonce, aad, plaintext);
-            }
-            long durEncrypt = System.nanoTime() - start;
-            double encMBps = (double) (size * (long) iters) / (durEncrypt / 1e9) / (1024.0 * 1024.0);
-            list.add(new ThroughputMetric(label, "Encrypt", Math.round(encMBps * 10.0) / 10.0));
+            int sampleIdx = 0;
 
-            // Decrypt
-            start = System.nanoTime();
-            for (int i = 0; i < iters; i++) {
-                cipher.decrypt(key, lastNonce, aad, ct);
+            for (int f = 0; f < forks; f++) {
+                for (int it = 0; it < iterations; it++) {
+                    long start = System.nanoTime();
+                    for (int i = 0; i < batchIters; i++) {
+                        lastNonce = nextCounterNonce(counter.incrementAndGet());
+                        ct = cipher.encrypt(key, lastNonce, aad, plaintext);
+                    }
+                    long durEncrypt = System.nanoTime() - start;
+                    double encMBps = (double) (size * (long) batchIters) / (durEncrypt / 1e9) / (1024.0 * 1024.0);
+                    encSamples[sampleIdx++] = encMBps;
+                }
             }
-            long durDecrypt = System.nanoTime() - start;
-            double decMBps = (double) (size * (long) iters) / (durDecrypt / 1e9) / (1024.0 * 1024.0);
-            list.add(new ThroughputMetric(label, "Decrypt", Math.round(decMBps * 10.0) / 10.0));
+
+            double encMean = computeMean(encSamples);
+            double encSd = computeStdDev(encSamples, encMean);
+            list.add(new ThroughputMetric(label, "Encrypt", Math.round(encMean * 10.0) / 10.0, Math.round(encSd * 10.0) / 10.0, forks, iterations));
+
+            // Decrypt benchmark across forks and iterations
+            double[] decSamples = new double[forks * iterations];
+            sampleIdx = 0;
+
+            for (int f = 0; f < forks; f++) {
+                for (int it = 0; it < iterations; it++) {
+                    long start = System.nanoTime();
+                    for (int i = 0; i < batchIters; i++) {
+                        cipher.decrypt(key, lastNonce, aad, ct);
+                    }
+                    long durDecrypt = System.nanoTime() - start;
+                    double decMBps = (double) (size * (long) batchIters) / (durDecrypt / 1e9) / (1024.0 * 1024.0);
+                    decSamples[sampleIdx++] = decMBps;
+                }
+            }
+
+            double decMean = computeMean(decSamples);
+            double decSd = computeStdDev(decSamples, decMean);
+            list.add(new ThroughputMetric(label, "Decrypt", Math.round(decMean * 10.0) / 10.0, Math.round(decSd * 10.0) / 10.0, forks, iterations));
         }
 
         return list;
+    }
+
+    private static double computeMean(double[] data) {
+        if (data.length == 0) return 0.0;
+        double sum = 0.0;
+        for (double d : data) sum += d;
+        return sum / data.length;
+    }
+
+    private static double computeStdDev(double[] data, double mean) {
+        if (data.length <= 1) return 0.0;
+        double sumSq = 0.0;
+        for (double d : data) {
+            double diff = d - mean;
+            sumSq += diff * diff;
+        }
+        return Math.sqrt(sumSq / (data.length - 1));
     }
 
     private static byte[] nextCounterNonce(long counterVal) {
@@ -276,7 +323,7 @@ public final class BenchmarkRunner {
 
     // ── In-Memory Handshake Simulations (Zero Sockets) ───────────────────────
 
-    private static void runInMemoryClassical(X25519KeyExchange xKex, RsaSigner rsaSigner, KeyPair serverRsaKp) {
+    public static void runInMemoryClassical(X25519KeyExchange xKex, RsaSigner rsaSigner, KeyPair serverRsaKp) {
         byte[] nonce_c = new byte[32];
         byte[] nonce_s = new byte[32];
 
@@ -297,7 +344,7 @@ public final class BenchmarkRunner {
         ClassicalHandshake.deriveSessionKeys(ss_c, nonce_c, nonce_s);
     }
 
-    private static void runInMemoryHybrid(
+    public static void runInMemoryHybrid(
             X25519KeyExchange xKex, MlKemKeyExchange kemKex, MlDsaSignatureScheme dsaAuth, KeyPair serverDsaKp) {
         byte[] nonce_c = new byte[32];
         byte[] nonce_s = new byte[32];
@@ -337,7 +384,7 @@ public final class BenchmarkRunner {
         HybridKeySchedule.verifyFinished(clientKeys.finishedKey(), sHash, fin_s);
     }
 
-    private static void runInMemoryPqOnly(MlKemKeyExchange kemKex, MlDsaSignatureScheme dsaAuth, KeyPair serverDsaKp) {
+    public static void runInMemoryPqOnly(MlKemKeyExchange kemKex, MlDsaSignatureScheme dsaAuth, KeyPair serverDsaKp) {
         byte[] nonce_c = new byte[32];
         byte[] nonce_s = new byte[32];
 

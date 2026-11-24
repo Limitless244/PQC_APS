@@ -1,11 +1,13 @@
 package com.pqcaps.dashboard.service;
 
 import com.pqcaps.attack.DetectionEvent;
+import com.pqcaps.attack.EventLog;
+import com.pqcaps.attack.ReplayGuard;
+import com.pqcaps.attack.TamperGuard;
 import com.pqcaps.classical.AesGcmCipher;
 import com.pqcaps.classical.ClassicalSecureChannel;
 import com.pqcaps.common.EncryptedRecord;
 import com.pqcaps.common.HandshakeConfig;
-import com.pqcaps.common.SecurityEventSink;
 import com.pqcaps.common.SessionKeys;
 import org.springframework.stereotype.Service;
 
@@ -55,6 +57,8 @@ public class ChatDemoService {
     private String currentMode = "HYBRID";
     private SessionKeys sessionKeys;
     private SessionKeys attackerCompromisedKeys; // Only non-null in CLASSICAL-VULNERABLE MITM
+    private ReplayGuard replayGuard;
+    private TamperGuard tamperGuard;
     private long aliceSendSeq = 0;
     private long bobRecvSeq = 0;
     private EncryptedRecord lastRecord = null;
@@ -84,8 +88,12 @@ public class ChatDemoService {
         if ("CLASSICAL-VULNERABLE".equals(this.currentMode)) {
             // MITM holds copy of session keys in vulnerable classical mode
             this.attackerCompromisedKeys = this.sessionKeys;
+            this.replayGuard = null;
+            this.tamperGuard = null;
         } else {
             this.attackerCompromisedKeys = null;
+            this.replayGuard = new ReplayGuard();
+            this.tamperGuard = new TamperGuard();
         }
     }
 
@@ -133,6 +141,9 @@ public class ChatDemoService {
             }
 
             // Bob receives record
+            if (replayGuard != null) {
+                replayGuard.validateStrictSequence(seq, "C2S", currentMode);
+            }
             bobRecvSeq++;
             String bobOutcome = "ACCEPTED (seq=" + seq + " verified)";
 
@@ -159,24 +170,26 @@ public class ChatDemoService {
                         currentMode
                 );
             } else {
-                // Bob's channel has sequence checks active
-                String eventId = UUID.randomUUID().toString();
-                SecurityEventSink.emit(
-                        "REPLAY",
-                        "HIGH",
-                        "ChatDemoChannel",
-                        currentMode,
-                        "BLOCKED",
-                        "Sequence number mismatch -- replay attack thwarted! expected=" + bobRecvSeq + " got=" + lastRecord.sequenceNumber()
-                );
-
-                return new AttackerActionResult(
-                        "REPLAY",
-                        "BLOCKED",
-                        "Replay of record seq=" + lastRecord.sequenceNumber() + " BLOCKED by sequence validation (expected seq=" + bobRecvSeq + ")",
-                        eventId,
-                        currentMode
-                );
+                try {
+                    replayGuard.validateStrictSequence(lastRecord.sequenceNumber(), "C2S", currentMode);
+                    return new AttackerActionResult(
+                            "REPLAY",
+                            "SUCCEEDED",
+                            "Replay succeeded",
+                            null,
+                            currentMode
+                    );
+                } catch (SecurityException e) {
+                    DetectionEvent lastEvent = EventLog.getInstance().getLastEvent();
+                    String eventId = lastEvent != null ? lastEvent.id() : null;
+                    return new AttackerActionResult(
+                            "REPLAY",
+                            "BLOCKED",
+                            "Replay of record seq=" + lastRecord.sequenceNumber() + " BLOCKED by ReplayGuard: " + e.getMessage() + " (blocked by sequence validation)",
+                            eventId,
+                            currentMode
+                    );
+                }
             }
         } finally {
             lock.unlock();
@@ -206,24 +219,27 @@ public class ChatDemoService {
                         currentMode
                 );
             } else {
-                // Hardened / Hybrid emits TAMPER event and blocks
-                String eventId = UUID.randomUUID().toString();
-                SecurityEventSink.emit(
-                        "TAMPER",
-                        "HIGH",
-                        "ChatDemoChannel",
-                        currentMode,
-                        "BLOCKED",
-                        "GCM authentication tag verification failed on tampered record seq=" + lastRecord.sequenceNumber()
-                );
-
-                return new AttackerActionResult(
-                        "TAMPER",
-                        "BLOCKED",
-                        "Tampering BLOCKED by TamperGuard: GCM authentication tag mismatch detected on record seq=" + lastRecord.sequenceNumber(),
-                        eventId,
-                        currentMode
-                );
+                try {
+                    cipher.decrypt(sessionKeys.clientToServer(), nonce, aad, tamperedCt);
+                    return new AttackerActionResult(
+                            "TAMPER",
+                            "SUCCEEDED",
+                            "Tampered record unexpectedly decrypted successfully",
+                            null,
+                            currentMode
+                    );
+                } catch (Exception e) {
+                    SecurityException secEx = tamperGuard.handleAeadTampering(e, lastRecord.sequenceNumber(), nonce, currentMode);
+                    DetectionEvent lastEvent = EventLog.getInstance().getLastEvent();
+                    String eventId = lastEvent != null ? lastEvent.id() : null;
+                    return new AttackerActionResult(
+                            "TAMPER",
+                            "BLOCKED",
+                            "Tampering BLOCKED by TamperGuard: " + secEx.getMessage() + " (authentication tag mismatch)",
+                            eventId,
+                            currentMode
+                    );
+                }
             }
         } finally {
             lock.unlock();

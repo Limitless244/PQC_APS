@@ -3,7 +3,8 @@
 # Runs the 15-cell attack matrix, scans 3 targets, and generates benchmark results.
 
 param(
-    [string]$DataDir = "data"
+    [string]$DataDir = "data",
+    [string]$BenchmarkMode = "quick"
 )
 
 $ErrorActionPreference = "Stop"
@@ -79,11 +80,11 @@ Copy-Item "$DataDir/scan-report-self.json" "$DataDir/sample/scan-report-self.jso
 Copy-Item "$DataDir/scan-report-self-production.json" "$DataDir/sample/scan-report-self-production.json" -Force
 Copy-Item "$DataDir/scan-report-self-tests.json" "$DataDir/sample/scan-report-self-tests.json" -Force
 
-# 3. Run Benchmark (Quick mode)
-Write-Host "`n>>> [3/3] Running Cryptographic Benchmarks..."
+# 3. Run Benchmark
+Write-Host "`n>>> [3/3] Running Cryptographic Benchmarks (Mode: $BenchmarkMode)..."
 $benchCp = "benchmark-dashboard/target/classes;attack-engine/target/classes;attack-lab/target/classes;crypto-scanner/target/classes;crypto-agility/target/classes;secure-channel/target/classes;pq-auth/target/classes;hybrid-kex/target/classes;classical/target/classes;common/target/classes;C:\Users\BAHRATHRAJ M\.m2\repository\org\bouncycastle\bcprov-jdk18on\1.80\bcprov-jdk18on-1.80.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\bouncycastle\bcpkix-jdk18on\1.80\bcpkix-jdk18on-1.80.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.18.3\jackson-databind-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.18.3\jackson-core-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.18.3\jackson-annotations-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jsr310\2.18.3\jackson-datatype-jsr310-2.18.3.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\openjdk\jmh\jmh-core\1.37\jmh-core-1.37.jar;C:\Users\BAHRATHRAJ M\.m2\repository\org\yaml\snakeyaml\2.3\snakeyaml-2.3.jar"
 
-java "-Dpqcaps.dataDir=$DataDir" -cp $benchCp com.pqcaps.dashboard.benchmark.BenchmarkCli quick
+java "-Dpqcaps.dataDir=$DataDir" -cp $benchCp com.pqcaps.dashboard.benchmark.BenchmarkCli $BenchmarkMode
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$DataDir/benchmark-results.json")) {
     Write-Error "CRITICAL: Benchmark runner failed with exit code $LASTEXITCODE."
     exit 1

@@ -12,6 +12,8 @@ import com.pqcaps.dashboard.benchmark.BenchmarkReport;
 import com.pqcaps.dashboard.benchmark.BenchmarkRunner;
 import com.pqcaps.scanner.ScanReport;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -26,6 +28,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class DashboardDataService {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardDataService.class);
+
+    private static final Map<String, String> TARGET_FILE_MAP = Map.of(
+            "vulnerable", "scan-report-vulnerable.json",
+            "migrated", "scan-report-migrated.json",
+            "self", "scan-report-self.json",
+            "self-production", "scan-report-self-production.json",
+            "self-tests", "scan-report-self-tests.json"
+    );
 
     private final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
@@ -96,63 +108,78 @@ public class DashboardDataService {
     }
 
     public ScanReport loadScanReport(String target) {
-        if (!List.of("vulnerable", "migrated", "self", "self-production", "self-tests").contains(target.toLowerCase())) {
-            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: vulnerable, migrated, self, self-production, self-tests");
+        if (target == null) {
+            throw new IllegalArgumentException("Target cannot be null");
         }
-        String filename = "scan-report-" + target.toLowerCase() + ".json";
+        String targetLower = target.trim().toLowerCase();
+        String filename = TARGET_FILE_MAP.get(targetLower);
+        if (filename == null) {
+            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: " + String.join(", ", TARGET_FILE_MAP.keySet()));
+        }
         Path path = resolveFile(filename);
         if (!Files.exists(path)) {
-            throw new NoSuchElementException("Scan report not found for target: " + target);
+            // Lazily run the in-process scanner if the report file doesn't exist yet
+            return runScan(targetLower);
         }
         try {
             ScanReport report = ScanReport.loadFromJson(path.toFile());
-            List<com.pqcaps.scanner.ScanFinding> sortedFindings = new ArrayList<>(report.findings());
-            sortedFindings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
-            return new ScanReport(report.scanId(), report.target(), report.timestamp(), report.summary(), sortedFindings);
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to parse scan report for " + target + ": " + e.getMessage());
+            List<com.pqcaps.scanner.ScanFinding> findings = report.findings() != null
+                    ? new ArrayList<>(report.findings())
+                    : new ArrayList<>();
+            findings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
+            return new ScanReport(report.scanId(), report.target(), report.timestamp(), report.summary(), findings);
+        } catch (Exception e) {
+            log.error("Failed to parse scan report from {}, executing in-process scan: {}", path, e.getMessage(), e);
+            return runScan(targetLower);
         }
     }
 
     public synchronized ScanReport runScan(String target) {
-        if (!List.of("vulnerable", "migrated", "self", "self-production", "self-tests").contains(target.toLowerCase())) {
-            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: vulnerable, migrated, self, self-production, self-tests");
+        if (target == null) {
+            throw new IllegalArgumentException("Target cannot be null");
         }
-        String targetLower = target.toLowerCase();
-        Path root = Files.exists(Path.of("..", "pom.xml")) ? Path.of("..") : Path.of(".");
+        String targetLower = target.trim().toLowerCase();
+        String filename = TARGET_FILE_MAP.get(targetLower);
+        if (filename == null) {
+            throw new IllegalArgumentException("Invalid scan target '" + target + "'. Allowed targets: " + String.join(", ", TARGET_FILE_MAP.keySet()));
+        }
+        Path projectRoot = DataPaths.getProjectRoot();
         Path scanPath = switch (targetLower) {
-            case "vulnerable" -> root.resolve(Path.of("samples", "vulnerable-app"));
-            case "migrated" -> root.resolve(Path.of("samples", "migrated-app"));
-            default -> root;
+            case "vulnerable" -> projectRoot.resolve("samples").resolve("vulnerable-app");
+            case "migrated" -> projectRoot.resolve("samples").resolve("migrated-app");
+            default -> projectRoot;
         };
 
-        if (Files.exists(scanPath)) {
-            try {
-                boolean isProduction = "self-production".equals(targetLower);
-                boolean includeTests = "self-tests".equals(targetLower);
-                Set<String> excludedModules = isProduction ? Set.of("attack-lab", "classical") : Set.of();
-                com.pqcaps.scanner.SourceScanner scanner = new com.pqcaps.scanner.SourceScanner(
-                        com.pqcaps.scanner.RuleRegistry.getInstance(),
-                        com.pqcaps.scanner.RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS,
-                        false,
-                        includeTests,
-                        excludedModules);
-                List<com.pqcaps.scanner.ScanFinding> findings = new ArrayList<>(scanner.scanDirectory(scanPath));
-                findings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
-                com.pqcaps.scanner.ScanSummary summary = com.pqcaps.scanner.RiskScoreCalculator.createSummary(findings);
-                ScanReport report = new ScanReport(
-                        UUID.randomUUID().toString(),
-                        "Directory: " + scanPath.toString(),
-                        Instant.now().toString(),
-                        summary,
-                        findings
-                );
-                Path outPath = DataPaths.resolve("scan-report-" + targetLower + ".json");
-                ScanReport.saveToJson(outPath.toFile(), report);
-                return report;
-            } catch (Exception ignored) {}
+        boolean isProduction = "self-production".equals(targetLower);
+        boolean includeTests = "self-tests".equals(targetLower);
+        boolean isSample = "vulnerable".equals(targetLower) || "migrated".equals(targetLower);
+        Set<String> excludedModules = isProduction ? Set.of("attack-lab", "classical") : Set.of();
+
+        com.pqcaps.scanner.SourceScanner scanner = new com.pqcaps.scanner.SourceScanner(
+                com.pqcaps.scanner.RuleRegistry.getInstance(),
+                com.pqcaps.scanner.RiskScoreCalculator.DEFAULT_DATA_LIFETIME_YEARS,
+                isSample,
+                includeTests,
+                excludedModules);
+
+        try {
+            List<com.pqcaps.scanner.ScanFinding> findings = new ArrayList<>(scanner.scanDirectory(scanPath));
+            findings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
+            com.pqcaps.scanner.ScanSummary summary = com.pqcaps.scanner.RiskScoreCalculator.createSummary(findings);
+            ScanReport report = new ScanReport(
+                    UUID.randomUUID().toString(),
+                    "Directory: " + scanPath.toString(),
+                    Instant.now().toString(),
+                    summary,
+                    findings
+            );
+            Path outPath = DataPaths.resolve(filename);
+            ScanReport.saveToJson(outPath.toFile(), report);
+            return report;
+        } catch (Exception e) {
+            log.error("In-process scan execution failed for target {}: {}", targetLower, e.getMessage(), e);
+            throw new RuntimeException("In-process scan execution failed for target " + targetLower + ": " + e.getMessage(), e);
         }
-        return loadScanReport(targetLower);
     }
 
     public BenchmarkReport loadBenchmarks() {
@@ -232,14 +259,15 @@ public class DashboardDataService {
         if (Files.exists(primary)) {
             return primary;
         }
-        // Fallback to sample directory
+        // Fallback to sample directory in data directory
         Path sample = DataPaths.resolve("sample/" + filename);
         if (Files.exists(sample)) {
             return sample;
         }
-        Path rootSample = Path.of("data", "sample", filename);
-        if (Files.exists(rootSample)) {
-            return rootSample;
+        // Fallback to projectRoot/data/sample
+        Path projectSample = DataPaths.getProjectRoot().resolve("data").resolve("sample").resolve(filename);
+        if (Files.exists(projectSample)) {
+            return projectSample;
         }
         return primary;
     }

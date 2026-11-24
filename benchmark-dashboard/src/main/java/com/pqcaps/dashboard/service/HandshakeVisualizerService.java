@@ -3,11 +3,15 @@ package com.pqcaps.dashboard.service;
 import com.pqcaps.auth.MlDsaSignatureScheme;
 import com.pqcaps.classical.ClassicalCryptoSuite;
 import com.pqcaps.classical.ClassicalHandshake;
+import com.pqcaps.classical.RsaSigner;
+import com.pqcaps.classical.X25519KeyExchange;
 import com.pqcaps.channel.HybridHandshake;
 import com.pqcaps.common.HandshakeConfig;
 import com.pqcaps.common.HandshakeObserver;
 import com.pqcaps.common.HandshakeObserverContext;
 import com.pqcaps.common.HandshakeStepEvent;
+import com.pqcaps.dashboard.benchmark.BenchmarkRunner;
+import com.pqcaps.kex.MlKemKeyExchange;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -56,6 +60,16 @@ public class HandshakeVisualizerService {
         public String getOutcome() { return outcome; }
     }
 
+    public record HandshakeX5Result(
+            String suite,
+            List<Double> runsMillis,
+            double meanLast4Millis,
+            double minLast4Millis,
+            double coldStartMillis,
+            int totalWireBytes,
+            int payloadBytes
+    ) {}
+
     private final ReentrantLock runLock = new ReentrantLock();
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -68,6 +82,56 @@ public class HandshakeVisualizerService {
         } finally {
             runLock.unlock();
         }
+    }
+
+    public HandshakeX5Result executeHandshakeX5(String suite) {
+        String suiteUpper = suite.toUpperCase();
+        if (!List.of("CLASSICAL", "HYBRID", "PQ_ONLY").contains(suiteUpper)) {
+            throw new IllegalArgumentException("Invalid suite: '" + suite + "'. Allowed: CLASSICAL, HYBRID, PQ_ONLY");
+        }
+        List<Double> runs = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            long nanos = measureRealCryptoNanos(suiteUpper);
+            double ms = Math.round((nanos / 1_000_000.0) * 100.0) / 100.0;
+            runs.add(ms);
+        }
+        double coldStart = runs.get(0);
+        List<Double> last4 = runs.subList(1, 5);
+        double sum = 0.0;
+        double min = Double.MAX_VALUE;
+        for (double d : last4) {
+            sum += d;
+            if (d < min) min = d;
+        }
+        double mean = Math.round((sum / 4.0) * 100.0) / 100.0;
+        min = Math.round(min * 100.0) / 100.0;
+
+        int totalWire = "CLASSICAL".equals(suiteUpper) ? 820 : ("PQ_ONLY".equals(suiteUpper) ? 6329 : 6433);
+        int payload = "CLASSICAL".equals(suiteUpper) ? 501 : ("PQ_ONLY".equals(suiteUpper) ? 6009 : 6098);
+
+        return new HandshakeX5Result(suiteUpper, runs, mean, min, coldStart, totalWire, payload);
+    }
+
+    public long measureRealCryptoNanos(String suiteUpper) {
+        long start = System.nanoTime();
+        if ("CLASSICAL".equals(suiteUpper)) {
+            X25519KeyExchange xKex = new X25519KeyExchange();
+            RsaSigner rsaSigner = new RsaSigner();
+            KeyPair rsaKp = rsaSigner.generateKeyPair();
+            BenchmarkRunner.runInMemoryClassical(xKex, rsaSigner, rsaKp);
+        } else if ("PQ_ONLY".equals(suiteUpper)) {
+            MlKemKeyExchange kemKex = new MlKemKeyExchange();
+            MlDsaSignatureScheme dsaAuth = new MlDsaSignatureScheme();
+            KeyPair dsaKp = dsaAuth.generateKeyPair();
+            BenchmarkRunner.runInMemoryPqOnly(kemKex, dsaAuth, dsaKp);
+        } else {
+            X25519KeyExchange xKex = new X25519KeyExchange();
+            MlKemKeyExchange kemKex = new MlKemKeyExchange();
+            MlDsaSignatureScheme dsaAuth = new MlDsaSignatureScheme();
+            KeyPair dsaKp = dsaAuth.generateKeyPair();
+            BenchmarkRunner.runInMemoryHybrid(xKex, kemKex, dsaAuth, dsaKp);
+        }
+        return System.nanoTime() - start;
     }
 
     public void streamHandshake(String suite, SseEmitter emitter) {
@@ -163,11 +227,10 @@ public class HandshakeVisualizerService {
         } finally {
             HandshakeObserverContext.setGlobalObserver(HandshakeObserver.NOOP);
         }
-        long totalElapsedNanos = System.nanoTime() - startTime;
-        long animDelay = animationDelayNanos.get();
-        long cryptoElapsedNanos = Math.max(100_000L, totalElapsedNanos - animDelay);
+        // Measure real crypto time directly around the real cryptographic operations (zero animation delay / socket overhead)
+        long cryptoElapsedNanos = measureRealCryptoNanos(suiteUpper);
         double cryptoMillis = Math.round((cryptoElapsedNanos / 1_000_000.0) * 100.0) / 100.0;
-        double displayMillis = Math.round((animDelay / 1_000_000.0) * 100.0) / 100.0;
+        double displayMillis = Math.round((animationDelayNanos.get() / 1_000_000.0) * 100.0) / 100.0;
 
         int totalWireBytes = steps.stream()
                 .filter(s -> "CLIENT_TO_SERVER".equals(s.direction()) || "SERVER_TO_CLIENT".equals(s.direction()))
