@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PQC-APS :: Alice (Client :8081)</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>PQC-APS :: Client</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
@@ -86,6 +89,18 @@
       border-radius: 6px;
       font-size: 0.9rem;
     }
+    #msgInput {
+      background-color: #0f172a !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+      padding: 8px 12px !important;
+      border-radius: 6px !important;
+      font-size: 0.9rem !important;
+      outline: none !important;
+    }
+    #msgInput:focus {
+      border-color: var(--primary) !important;
+    }
     select:focus, input:focus { outline: none; border-color: var(--primary); }
     button {
       background-color: var(--primary);
@@ -138,6 +153,7 @@
       font-size: 0.9rem;
     }
     .msg-alice { background-color: #1e3a8a; align-self: flex-end; }
+    .msg-server { background-color: #0c4a6e; align-self: flex-start; }
     .msg-meta { font-size: 0.7rem; color: #93c5fd; margin-top: 4px; }
   </style>
 </head>
@@ -145,8 +161,8 @@
 
   <div class="header">
     <h1>
-      <span>Alice (Secure Client)</span>
-      <span class="badge badge-client">Port :8081</span>
+      <span>Client</span>
+      <span class="badge badge-client">TCP Target :9000</span>
     </h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
@@ -155,7 +171,7 @@
   </div>
 
   <div id="mismatchBanner" class="banner">
-    ⚠️ <strong>Mode Mismatch Alert:</strong> Alice is set to <span id="bannerClientMode"></span>, but Bob (Server) is running <span id="bannerServerMode"></span>. The handshake will fail or trigger downgrade!
+    ⚠️ <strong>Mode Mismatch Alert:</strong> Client is set to <span id="bannerClientMode"></span>, but Server is running <span id="bannerServerMode"></span>. The handshake will fail or trigger downgrade!
   </div>
 
   <div class="card">
@@ -196,10 +212,10 @@
   </div>
 
   <div class="grid">
-    <!-- Live 8-step Handshake Panel -->
+    <!-- Live Handshake Telemetry Panel -->
     <div class="card">
       <h2>
-        <span>Cryptographic Handshake Telemetry (8 Steps)</span>
+        <span>Cryptographic Handshake Telemetry</span>
         <span id="stepCountBadge" class="badge badge-status">0 Steps</span>
       </h2>
       <div class="table-container">
@@ -228,8 +244,8 @@
         <div style="color:var(--text-muted); text-align:center; margin-top:80px;">Connect to server to start chatting.</div>
       </div>
       <div class="controls" style="margin-bottom:0;">
-        <input type="text" id="msgInput" placeholder="Enter message to encrypt and send..." style="flex:1;">
-        <button onclick="sendMessage()">Send</button>
+        <input type="text" id="msgInput" placeholder="" autocomplete="off" style="flex:1; background-color:#0f172a !important; border:1px solid #334155 !important; color:#f8fafc !important; padding:8px 12px; border-radius:6px; font-size:0.9rem; outline:none;">
+        <button onclick="sendMessage()" style="background-color:#3b82f6; color:#ffffff; font-weight:600; padding:8px 16px; border-radius:6px; border:none; cursor:pointer;">Send</button>
       </div>
     </div>
   </div>
@@ -238,28 +254,56 @@
     let sseSource = null;
     let reconnectTimeout = null;
 
-    function init() {
-      fetchStatus();
-      connectSse();
+    async function init() {
+      await fetchStatus();
+      await ensureConnected();
       checkServerMode();
       setInterval(checkServerMode, 3000);
+      setInterval(fetchStatus, 1000);
+
+      const input = document.getElementById('msgInput');
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') sendMessage();
+        });
+      }
+    }
+
+    async function ensureConnected() {
+      try {
+        const res = await fetch('/api/client/status');
+        const data = await res.json();
+        if (!data.connected) {
+          const mode = document.getElementById('modeSelect').value || data.mode || 'HYBRID';
+          const port = parseInt(document.getElementById('targetPortInput').value, 10) || 9000;
+          await fetch('/api/client/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ host: '127.0.0.1', port: port, mode: mode })
+          });
+          await fetchStatus();
+        }
+      } catch (e) {
+        console.warn('ensureConnected error:', e);
+      }
     }
 
     async function fetchStatus() {
       try {
         const res = await fetch('/api/client/status');
+        if (!res.ok) {
+          showReconnectBadge();
+          return;
+        }
+        clearReconnectBadge();
         const data = await res.json();
         updateStatusUI(data);
 
-        const stepsRes = await fetch('/api/client/steps');
-        const steps = await stepsRes.json();
-        renderSteps(steps);
-
-        const histRes = await fetch('/api/client/history');
-        const history = await histRes.json();
-        renderHistory(history);
+        if (data.steps) renderSteps(data.steps);
+        if (data.history) renderHistory(data.history);
       } catch (e) {
-        console.error(e);
+        showReconnectBadge();
+        console.warn('fetchStatus error:', e);
       }
     }
 
@@ -317,35 +361,47 @@
       const input = document.getElementById('msgInput');
       const text = input.value.trim();
       if (!text) return;
+
+      const sendBtn = document.querySelector('.controls button[onclick="sendMessage()"]');
+      if (sendBtn) sendBtn.disabled = true;
+
       try {
-        await fetch('/api/client/send', {
+        const res = await fetch('/api/client/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text })
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const errMsg = err.error || res.statusText || 'Send failed';
+          document.getElementById('statError').innerText = errMsg;
+          console.warn('Client send error:', errMsg);
+          return;
+        }
         input.value = '';
-        fetchStatus();
+        input.focus();
+        await fetchStatus();
       } catch (e) {
-        alert('Failed to send: ' + e.message);
+        document.getElementById('statError').innerText = e.message;
+        console.warn('Client send exception:', e);
+      } finally {
+        if (sendBtn) sendBtn.disabled = false;
       }
     }
 
-    document.getElementById('msgInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
-
     document.getElementById('modeSelect').addEventListener('change', async (e) => {
+      const mode = e.target.value;
       await fetch('/api/client/mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: e.target.value })
+        body: JSON.stringify({ mode: mode })
       });
-      fetchStatus();
+      await connectSession();
     });
 
     async function checkServerMode() {
       try {
-        const res = await fetch('http://127.0.0.1:8083/api/server/mode');
+        const res = await fetch('/api/server/mode');
         if (res.ok) {
           const data = await res.json();
           const serverMode = data.mode;
@@ -369,16 +425,23 @@
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No handshake initiated yet.</td></tr>';
         return;
       }
-      tbody.innerHTML = steps.map((s, idx) => `
-        <tr>
-          <td>${idx + 1}</td>
-          <td><strong>${s.stepName}</strong></td>
-          <td><span class="badge badge-status">${s.direction}</span></td>
-          <td class="mono">${s.messageBytes} B</td>
-          <td class="mono">${s.hex4}</td>
-          <td><span class="badge ${s.outcome === 'OK' ? 'badge-connected' : 'badge-failed'}">${s.outcome}</span></td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = steps.map((s, idx) => {
+        const isOk = s.outcome === 'OK' || s.outcome === 'SECURE';
+        const hexDisplay = (s.stepName === 'ChannelEstablished' || s.hex4 === 'OK') ? '-' : s.hex4;
+        const bytesDisplay = s.messageBytes > 0 ? (s.messageBytes + ' B') : '-';
+        const outcomeBadge = isOk ? 'badge-connected' : 'badge-failed';
+        const outcomeText = s.outcome === 'SECURE' ? 'OK (SECURE)' : s.outcome;
+        return `
+          <tr>
+            <td>${idx + 1}</td>
+            <td><strong>${s.stepName}</strong></td>
+            <td><span class="badge badge-status">${s.direction}</span></td>
+            <td class="mono">${bytesDisplay}</td>
+            <td class="mono">${hexDisplay}</td>
+            <td><span class="badge ${outcomeBadge}">${outcomeText}</span></td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function renderHistory(history) {
@@ -387,49 +450,18 @@
         box.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin-top:80px;">Connected session ready. Send a message!</div>';
         return;
       }
-      box.innerHTML = history.map(m => `
-        <div class="msg-bubble msg-alice">
-          <div><strong>${m.sender}</strong> (seq=${m.sequenceNumber}): ${m.text}</div>
-          <div class="msg-meta">${m.status}</div>
-        </div>
-      `).join('');
+      box.innerHTML = history.map(m => {
+        const isClient = m.sender === 'Alice' || m.sender === 'Client';
+        const senderLabel = isClient ? 'Client' : 'Server';
+        const bubbleClass = isClient ? 'msg-alice' : 'msg-server';
+        return `
+          <div class="msg-bubble ${bubbleClass}">
+            <div><strong>${senderLabel}</strong> (seq=${m.sequenceNumber}): ${m.text}</div>
+            <div class="msg-meta">${m.status}</div>
+          </div>
+        `;
+      }).join('');
       box.scrollTop = box.scrollHeight;
-    }
-
-    // ── SSE Stream Setup with < 2s Reconnect Badge Clear ───────────────────
-    function connectSse() {
-      if (sseSource) sseSource.close();
-      sseSource = new EventSource('/api/client/stream');
-
-      sseSource.onopen = () => {
-        clearReconnectBadge();
-      };
-
-      sseSource.addEventListener('init', () => {
-        clearReconnectBadge();
-      });
-
-      sseSource.addEventListener('handshake-step', (e) => {
-        clearReconnectBadge();
-        const step = JSON.parse(e.data);
-        fetchStatus();
-      });
-
-      sseSource.addEventListener('chat-message', (e) => {
-        clearReconnectBadge();
-        fetchStatus();
-      });
-
-      sseSource.addEventListener('connection-status', (e) => {
-        clearReconnectBadge();
-        fetchStatus();
-      });
-
-      sseSource.onerror = () => {
-        showReconnectBadge();
-        sseSource.close();
-        setTimeout(connectSse, 2000);
-      };
     }
 
     function showReconnectBadge() {
@@ -440,7 +472,7 @@
     function clearReconnectBadge() {
       const badge = document.getElementById('reconnectBadge');
       if (badge && badge.style.display !== 'none') {
-        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears well within 2 seconds
+        badge.style.display = 'none';
       }
     }
 

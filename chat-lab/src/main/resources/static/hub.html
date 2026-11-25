@@ -2,317 +2,615 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PQC-APS :: Chat Lab Hub (All-in-One :8090)</title>
+  <title>PQC-APS :: Attack Lab Hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: #111827;
-      --border: #1f2937;
+      --bg-dark: #070b14;
+      --bg-card: #0d1322;
+      --bg-panel: #111827;
+      --border-color: #1f293d;
       --border-focus: #3b82f6;
-      --text: #f9fafb;
-      --text-muted: #9ca3af;
+      --text-bright: #f8fafc;
+      --text-main: #cbd5e1;
+      --text-muted: #94a3b8;
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
       --success: #10b981;
       --danger: #ef4444;
-      --danger-hover: #dc2626;
       --warning: #f59e0b;
       --purple: #8b5cf6;
       --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 12px 16px;
-      height: 100vh;
+      padding: 16px 20px;
+      line-height: 1.4;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
-    .header {
+
+    /* Top Navigation Bar */
+    .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 10px;
-      flex-shrink: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 18px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 12px;
     }
-    .header h1 {
-      font-size: 1.25rem;
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .app-logo {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mode-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mode-picker label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .select-mode {
+      background-color: #1e293b;
+      color: var(--text-bright);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+    .select-mode:focus { border-color: var(--border-focus); }
+
+    .top-right {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .badge {
-      font-size: 0.72rem;
-      padding: 3px 8px;
-      border-radius: 9999px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    .badge-hub { background-color: #1e3a8a; color: #bfdbfe; }
-    .badge-mode { background-color: #312e81; color: #c7d2fe; }
-    .badge-ok { background-color: #064e3b; color: #6ee7b7; }
-    .badge-warn { background-color: #78350f; color: #fde68a; }
-    .badge-err { background-color: #7f1d1d; color: #fca5a5; }
-    .badge-idle { background-color: #374151; color: #9ca3af; }
-    .reconnect-badge {
-      display: none;
-      background-color: var(--warning);
-      color: #000;
-      padding: 3px 8px;
+    .btn {
+      padding: 7px 14px;
       border-radius: 6px;
-      font-weight: bold;
-      font-size: 0.75rem;
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-    /* Control Bars */
-    .control-deck {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 10px;
-      flex-shrink: 0;
-    }
-    .control-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .status-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    select, button {
-      background-color: #1f2937;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      outline: none;
-      transition: all 0.15s;
-    }
-    select:focus { border-color: var(--border-focus); }
-    button {
-      background-color: var(--primary);
-      color: white;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       border: none;
-    }
-    button:hover { background-color: var(--primary-hover); }
-    button.btn-danger { background-color: var(--danger); }
-    button.btn-danger:hover { background-color: var(--danger-hover); }
-    button.btn-secondary { background-color: #374151; }
-    button.btn-secondary:hover { background-color: #4b5563; }
-    button.btn-demo {
-      background-color: #4c1d95;
-      color: #ede9fe;
-      border: 1px solid #6d28d9;
-    }
-    button.btn-demo:hover { background-color: #5b21b6; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* Guided Demos Section */
-    .demo-bar {
-      display: flex;
+      transition: opacity 0.2s, background-color 0.2s;
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
-      padding-top: 8px;
+      gap: 6px;
+      text-decoration: none;
     }
-    .demo-label {
-      font-size: 0.8rem;
+    .btn-chat-tab {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+    }
+    .btn-chat-tab:hover { opacity: 0.92; }
+    .btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid var(--border-color); }
+    .btn-secondary:hover { background: #334155; color: #fff; }
+    .status-badge {
+      font-size: 0.75rem;
       font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      font-family: var(--font-mono);
+    }
+
+    /* Attack Simulation Bar */
+    .attack-deck {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .attack-deck-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .attack-deck-title {
+      font-size: 0.82rem;
+      font-weight: 700;
       color: #a78bfa;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .demo-result-box {
-      flex: 1;
-      background: #090d16;
-      border: 1px solid var(--border);
+    .attack-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-attack {
+      padding: 8px 14px;
       border-radius: 6px;
-      padding: 5px 10px;
       font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.1s, opacity 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-attack:hover { transform: translateY(-1px); }
+    .btn-replay { background: #78350f; color: #fde68a; border-color: #b45309; }
+    .btn-replay:hover { background: #92400e; }
+    .btn-tamper { background: #7f1d1d; color: #fecaca; border-color: #b91c1c; }
+    .btn-tamper:hover { background: #991b1b; }
+    .btn-downgrade { background: #4c1d95; color: #ede9fe; border-color: #6d28d9; }
+    .btn-downgrade:hover { background: #5b21b6; }
+    .btn-mitm { background: #831843; color: #fbcfe8; border-color: #be185d; }
+    .btn-mitm:hover { background: #9d174d; }
+
+    /* Big Live Verdict Box */
+    .verdict-box {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
       font-family: var(--font-mono);
-      min-height: 30px;
+      min-height: 42px;
       display: flex;
       align-items: center;
       color: var(--text-muted);
-      overflow-x: auto;
-      white-space: nowrap;
     }
-    .result-blocked { color: #6ee7b7; font-weight: 600; }
-    .result-succeeded { color: #fca5a5; font-weight: 600; }
-    .result-info { color: #93c5fd; }
+    .verdict-blocked { color: #6ee7b7; font-weight: 700; }
+    .verdict-succeeded { color: #fca5a5; font-weight: 700; }
+    .verdict-info { color: #93c5fd; }
 
-    /* 3-Column Iframes Layout */
-    .hub-grid {
+    /* 3-Column Working Grid (Alice -> Mallory -> Bob) */
+    .working-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      gap: 16px;
       flex: 1;
-      min-height: 0;
+      min-height: 460px;
     }
-    .column-panel {
+    @media (max-width: 1050px) {
+      .working-grid { grid-template-columns: 1fr; }
+    }
+
+    .column-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
       display: flex;
       flex-direction: column;
-      border: 1px solid var(--border);
-      border-radius: 8px;
       overflow: hidden;
-      background: var(--card-bg);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
     }
-    .column-header {
-      background: #111827;
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--border);
+    .column-card.alice { border-top: 3px solid #3b82f6; }
+    .column-card.mallory { border-top: 3px solid #f59e0b; }
+    .column-card.bob { border-top: 3px solid #10b981; }
+
+    .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.8rem;
-      font-weight: 600;
+      padding: 10px 14px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
     }
-    .column-header.alice { border-top: 3px solid #3b82f6; }
-    .column-header.mallory { border-top: 3px solid #8b5cf6; }
-    .column-header.bob { border-top: 3px solid #0ea5e9; }
-    .column-panel iframe {
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-icon { font-size: 1.4rem; line-height: 1; }
+    .card-header h3 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+    .card-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .mini-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+    .badge-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .badge-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+
+    .card-body {
       flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #090d16;
+    }
+    .card-body.font-mono {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    /* Message Bubbles */
+    .bubble {
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      max-width: 85%;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    /* In Client Chat: Client's own outgoing messages -> RIGHT */
+    .bubble.alice-outgoing,
+    .bubble.alice {
+      align-self: flex-end;
+      background: #2563eb;
+      color: #fff;
+    }
+    /* In Client Chat: Server's incoming messages -> LEFT */
+    .bubble.alice-incoming {
+      align-self: flex-start;
+      background: #0c4a6e;
+      border: 1px solid #0284c7;
+      color: #e0f2fe;
+    }
+    /* In Server Chat: Client's incoming messages -> LEFT */
+    .bubble.bob-incoming,
+    .bubble.bob {
+      align-self: flex-start;
+      background: #1e293b;
+      color: var(--text-bright);
+      border: 1px solid var(--border-color);
+    }
+    /* In Server Chat: Server's own outgoing messages -> RIGHT */
+    .bubble.bob-outgoing {
+      align-self: flex-end;
+      background: #0284c7;
+      color: #fff;
+      border: 1px solid #38bdf8;
+    }
+    .bubble.bob.blocked,
+    .bubble.bob-blocked {
+      align-self: flex-start;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .bubble.system {
+      align-self: center;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px dashed var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    /* Mallory Wire Logs */
+    .wire-log {
+      padding: 3px 0;
+      line-height: 1.4;
+    }
+    .wire-sniff { color: #10b981; }
+    .wire-danger { color: #f87171; font-weight: 700; }
+    .wire-info { color: #94a3b8; }
+    .wire-action { color: #fbbf24; font-weight: 700; }
+
+    /* Card Footers / Controls */
+    .card-footer {
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chat-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text-bright);
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .chat-input:focus { border-color: var(--border-focus); }
+    .btn-send {
+      background: #10b981;
+      color: #fff;
+      font-weight: 700;
+    }
+    .btn-send:hover { background: #059669; }
+
+    .quick-chips {
+      display: flex;
+      gap: 6px;
+      padding: 6px 14px 10px;
+      background: var(--bg-card);
+      overflow-x: auto;
+    }
+    .chip {
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      color: #cbd5e1;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .chip:hover { background: #334155; color: #fff; }
+
+    .mallory-actions {
+      display: flex;
+      gap: 8px;
       width: 100%;
-      height: 100%;
-      border: none;
-      background: var(--bg);
+    }
+    .mallory-actions button {
+      flex: 1;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Header -->
-  <div class="header">
-    <h1>
-      <span>🛡️ PQC-APS Chat Lab Hub</span>
-      <span class="badge badge-hub">All-in-One (:8090)</span>
-      <span id="globalModeBadge" class="badge badge-mode">HYBRID</span>
-    </h1>
-    <div style="display: flex; gap: 10px; align-items: center;">
-      <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
-      <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">Real Localhost TCP: :9000 &rarr; :9001</span>
-    </div>
-  </div>
-
-  <!-- Global Control Deck -->
-  <div class="control-deck">
-    <!-- Row 1: Global Controls & Status -->
-    <div class="control-row">
-      <div class="control-group">
-        <label for="globalModeSelect" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Global Mode:</label>
-        <select id="globalModeSelect" onchange="applyGlobalMode()">
-          <option value="HYBRID" selected>HYBRID (ML-KEM-768 + X25519 & ML-DSA-65, Strict Guards)</option>
-          <option value="CLASSICAL-HARDENED">CLASSICAL-HARDENED (RSA-2048 + Guards)</option>
-          <option value="CLASSICAL-VULNERABLE">CLASSICAL-VULNERABLE (VULN-1..4 Active, No Guards)</option>
+  <!-- Top Navigation Bar -->
+  <header class="top-bar">
+    <div class="top-left">
+      <div class="app-logo">
+        <span>🛡️ PQC-APS Attack Lab Hub</span>
+      </div>
+      <div class="mode-picker">
+        <label for="globalMode">Security Mode:</label>
+        <select id="globalMode" class="select-mode" onchange="switchMode(this.value)">
+          <option value="HYBRID" selected>🟢 HYBRID (NIST ML-KEM-768 + Defense Guards)</option>
+          <option value="CLASSICAL-HARDENED">🟡 CLASSICAL-HARDENED (RSA-2048 + Guards)</option>
+          <option value="CLASSICAL-VULNERABLE">🔴 CLASSICAL-VULNERABLE (Legacy / No Guards)</option>
         </select>
-        <button onclick="connectAll()">🔗 Connect Alice</button>
-        <button class="btn-secondary" onclick="resetAll()">🔄 Reset All</button>
-        <button class="btn-danger" onclick="stopAll()">⏹ Stop All</button>
-      </div>
-
-      <div class="status-group">
-        <div class="status-pill">
-          <span>Alice (Client):</span>
-          <span id="pillAlice" class="badge badge-idle">DISCONNECTED</span>
-        </div>
-        <div class="status-pill">
-          <span>Mallory (Proxy):</span>
-          <span id="pillMallory" class="badge badge-ok">RUNNING</span>
-        </div>
-        <div class="status-pill">
-          <span>Bob (Server):</span>
-          <span id="pillBob" class="badge badge-ok">RUNNING</span>
-        </div>
       </div>
     </div>
-
-    <!-- Row 2: Guided Attack Demos -->
-    <div class="demo-bar">
-      <div class="control-group">
-        <span class="demo-label">Guided Demos:</span>
-        <button class="btn-demo" onclick="runGuidedDemo('replay')">⚡ Replay</button>
-        <button class="btn-demo" onclick="runGuidedDemo('downgrade')">📉 Downgrade</button>
-        <button class="btn-demo" onclick="runGuidedDemo('mitm')">👤 MITM</button>
-        <button class="btn-demo" onclick="runGuidedDemo('tamper')">✂️ Tamper</button>
-      </div>
-      <div id="demoResultBox" class="demo-result-box">
-        <span class="result-info">Select a guided attack demo above to execute automated real TCP test across Alice, Mallory, and Bob.</span>
-      </div>
+    <div class="top-right">
+      <span id="tcpStatus" class="status-badge">● Online (TCP :9000 &rarr; :9001)</span>
+      <button class="btn btn-chat-tab" onclick="window.open('/chat.html', '_blank')">
+        💬 Open Chat in New Tab
+      </button>
+      <button class="btn btn-secondary" onclick="resetAll()">
+        🔄 Reset All
+      </button>
     </div>
+  </header>
+
+  <!-- Generated URLs Bar -->
+  <div style="background:#090d16; border-bottom:1px solid var(--border-color); padding:8px 20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.8rem;">
+    <span style="font-weight:700; color:#93c5fd; display:flex; align-items:center; gap:4px;">
+      🌐 Generated URLs:
+    </span>
+    <div style="display:flex; align-items:center; gap:6px; background:#1e293b; padding:4px 8px; border-radius:6px; border:1px solid var(--border-color);">
+      <span style="color:#60a5fa; font-weight:600;">Client:</span>
+      <span style="color:#cbd5e1; font-family:var(--font-mono); font-size:0.75rem;">http://127.0.0.1:8090/client.html</span>
+      <button onclick="navigator.clipboard.writeText('http://127.0.0.1:8090/client.html')" style="background:#334155; color:#fff; border:none; padding:2px 6px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Copy</button>
+      <button onclick="window.open('/client.html', '_blank')" style="background:#2563eb; color:#fff; border:none; padding:2px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Open</button>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; background:#1e293b; padding:4px 8px; border-radius:6px; border:1px solid var(--border-color);">
+      <span style="color:#fbbf24; font-weight:600;">Attacker:</span>
+      <span style="color:#cbd5e1; font-family:var(--font-mono); font-size:0.75rem;">http://127.0.0.1:8090/attacker.html</span>
+      <button onclick="navigator.clipboard.writeText('http://127.0.0.1:8090/attacker.html')" style="background:#334155; color:#fff; border:none; padding:2px 6px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Copy</button>
+      <button onclick="window.open('/attacker.html', '_blank')" style="background:#d97706; color:#fff; border:none; padding:2px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Open</button>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; background:#1e293b; padding:4px 8px; border-radius:6px; border:1px solid var(--border-color);">
+      <span style="color:#34d399; font-weight:600;">Server:</span>
+      <span style="color:#cbd5e1; font-family:var(--font-mono); font-size:0.75rem;">http://127.0.0.1:8090/server.html</span>
+      <button onclick="navigator.clipboard.writeText('http://127.0.0.1:8090/server.html')" style="background:#334155; color:#fff; border:none; padding:2px 6px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Copy</button>
+      <button onclick="window.open('/server.html', '_blank')" style="background:#059669; color:#fff; border:none; padding:2px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Open</button>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; background:#1e293b; padding:4px 8px; border-radius:6px; border:1px solid var(--border-color);">
+      <span style="color:#c084fc; font-weight:600;">Chat:</span>
+      <span style="color:#cbd5e1; font-family:var(--font-mono); font-size:0.75rem;">http://127.0.0.1:8090/chat.html</span>
+      <button onclick="navigator.clipboard.writeText('http://127.0.0.1:8090/chat.html')" style="background:#334155; color:#fff; border:none; padding:2px 6px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Copy</button>
+      <button onclick="window.open('/chat.html', '_blank')" style="background:#7c3aed; color:#fff; border:none; padding:2px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer;">Open</button>
+    </div>
+    <button onclick="window.open('/client.html','_blank','width=500,height=700'); window.open('/attacker.html','_blank','width=500,height=700'); window.open('/server.html','_blank','width=500,height=700');" style="margin-left:auto; background:#4338ca; color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;">
+      🚀 Open All 3 in Separate Windows
+    </button>
   </div>
 
-  <!-- 3 Columns Grid -->
-  <div class="hub-grid">
-    <!-- Alice: Client View -->
-    <div class="column-panel">
-      <div class="column-header alice">
-        <span>Alice (Client :8081)</span>
-        <span style="font-family: var(--font-mono); font-weight: normal; color: var(--text-muted);">Target: 127.0.0.1:9000</span>
+  <!-- Attack Simulation Bar -->
+  <section class="attack-deck">
+    <div class="attack-deck-header">
+      <span class="attack-deck-title">⚔️ One-Click Attack Simulations (Test Active Exploits Across Real TCP Pipeline)</span>
+      <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">Automated Client &rarr; Attacker &rarr; Server Live Test</span>
+    </div>
+    <div class="attack-buttons">
+      <button class="btn-attack btn-replay" onclick="triggerAttack('replay')">
+        <span>⚡ Simulate Replay Attack</span>
+      </button>
+      <button class="btn-attack btn-tamper" onclick="triggerAttack('tamper')">
+        <span>✂️ Simulate Bit-Flip / Tamper</span>
+      </button>
+      <button class="btn-attack btn-downgrade" onclick="triggerAttack('downgrade')">
+        <span>📉 Simulate Cipher Downgrade</span>
+      </button>
+      <button class="btn-attack btn-mitm" onclick="triggerAttack('mitm')">
+        <span>👤 Simulate MITM Impersonation</span>
+      </button>
+    </div>
+    <div id="verdictBox" class="verdict-box">
+      <span class="verdict-info">👉 Select an attack simulation above or send a message below to test live defenses.</span>
+    </div>
+  </section>
+
+  <!-- 3-Column Working Grid (Alice -> Mallory -> Bob) -->
+  <main class="working-grid">
+
+    <!-- Column 1: Client -->
+    <div class="column-card alice">
+      <div class="card-header">
+        <div class="card-header-left">
+          <span class="card-icon">👧</span>
+          <div>
+            <h3>Client</h3>
+            <span class="card-sub">Sender &bull; AES-256-GCM Encrypted</span>
+          </div>
+        </div>
+        <span id="aliceStatus" class="mini-badge badge-blue">CONNECTED</span>
       </div>
-      <iframe id="aliceFrame" src="/client.html" title="Alice Client UI"></iframe>
+      <div id="aliceMessages" class="card-body">
+        <div class="bubble system">Type a message below to transmit across the secure channel.</div>
+      </div>
+      <div class="quick-chips">
+        <button class="chip" onclick="setQuickMsg('Wire transfer $5,000')">💸 Wire $5,000</button>
+        <button class="chip" onclick="setQuickMsg('Patient Medical Record #8472: Normal')">🏥 Medical Record</button>
+        <button class="chip" onclick="setQuickMsg('Session Secret Key: 9a8f4c2d')">🔑 Secret Key</button>
+      </div>
+      <div class="card-footer">
+        <input type="text" id="aliceInput" class="chat-input" placeholder="" value="">
+        <button id="sendBtn" class="btn btn-send" onclick="sendAliceMsg()">Send</button>
+      </div>
     </div>
 
-    <!-- Mallory: Attacker Proxy View -->
-    <div class="column-panel">
-      <div class="column-header mallory">
-        <span>Mallory (Attacker Proxy :8082)</span>
-        <span style="font-family: var(--font-mono); font-weight: normal; color: var(--text-muted);">Listen :9000 &rarr; Target :9001</span>
+    <!-- Column 2: Attacker Proxy -->
+    <div class="column-card mallory">
+      <div class="card-header">
+        <div class="card-header-left">
+          <span class="card-icon">🥷</span>
+          <div>
+            <h3>Attacker Proxy</h3>
+            <span class="card-sub">Wire Sniffing: TCP :9000 &rarr; Target :9001</span>
+          </div>
+        </div>
+        <span class="mini-badge badge-amber">INTERCEPTING</span>
       </div>
-      <iframe id="malloryFrame" src="/attacker.html" title="Mallory Proxy UI"></iframe>
+      <div id="malloryLog" class="card-body font-mono">
+        <div class="wire-log wire-sniff">[Listening on 127.0.0.1:9000 TCP proxy interface...]</div>
+      </div>
+      <div class="card-footer">
+        <div class="mallory-actions">
+          <button class="btn btn-attack btn-replay" style="font-size:0.75rem; padding:6px 10px;" onclick="triggerAttack('replay')">
+            ⚡ Replay Last Record
+          </button>
+          <button class="btn btn-attack btn-tamper" style="font-size:0.75rem; padding:6px 10px;" onclick="triggerAttack('tamper')">
+            ✂️ Flip a Bit
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Bob: Server View -->
-    <div class="column-panel">
-      <div class="column-header bob">
-        <span>Bob (Secure Server :8083)</span>
-        <span style="font-family: var(--font-mono); font-weight: normal; color: var(--text-muted);">TCP Server :9001</span>
+    <!-- Column 3: Server -->
+    <div class="column-card bob">
+      <div class="card-header">
+        <div class="card-header-left">
+          <span class="card-icon">👨</span>
+          <div>
+            <h3>Server</h3>
+            <span class="card-sub">Receiver &bull; Sequence &amp; Tag Guard</span>
+          </div>
+        </div>
+        <span id="bobStatus" class="mini-badge badge-green">RUNNING</span>
       </div>
-      <iframe id="bobFrame" src="/server.html" title="Bob Server UI"></iframe>
+      <div id="bobMessages" class="card-body">
+        <div class="bubble system">Awaiting incoming encrypted records from TCP :9001...</div>
+      </div>
+      <div class="card-footer" style="justify-content: space-between; font-size:0.75rem; font-family:var(--font-mono);">
+        <span id="guardBadge" style="color:#10b981; font-weight:600;">✔ ReplayGuard &amp; TamperGuard Active</span>
+        <span id="seqBadge" style="color:var(--text-muted);">Seq: 0</span>
+      </div>
+      <div class="card-footer">
+        <input type="text" id="serverInput" class="chat-input" placeholder="" value="">
+        <button id="sendServerBtn" class="btn btn-send" onclick="sendServerMsg()">Send</button>
+      </div>
     </div>
-  </div>
+
+  </main>
 
   <script>
-    let sseSource = null;
+    let activeMode = 'HYBRID';
+    let lastSentText = '';
+
+    let hubClientSse = null;
+    let hubServerSse = null;
+
+    function initHubSse() {
+      if (hubClientSse) hubClientSse.close();
+      hubClientSse = new EventSource('/api/client/stream');
+
+      hubClientSse.addEventListener('chat-message', (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.sender === 'Server') {
+            const body = document.getElementById('aliceMessages');
+            const last = body.lastElementChild;
+            if (!last || !last.textContent.includes(msg.text)) {
+              appendAliceBubble('Server: ' + msg.text, true);
+            }
+          }
+        } catch (err) {}
+      });
+
+      if (hubServerSse) hubServerSse.close();
+      hubServerSse = new EventSource('/api/server/stream');
+
+      hubServerSse.addEventListener('server-message', (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.sender === 'Client') {
+            const body = document.getElementById('bobMessages');
+            const last = body.lastElementChild;
+            if (!last || !last.textContent.includes(msg.text)) {
+              const isAccepted = msg.status && msg.status.startsWith('ACCEPTED');
+              appendBobBubble(msg.text + (isAccepted ? ` (ACCEPTED: seq=${msg.sequenceNumber} verified)` : ` (${msg.status})`), !isAccepted, false);
+            }
+          }
+        } catch (err) {}
+      });
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       fetchHubStatus();
-      connectSse();
-      setInterval(fetchHubStatus, 3000);
+      ensureConnected();
+      initHubSse();
+
+      const input = document.getElementById('aliceInput');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendAliceMsg();
+      });
+
+      const srvInput = document.getElementById('serverInput');
+      if (srvInput) {
+        srvInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') sendServerMsg();
+        });
+      }
     });
 
     async function fetchHubStatus() {
@@ -320,214 +618,246 @@
         const res = await fetch('/api/hub/status');
         if (!res.ok) return;
         const data = await res.json();
-        updateUI(data);
-      } catch (e) {
-        console.debug('Status poll error:', e);
-      }
+        if (data.globalMode) {
+          activeMode = data.globalMode;
+          document.getElementById('globalMode').value = activeMode;
+        }
+      } catch (err) {}
     }
 
-    function updateUI(data) {
-      if (data.globalMode) {
-        document.getElementById('globalModeBadge').innerText = data.globalMode;
-        const select = document.getElementById('globalModeSelect');
-        if (select && select.value !== data.globalMode) {
-          select.value = data.globalMode;
-        }
-      }
-
-      // Alice status
-      const pillAlice = document.getElementById('pillAlice');
-      if (data.client) {
-        const st = data.client.status || 'DISCONNECTED';
-        pillAlice.innerText = st;
-        if (st === 'CONNECTED') {
-          pillAlice.className = 'badge badge-ok';
-        } else if (st === 'FAILED') {
-          pillAlice.className = 'badge badge-err';
-        } else {
-          pillAlice.className = 'badge badge-idle';
-        }
-      }
-
-      // Mallory status
-      const pillMallory = document.getElementById('pillMallory');
-      if (data.attacker) {
-        const isRunning = data.attacker.running;
-        const isPaused = data.attacker.paused;
-        if (!isRunning) {
-          pillMallory.innerText = 'STOPPED';
-          pillMallory.className = 'badge badge-err';
-        } else if (isPaused) {
-          pillMallory.innerText = 'PAUSED';
-          pillMallory.className = 'badge badge-warn';
-        } else {
-          pillMallory.innerText = 'ACTIVE';
-          pillMallory.className = 'badge badge-ok';
-        }
-      }
-
-      // Bob status
-      const pillBob = document.getElementById('pillBob');
-      if (data.server) {
-        const isRunning = data.server.running;
-        pillBob.innerText = isRunning ? 'RUNNING' : 'STOPPED';
-        pillBob.className = isRunning ? 'badge badge-ok' : 'badge badge-err';
-      }
-    }
-
-    async function applyGlobalMode() {
-      const mode = document.getElementById('globalModeSelect').value;
+    async function ensureConnected() {
       try {
-        const res = await fetch('/api/hub/mode', {
+        const statusRes = await fetch('/api/client/status');
+        const statusData = await statusRes.json();
+        if (!statusData.connected) {
+          await fetch('/api/client/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port: 9000, mode: activeMode })
+          });
+        }
+      } catch (err) {}
+    }
+
+    async function sendServerMsg() {
+      const input = document.getElementById('serverInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      await ensureConnected();
+
+      try {
+        const res = await fetch('/api/server/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode })
+          body: JSON.stringify({ message: text })
         });
+        if (!res.ok) {
+          const err = await res.json();
+          appendBobBubble(`[SEND FAILED]: ${err.error || 'Failed'}`, true, true);
+          return;
+        }
+      } catch (err) {
+        appendBobBubble(`[SEND ERROR]: ${err.message}`, true, true);
+        return;
+      }
+
+      // In Server chat: Server's own outgoing message -> RIGHT SIDE
+      appendBobBubble('Server: ' + text, false, true);
+
+      if (activeMode === 'CLASSICAL-VULNERABLE') {
+        logMallory(`[Intercepted Wire]: Server -> Client forwarded`, 'wire-info');
+        logMallory(`🚨 [SERVER PLAINTEXT EXPOSED]: "${escapeHtml(text)}"`, 'wire-danger');
+      } else {
+        logMallory(`[Intercepted Wire Record]: Server -> Client | AES-256-GCM encrypted`, 'wire-info');
+      }
+
+      // In Client chat: Server's incoming message -> LEFT SIDE
+      appendAliceBubble('Server: ' + text, true);
+      input.value = '';
+      input.focus();
+    }
+
+    async function sendAliceMsg() {
+      const input = document.getElementById('aliceInput');
+      const text = input.value.trim();
+      if (!text) return;
+      lastSentText = text;
+
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+
+      // Make sure connection is alive
+      await ensureConnected();
+
+      // In Client chat: Client's own outgoing message -> RIGHT SIDE
+      appendAliceBubble(text, false);
+
+      try {
+        const res = await fetch('/api/client/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          appendBobBubble(`[TRANSMISSION REJECTED] ${err.error || 'Server rejected message'}`, true, false);
+          return;
+        }
+
         const data = await res.json();
-        updateUI(data);
-        refreshIframes();
-      } catch (e) {
-        console.error('Failed to set global mode:', e);
+        const seq = data.sequenceNumber;
+        document.getElementById('seqBadge').textContent = `Seq: ${seq}`;
+
+        // Mallory log
+        if (activeMode === 'CLASSICAL-VULNERABLE') {
+          logMallory(`[Intercepted Wire]: Packet #${seq} forwarded`, 'wire-info');
+          logMallory(`🚨 [PLAINTEXT EXPOSED TO ATTACKER]: "${escapeHtml(text)}"`, 'wire-danger');
+        } else {
+          logMallory(`[Intercepted Wire Record]: seq=${seq} | AES-256-GCM encrypted`, 'wire-info');
+          if (data.hex4Ciphertext) {
+            logMallory(`🔒 [Ciphertext Hex]: ${data.hex4Ciphertext}... (Attacker cannot decrypt)`, 'wire-sniff');
+          }
+        }
+
+        // In Server chat: Client's incoming message -> LEFT SIDE
+        appendBobBubble(`${text} (ACCEPTED: seq=${seq} verified)`, false, false);
+
+        // Update verdict box
+        const verdict = document.getElementById('verdictBox');
+        verdict.innerHTML = `<span class="verdict-blocked">✔ Message transmitted securely: Seq #${seq} verified by Server with AES-256-GCM authentication.</span>`;
+
+      } catch (err) {
+        appendBobBubble(`[NETWORK ERROR] ${err.message}`, true, false);
+      } finally {
+        sendBtn.disabled = false;
+        input.value = '';
+        input.focus();
       }
     }
 
-    async function connectAll() {
+    async function triggerAttack(attack) {
+      const verdict = document.getElementById('verdictBox');
+      verdict.innerHTML = `<span class="verdict-info">⏳ Executing guided ${attack.toUpperCase()} attack across live TCP sockets...</span>`;
+
       try {
-        showDemoMessage('Initiating connection Alice -> Mallory -> Bob...');
-        const res = await fetch('/api/hub/connect', { method: 'POST' });
+        const res = await fetch(`/api/hub/demo/${attack}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: activeMode })
+        });
+
         const data = await res.json();
-        updateUI(data);
-        setTimeout(refreshIframes, 500);
-      } catch (e) {
-        console.error('Failed to connect:', e);
+        const isBlocked = data.status === 'BLOCKED' ||
+          (data.outcome && data.outcome.includes('BLOCKED')) ||
+          (data.detail && data.detail.includes('BLOCKED'));
+        const detailText = data.outcome || data.detail || (isBlocked ? 'Rejected by security guard' : 'Accepted without guard');
+
+        if (isBlocked) {
+          verdict.innerHTML = `<span class="verdict-blocked">🛡️ DEFENSE SUCCESSFUL (${data.status}): ${escapeHtml(detailText)}</span>`;
+          logMallory(`[ATTACK INTERCEPTED]: ${data.attack} attack was neutralized by Server's defensive guards!`, 'wire-sniff');
+          appendBobBubble(`🛡️ [ATTACK BLOCKED]: ${data.attack} rejected by guard (${escapeHtml(detailText)})`, true, false);
+        } else {
+          verdict.innerHTML = `<span class="verdict-succeeded">⚠️ EXPLOIT SUCCEEDED (${data.status}): ${escapeHtml(detailText)}</span>`;
+          logMallory(`⚠️ [EXPLOIT SUCCEEDED]: ${data.attack} attack was accepted by Server (Vulnerable Mode)!`, 'wire-danger');
+          appendBobBubble(`⚠️ [EXPLOIT ACCEPTED]: ${data.attack} attack accepted without guard verification!`, false, false);
+        }
+      } catch (err) {
+        verdict.innerHTML = `<span class="verdict-succeeded">Attack execution error: ${err.message}</span>`;
+      }
+    }
+
+    async function switchMode(mode) {
+      activeMode = mode;
+      const verdict = document.getElementById('verdictBox');
+      verdict.innerHTML = `<span class="verdict-info">Switching channel to ${mode}...</span>`;
+
+      try {
+        await fetch(`/api/hub/mode?mode=${encodeURIComponent(mode)}`, { method: 'POST' });
+        await fetch('/api/hub/connect', { method: 'POST' });
+
+        resetUi();
+        verdict.innerHTML = `<span class="verdict-blocked">✔ Mode switched to ${mode}. Channel re-established.</span>`;
+        logMallory(`[Mode changed to ${mode}]: Cipher suite re-negotiated over TCP`, 'wire-sniff');
+
+        const guardBadge = document.getElementById('guardBadge');
+        if (mode === 'CLASSICAL-VULNERABLE') {
+          guardBadge.style.color = '#ef4444';
+          guardBadge.textContent = '⚠️ Guards Disabled (Vulnerable Baseline)';
+        } else {
+          guardBadge.style.color = '#10b981';
+          guardBadge.textContent = '✔ ReplayGuard & TamperGuard Active';
+        }
+      } catch (err) {
+        verdict.innerHTML = `<span class="verdict-succeeded">Mode switch error: ${err.message}</span>`;
       }
     }
 
     async function resetAll() {
       try {
-        const res = await fetch('/api/hub/reset-all', { method: 'POST' });
-        const data = await res.json();
-        updateUI(data);
-        refreshIframes();
-        showDemoMessage('All session state reset across Alice, Mallory, and Bob.');
-      } catch (e) {
-        console.error('Failed to reset all:', e);
+        await fetch('/api/hub/reset-all', { method: 'POST' });
+        await fetch('/api/hub/connect', { method: 'POST' });
+        resetUi();
+        document.getElementById('verdictBox').innerHTML = `<span class="verdict-info">All sessions, sequence numbers, and proxy logs have been reset.</span>`;
+      } catch (err) {}
+    }
+
+    function resetUi() {
+      document.getElementById('aliceMessages').innerHTML = `<div class="bubble system">Channel reset in ${activeMode} mode. Ready to chat.</div>`;
+      document.getElementById('bobMessages').innerHTML = `<div class="bubble system">Awaiting incoming encrypted records from TCP :9001...</div>`;
+      document.getElementById('malloryLog').innerHTML = `<div class="wire-log wire-sniff">[Listening on 127.0.0.1:9000 TCP proxy interface...]</div>`;
+      document.getElementById('seqBadge').textContent = 'Seq: 0';
+    }
+
+    function setQuickMsg(msg) {
+      document.getElementById('aliceInput').value = msg;
+      sendAliceMsg();
+    }
+
+    // In Client chat: isIncoming=true (Server sent message) -> LEFT; isIncoming=false (Client outgoing) -> RIGHT
+    function appendAliceBubble(text, isIncoming = false) {
+      const body = document.getElementById('aliceMessages');
+      const b = document.createElement('div');
+      b.className = isIncoming ? 'bubble alice-incoming' : 'bubble alice-outgoing';
+      b.textContent = text;
+      body.appendChild(b);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    // In Server chat: isOutgoing=true (Server own message) -> RIGHT; isOutgoing=false (Client sent message) -> LEFT
+    function appendBobBubble(text, isBlocked = false, isOutgoing = false) {
+      const body = document.getElementById('bobMessages');
+      const b = document.createElement('div');
+      if (isOutgoing) {
+        b.className = 'bubble bob-outgoing';
+      } else if (isBlocked) {
+        b.className = 'bubble bob-blocked';
+      } else {
+        b.className = 'bubble bob-incoming';
       }
+      b.textContent = text;
+      body.appendChild(b);
+      body.scrollTop = body.scrollHeight;
     }
 
-    async function stopAll() {
-      try {
-        const res = await fetch('/api/hub/stop-all', { method: 'POST' });
-        const data = await res.json();
-        updateUI(data);
-        refreshIframes();
-        showDemoMessage('All sockets stopped.');
-      } catch (e) {
-        console.error('Failed to stop all:', e);
-      }
+    function logMallory(text, cssClass) {
+      const log = document.getElementById('malloryLog');
+      const line = document.createElement('div');
+      line.className = `wire-log ${cssClass}`;
+      line.textContent = text;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
     }
 
-    async function runGuidedDemo(attackType) {
-      const mode = document.getElementById('globalModeSelect').value;
-      const resultBox = document.getElementById('demoResultBox');
-      resultBox.innerHTML = '<span class="result-info">Running guided demo <strong>' + attackType.toUpperCase() + '</strong> in mode ' + mode + '...</span>';
-
-      try {
-        const res = await fetch('/api/hub/demo/' + attackType, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode })
-        });
-
-        if (!res.ok) {
-          resultBox.innerHTML = '<span class="result-succeeded">Demo Error: HTTP ' + res.status + '</span>';
-          return;
-        }
-
-        const data = await res.json();
-        const isBlocked = data.status === 'BLOCKED';
-        const colorClass = isBlocked ? 'result-blocked' : 'result-succeeded';
-        const badgeText = isBlocked ? '🛡️ BLOCKED' : '⚠️ ' + data.status;
-
-        resultBox.innerHTML = `
-          <span class="${colorClass}">[${badgeText}]</span>&nbsp;
-          <span>${data.outcome}</span>
-          ${data.eventId ? `&nbsp;<span style="color:#a78bfa;">(ID: ${data.eventId})</span>` : ''}
-        `;
-
-        fetchHubStatus();
-        setTimeout(refreshIframes, 300);
-      } catch (e) {
-        resultBox.innerHTML = '<span class="result-succeeded">Demo Execution Failed: ' + e.message + '</span>';
-      }
-    }
-
-    function showDemoMessage(msg) {
-      const resultBox = document.getElementById('demoResultBox');
-      if (resultBox) {
-        resultBox.innerHTML = '<span class="result-info">' + msg + '</span>';
-      }
-    }
-
-    function refreshIframes() {
-      try {
-        const a = document.getElementById('aliceFrame');
-        const m = document.getElementById('malloryFrame');
-        const b = document.getElementById('bobFrame');
-        if (a && a.contentWindow && a.contentWindow.fetchStatus) a.contentWindow.fetchStatus();
-        if (m && m.contentWindow && m.contentWindow.fetchStatus) m.contentWindow.fetchStatus();
-        if (b && b.contentWindow && b.contentWindow.fetchStatus) b.contentWindow.fetchStatus();
-      } catch (ignored) {}
-    }
-
-    /* SSE Live Stream with < 2s Reconnect Badge Clear */
-    function connectSse() {
-      if (sseSource) {
-        sseSource.close();
-      }
-
-      sseSource = new EventSource('/api/client/stream');
-
-      sseSource.onopen = () => {
-        clearReconnectBadge();
-      };
-
-      sseSource.addEventListener('init', () => {
-        clearReconnectBadge();
-      });
-
-      sseSource.addEventListener('handshake-step', () => {
-        clearReconnectBadge();
-        fetchHubStatus();
-      });
-
-      sseSource.addEventListener('chat-message', () => {
-        clearReconnectBadge();
-        fetchHubStatus();
-      });
-
-      sseSource.addEventListener('connection-status', () => {
-        clearReconnectBadge();
-        fetchHubStatus();
-      });
-
-      sseSource.onerror = () => {
-        showReconnectBadge();
-        sseSource.close();
-        setTimeout(connectSse, 2000);
-      };
-    }
-
-    function showReconnectBadge() {
-      const badge = document.getElementById('reconnectBadge');
-      if (badge) badge.style.display = 'inline-block';
-    }
-
-    function clearReconnectBadge() {
-      const badge = document.getElementById('reconnectBadge');
-      if (badge && badge.style.display !== 'none') {
-        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears in < 2 seconds
-      }
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
   </script>
 </body>

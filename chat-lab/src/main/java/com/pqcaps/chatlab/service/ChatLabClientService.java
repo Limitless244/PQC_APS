@@ -14,13 +14,16 @@ import com.pqcaps.common.HandshakeObserver;
 import com.pqcaps.common.HandshakeObserverContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,11 +63,15 @@ public class ChatLabClientService {
     private ObjectOutputStream socketOut;
     private ObjectInputStream socketIn;
     private ClassicalSecureChannel secureChannel;
+    private Thread receiverThread;
     private final AtomicLong messageCounter = new AtomicLong(0);
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
     private PublicKey pinnedServerKeyMlDsa;
     private PublicKey pinnedServerKeyRsa;
+
+    @Autowired(required = false)
+    private ChatLabServerService serverService;
 
     public ChatLabClientService(@Value("${client.tcp.targetPort:9000}") int targetPort) {
         this.targetPort = targetPort;
@@ -125,10 +132,10 @@ public class ChatLabClientService {
             this.socketIn = new ObjectInputStream(clientSocket.getInputStream());
 
             if (ChatMode.CLASSICAL_VULNERABLE.equalsIgnoreCase(this.currentMode)) {
-                // VULNERABLE: Skip server public-key pinning (VULN-4)
+                // VULNERABLE: Skip server public-key pinning (VULN-4), offer [HYBRID, CLASSICAL] so downgrade strip is real
                 this.keyPinned = false;
                 ClassicalHandshake.HandshakeOutcome outcome = ClassicalHandshake.clientHandshakeFull(
-                        socketOut, socketIn, HandshakeConfig.vulnerable(), null, List.of("CLASSICAL")
+                        socketOut, socketIn, HandshakeConfig.vulnerable(), null, List.of("HYBRID", "CLASSICAL")
                 );
                 this.chosenSuite = outcome.chosenSuite();
                 this.secureChannel = new ClassicalSecureChannel(
@@ -160,19 +167,23 @@ public class ChatLabClientService {
 
             this.connectionStatus = "CONNECTED";
             this.connected.set(true);
-            log.info("[CLIENT-ALICE] Handshake succeeded! Suite: {}, Key Pinned: {}", this.chosenSuite, this.keyPinned);
+            // Handshake succeeded: switch socket to infinite timeout so connection persists for chat
+            this.clientSocket.setSoTimeout(0);
+            this.clientSocket.setKeepAlive(true);
+            startReceiverThread();
+            log.info("[CLIENT] Handshake succeeded! Suite: {}, Key Pinned: {}", this.chosenSuite, this.keyPinned);
         } catch (Exception e) {
             this.connectionStatus = "FAILED";
-            this.lastError = "Handshake failed"; // Generic external error, never internal secrets
+            this.lastError = "handshake failed"; // Generic external error, never internal secrets
             disconnect();
-            log.warn("[CLIENT-ALICE] Handshake failed: {}", e.getMessage());
-            throw new SecurityException("Handshake failed", e);
+            log.warn("[CLIENT-ALICE] handshake failed");
+            throw new SecurityException("handshake failed", e);
         } finally {
             HandshakeObserverContext.setGlobalObserver(HandshakeObserver.NOOP);
         }
     }
 
-    public synchronized ChatMessageRecord sendMessage(String text) throws IOException, ClassNotFoundException {
+    public synchronized ChatMessageRecord sendMessage(String text) throws IOException {
         if (!connected.get() || secureChannel == null) {
             throw new IllegalStateException("Client is not connected to a secure session");
         }
@@ -183,17 +194,9 @@ public class ChatLabClientService {
         long seq = secureChannel.getSendSeq();
         byte[] payload = text.getBytes(StandardCharsets.UTF_8);
 
-        secureChannel.send(payload);
-        log.info("[CLIENT-ALICE] Sent message seq={} (\"{}\")", seq, text);
-
-        // Receive ACK reply
-        byte[] reply = secureChannel.receive();
-        String replyText = new String(reply, StandardCharsets.UTF_8);
-        log.info("[CLIENT-ALICE] Received reply: \"{}\"", replyText);
-
-        String msgId = "alice-" + messageCounter.incrementAndGet();
+        String msgId = "client-" + messageCounter.incrementAndGet();
         ChatMessageRecord record = new ChatMessageRecord(
-                msgId, "Alice", text, seq, "SENT (Ack received: " + replyText + ")", null,
+                msgId, "Client", text, seq, "SENT (seq=" + seq + ")", null,
                 null, Instant.now()
         );
         chatHistory.add(record);
@@ -201,11 +204,96 @@ public class ChatLabClientService {
         for (Consumer<ChatMessageRecord> listener : messageListeners) {
             try { listener.accept(record); } catch (Exception ignored) {}
         }
+
+        secureChannel.send(payload);
+        log.info("[CLIENT] Sent message seq={} (\"{}\")", seq, text);
         return record;
+    }
+
+    private void startReceiverThread() {
+        if (receiverThread != null && receiverThread.isAlive()) {
+            receiverThread.interrupt();
+        }
+        receiverThread = new Thread(this::receiveLoop, "chat-lab-client-receiver");
+        receiverThread.setDaemon(true);
+        receiverThread.start();
+    }
+
+    private void receiveLoop() {
+        log.info("[CLIENT] Started asynchronous receive loop");
+        while (connected.get() && secureChannel != null) {
+            try {
+                byte[] reply = secureChannel.receive();
+                if (reply == null) break;
+                String replyText = new String(reply, StandardCharsets.UTF_8);
+                long seq = secureChannel.getRecvSeq() - 1;
+                log.info("[CLIENT] Received incoming record seq={} (\"{}\")", seq, replyText);
+
+                if (replyText.startsWith("ACK: ")) {
+                    String originalText = replyText.substring(5);
+                    boolean updated = false;
+                    for (int i = chatHistory.size() - 1; i >= 0; i--) {
+                        ChatMessageRecord m = chatHistory.get(i);
+                        if ("Client".equals(m.sender()) && originalText.equals(m.text())) {
+                            ChatMessageRecord acked = new ChatMessageRecord(
+                                    m.id(), m.sender(), m.text(), m.sequenceNumber(),
+                                    "SENT (Ack received: " + replyText + ")", m.guardFired(), m.hex4Ciphertext(), m.timestamp()
+                            );
+                            chatHistory.set(i, acked);
+                            for (Consumer<ChatMessageRecord> listener : messageListeners) {
+                                try { listener.accept(acked); } catch (Exception ignored) {}
+                            }
+                            updated = true;
+                            break;
+                        }
+                    }
+                    if (updated) {
+                        continue;
+                    }
+                }
+
+                String msgId = "srv-" + messageCounter.incrementAndGet();
+                ChatMessageRecord record = new ChatMessageRecord(
+                        msgId, "Server", replyText, seq, "ACCEPTED (verified seq=" + seq + ")", null,
+                        null, Instant.now()
+                );
+                chatHistory.add(record);
+
+                for (Consumer<ChatMessageRecord> listener : messageListeners) {
+                    try { listener.accept(record); } catch (Exception ignored) {}
+                }
+            } catch (java.net.SocketTimeoutException e) {
+                // Keep waiting for records, do not terminate receive loop
+                continue;
+            } catch (EOFException | SocketException e) {
+                log.info("[CLIENT] Socket disconnected from server");
+                break;
+            } catch (SecurityException e) {
+                log.warn("[CLIENT] Security check failed on incoming record (tamper/replay): {}", e.getMessage());
+                // Do not terminate receive loop on attacks
+                continue;
+            } catch (Exception e) {
+                log.warn("[CLIENT] Error in receive loop: {}", e.getMessage());
+                if (clientSocket == null || clientSocket.isClosed()) {
+                    break;
+                }
+                continue;
+            }
+        }
+        log.info("[CLIENT] Asynchronous receive loop ended");
+        disconnect();
+    }
+
+    public boolean isSocketClosed() {
+        return clientSocket == null || clientSocket.isClosed();
     }
 
     public synchronized void disconnect() {
         connected.set(false);
+        if (receiverThread != null && receiverThread.isAlive()) {
+            receiverThread.interrupt();
+            receiverThread = null;
+        }
         if (!"FAILED".equals(this.connectionStatus)) {
             this.connectionStatus = "DISCONNECTED";
         }
@@ -278,18 +366,29 @@ public class ChatLabClientService {
     }
 
     private PublicKey getOrLoadPinnedMlDsaKey() {
+        if (serverService != null) {
+            return serverService.getServerIdentityMlDsaPublic();
+        }
         if (pinnedServerKeyMlDsa != null) return pinnedServerKeyMlDsa;
         loadPinnedKeysFromDisk();
         return pinnedServerKeyMlDsa;
     }
 
     private PublicKey getOrLoadPinnedRsaKey() {
+        if (serverService != null) {
+            return serverService.getServerIdentityRsaPublic();
+        }
         if (pinnedServerKeyRsa != null) return pinnedServerKeyRsa;
         loadPinnedKeysFromDisk();
         return pinnedServerKeyRsa;
     }
 
     private void loadPinnedKeysFromDisk() {
+        if (serverService != null) {
+            this.pinnedServerKeyMlDsa = serverService.getServerIdentityMlDsaPublic();
+            this.pinnedServerKeyRsa = serverService.getServerIdentityRsaPublic();
+            return;
+        }
         try {
             Path keysDir = com.pqcaps.common.DataPaths.resolve("chat-lab/server-keys");
             Path mlDsaPath = keysDir.resolve("server_mldsa65.pub");
@@ -303,7 +402,7 @@ public class ChatLabClientService {
                 this.pinnedServerKeyRsa = ClassicalCryptoSuite.getInstance().signatureScheme().decodePublicKey(encoded);
             }
         } catch (Exception e) {
-            log.debug("[CLIENT-ALICE] Pinned keys not yet found on disk: {}", e.getMessage());
+            log.debug("[CLIENT] Pinned keys not yet found on disk: {}", e.getMessage());
         }
     }
 }

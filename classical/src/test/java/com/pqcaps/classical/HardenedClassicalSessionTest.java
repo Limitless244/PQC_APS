@@ -1,7 +1,6 @@
 package com.pqcaps.classical;
 
 import com.pqcaps.common.HandshakeConfig;
-import com.pqcaps.common.SessionKeys;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

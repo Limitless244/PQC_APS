@@ -37,12 +37,12 @@
                 <button class="nav-item" data-page="scanner" aria-label="Crypto Scanner">
                     <span class="nav-icon">&#x1F50D;</span> Scanner
                 </button>
-                <button class="nav-item" data-page="chat" aria-label="Secure Chat Demo">
-                    <span class="nav-icon">&#x1F4AC;</span> Chat Demo
+                <button class="nav-item" data-page="chat" aria-label="Secure Chat">
+                    <span class="nav-icon">&#x1F4AC;</span> Secure Chat
                 </button>
-                <a class="nav-item" href="http://127.0.0.1:8090" target="_blank" rel="noopener noreferrer" aria-label="Chat Lab Hub" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                <button class="nav-item" data-page="chatlab" aria-label="Chat Lab Multi-Party Network">
                     <span class="nav-icon">&#x1F9EA;</span> Chat Lab
-                </a>
+                </button>
                 <button class="nav-item" data-page="events" aria-label="Live Detection Events">
                     <span class="nav-icon">&#x1F4E1;</span> Live Events
                 </button>
@@ -449,20 +449,20 @@
                     </div>
 
                     <div class="chat-demo-grid">
-                        <!-- Alice (Sender) -->
+                        <!-- Client (Sender) -->
                         <div class="card chat-panel">
                             <div class="chat-header">
                                 <span class="actor-icon">&#x1F467;</span>
                                 <div>
-                                    <h4>Alice (Client)</h4>
-                                    <span class="actor-sub">Sender &bull; AES-256-GCM</span>
+                                    <h4>Client</h4>
+                                    <span class="actor-sub">Endpoint &bull; AES-256-GCM</span>
                                 </div>
                             </div>
                             <div id="chat-alice-messages" class="chat-body">
                                 <div class="chat-bubble sender">Type a message to transmit over the secure channel.</div>
                             </div>
                             <div class="chat-input-bar">
-                                <input type="text" id="chat-input-text" class="input-text" placeholder="Type message (e.g. Wire transfer $5000)..." value="Wire transfer $5,000 to Bob">
+                                <input type="text" id="chat-input-text" class="input-text" placeholder="" value="">
                                 <button id="btn-chat-send" class="btn btn-primary">Send</button>
                             </div>
                         </div>
@@ -479,19 +479,21 @@
                             <div id="chat-attacker-log" class="chat-body font-mono">
                                 <div class="attacker-empty">[Listening on 127.0.0.1 network interface...]</div>
                             </div>
-                            <div class="attacker-controls">
-                                <button id="btn-chat-replay" class="btn btn-warning btn-sm" title="Replay captured ciphertext record">&#x21BA; Attacker: Replay Last Message</button>
-                                <button id="btn-chat-flip" class="btn btn-danger btn-sm" title="Flip a bit in the ciphertext">&#x26A1; Attacker: Flip a Bit</button>
+                            <div class="attacker-controls" style="display:flex; flex-wrap:wrap; gap:6px;">
+                                <button id="btn-chat-replay" class="btn btn-warning btn-sm" title="Replay captured ciphertext record">&#x21BA; Replay</button>
+                                <button id="btn-chat-flip" class="btn btn-danger btn-sm" title="Flip a bit in the ciphertext">&#x26A1; Tamper</button>
+                                <button id="btn-chat-downgrade" class="btn btn-sm" style="background:#6d28d9; color:#fff;" title="Simulate downgrade attack">&#x1F4C9; Downgrade</button>
+                                <button id="btn-chat-mitm" class="btn btn-sm" style="background:#be185d; color:#fff;" title="Simulate MITM rogue server">&#x1F464; MITM</button>
                             </div>
                         </div>
 
-                        <!-- Bob (Receiver) -->
+                        <!-- Server (Receiver) -->
                         <div class="card chat-panel">
                             <div class="chat-header">
                                 <span class="actor-icon">&#x1F468;</span>
                                 <div>
-                                    <h4>Bob (Server)</h4>
-                                    <span class="actor-sub">Receiver &bull; Sequence &amp; Tag Guard</span>
+                                    <h4>Server</h4>
+                                    <span class="actor-sub">Endpoint &bull; Sequence &amp; Tag Guard</span>
                                 </div>
                             </div>
                             <div id="chat-bob-messages" class="chat-body">
@@ -500,11 +502,22 @@
                             <div class="chat-status-bar">
                                 <span id="bob-guard-status" class="badge badge-success">&#x2714; Channel Ready</span>
                             </div>
+                            <div class="chat-input-bar">
+                                <input type="text" id="chat-server-input-text" class="input-text" placeholder="" value="">
+                                <button id="btn-chat-server-send" class="btn btn-primary">Send</button>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- ── 7. PAGE: LIVE DETECTION EVENTS ── -->
+                <!-- ── 7. PAGE: CHAT LAB (MULTI-PARTY NETWORK HUB) ── -->
+                <section id="page-chatlab" class="page-content" style="padding:0;">
+                    <div class="chatlab-hub-wrapper" style="width:100%; height:calc(100vh - 120px); min-height:850px; border-radius:8px; overflow:hidden; border:1px solid var(--border-color); background:#0b0f19;">
+                        <iframe id="chatlab-hub-frame" src="http://127.0.0.1:8090/hub.html" style="width:100%; height:100%; border:none; display:block;" title="Chat Lab Hub"></iframe>
+                    </div>
+                </section>
+
+                <!-- ── 8. PAGE: LIVE DETECTION EVENTS ── -->
                 <section id="page-events" class="page-content">
                     <div class="control-panel">
                         <div class="control-group">

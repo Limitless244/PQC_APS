@@ -151,15 +151,16 @@ class EndToEndTest {
         clientOut.flush();
         ObjectInputStream  serverIn  = new ObjectInputStream(serverPipe);
 
-        ClassicalSecureChannel clientCh = new ClassicalSecureChannel(
+        try (ClassicalSecureChannel clientCh = new ClassicalSecureChannel(
                 clientOut, null, keys, true, VULN_CONFIG);
-        ClassicalSecureChannel serverCh = new ClassicalSecureChannel(
-                null, serverIn, keys, false, VULN_CONFIG);
+             ClassicalSecureChannel serverCh = new ClassicalSecureChannel(
+                null, serverIn, keys, false, VULN_CONFIG)) {
 
-        // Send seq=0 and capture what arrives on the server side
-        clientCh.send("first".getBytes(StandardCharsets.UTF_8));
-        byte[] msg1 = serverCh.receive();
-        assertThat(new String(msg1, StandardCharsets.UTF_8)).isEqualTo("first");
+            // Send seq=0 and capture what arrives on the server side
+            clientCh.send("first".getBytes(StandardCharsets.UTF_8));
+            byte[] msg1 = serverCh.receive();
+            assertThat(new String(msg1, StandardCharsets.UTF_8)).isEqualTo("first");
+        }
     }
 
     @Test
@@ -187,12 +188,13 @@ class EndToEndTest {
         oos.writeObject(replayRecord);
         oos.flush();
 
-        ClassicalSecureChannel serverCh = new ClassicalSecureChannel(
-                null, ois, keys, false, SAFE_CONFIG);
+        try (ClassicalSecureChannel serverCh = new ClassicalSecureChannel(
+                null, ois, keys, false, SAFE_CONFIG)) {
 
-        assertThatThrownBy(serverCh::receive)
-                .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("Sequence number mismatch");
+            assertThatThrownBy(serverCh::receive)
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessageContaining("Sequence number mismatch");
+        }
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

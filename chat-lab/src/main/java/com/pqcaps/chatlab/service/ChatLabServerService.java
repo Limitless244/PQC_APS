@@ -35,6 +35,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -55,6 +56,11 @@ public class ChatLabServerService {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicLong messageCounter = new AtomicLong(0);
 
+    private final AtomicReference<ObjectOutputStream> activeOut = new AtomicReference<>(null);
+    private final AtomicReference<SessionKeys> activeSessionKeys = new AtomicReference<>(null);
+    private final AtomicReference<AesGcmCipher> activeCipher = new AtomicReference<>(null);
+    private final AtomicLong serverSendSeq = new AtomicLong(0);
+
     private ServerSocket serverSocket;
     private int tcpPort;
     private Thread listenerThread;
@@ -67,6 +73,10 @@ public class ChatLabServerService {
         this.serverIdentityMlDsa = new MlDsaSignatureScheme().generateKeyPair();
         this.serverIdentityRsa   = ClassicalCryptoSuite.getInstance().signatureScheme().generateKeyPair();
         savePublicKeysToDisk();
+    }
+
+    public boolean hasActiveClient() {
+        return activeOut.get() != null;
     }
 
     public synchronized void start() throws IOException {
@@ -109,6 +119,9 @@ public class ChatLabServerService {
     }
 
     public synchronized void reset() {
+        this.activeOut.set(null);
+        this.activeSessionKeys.set(null);
+        this.activeCipher.set(null);
         receivedMessages.clear();
         messageCounter.set(0);
         log.info("[SERVER-BOB] Reset server session state");
@@ -220,6 +233,10 @@ public class ChatLabServerService {
             }
 
             log.info("[SERVER-BOB] Handshake complete! Negotiated suite: {}", chosenSuite);
+            this.activeOut.set(out);
+            this.activeSessionKeys.set(sessionKeys);
+            this.activeCipher.set(cipher);
+            this.serverSendSeq.set(0);
 
             // ── Record Phase Loop ──────────────────────────────────────────
             long expectedSeq = 0;
@@ -246,23 +263,23 @@ public class ChatLabServerService {
                         byte[] plain = cipher.decrypt(sessionKeys.clientToServer(), record.nonce(), aad, record.ciphertext());
                         String text = new String(plain, StandardCharsets.UTF_8);
                         ChatMessageRecord rec = new ChatMessageRecord(
-                                msgId, "Alice", text, seq, "ACCEPTED", null, hex4Ct, Instant.now()
+                                msgId, "Client", text, seq, "ACCEPTED", null, hex4Ct, Instant.now()
                         );
                         receivedMessages.add(rec);
                         notifyMessage(rec);
-                        log.info("[SERVER-BOB] [VULNERABLE] Accepted record seq={} (\"{}\")", seq, text);
+                        log.info("[SERVER] [VULNERABLE] Accepted record seq={} (\"{}\")", seq, text);
 
                         // Send ACK record back
-                        sendAck(out, sessionKeys, cipher, expectedSeq++, "ACK: " + text);
+                        sendAck(out, sessionKeys, cipher, serverSendSeq.getAndIncrement(), "ACK: " + text);
                     } catch (Exception e) {
                         // In vulnerable mode: raw GCM decryption error without security telemetry
                         ChatMessageRecord rec = new ChatMessageRecord(
-                                msgId, "Alice", "[DECRYPTION FAILED - RAW EXCEPTION]", seq,
+                                msgId, "Client", "[DECRYPTION FAILED - RAW EXCEPTION]", seq,
                                 "REJECTED (raw decryption exception)", null, hex4Ct, Instant.now()
                         );
                         receivedMessages.add(rec);
                         notifyMessage(rec);
-                        log.warn("[SERVER-BOB] [VULNERABLE] GCM decryption error on record seq={}: {}", seq, e.getMessage());
+                        log.warn("[SERVER] [VULNERABLE] GCM decryption error on record seq={}: {}", seq, e.getMessage());
                     }
                 } else {
                     // Hardened / Hybrid mode: Enforce guards!
@@ -274,13 +291,13 @@ public class ChatLabServerService {
                         DetectionEvent ev = EventLog.getInstance().getLastEvent();
                         String guardName = "ReplayGuard";
                         ChatMessageRecord rec = new ChatMessageRecord(
-                                msgId, "Alice", "[REPLAY BLOCKED]", seq,
+                                msgId, "Client", "[REPLAY BLOCKED]", seq,
                                 "REJECTED (" + se.getMessage() + ")", guardName, hex4Ct, Instant.now()
                         );
                         receivedMessages.add(rec);
                         notifyMessage(rec);
                         if (ev != null) notifyEvent(ev);
-                        log.warn("[SERVER-BOB] Replay rejected at seq={}: {}", seq, se.getMessage());
+                        log.warn("[SERVER] Replay rejected at seq={}: {}", seq, se.getMessage());
                     }
 
                     if (sequenceOk) {
@@ -289,26 +306,26 @@ public class ChatLabServerService {
                             byte[] plain = cipher.decrypt(sessionKeys.clientToServer(), record.nonce(), aad, record.ciphertext());
                             String text = new String(plain, StandardCharsets.UTF_8);
                             ChatMessageRecord rec = new ChatMessageRecord(
-                                    msgId, "Alice", text, seq, "ACCEPTED (seq=" + seq + " verified)", null, hex4Ct, Instant.now()
+                                    msgId, "Client", text, seq, "ACCEPTED (seq=" + seq + " verified)", null, hex4Ct, Instant.now()
                             );
                             receivedMessages.add(rec);
                             notifyMessage(rec);
-                            log.info("[SERVER-BOB] Accepted verified record seq={} (\"{}\")", seq, text);
+                            log.info("[SERVER] Accepted verified record seq={} (\"{}\")", seq, text);
 
                             // Send ACK record back
-                            sendAck(out, sessionKeys, cipher, expectedSeq++, "ACK: " + text);
+                            sendAck(out, sessionKeys, cipher, serverSendSeq.getAndIncrement(), "ACK: " + text);
                         } catch (Exception e) {
                             SecurityException secEx = tamperGuard.handleAeadTampering(e, seq, record.nonce(), mode);
                             DetectionEvent ev = EventLog.getInstance().getLastEvent();
                             String guardName = "TamperGuard";
                             ChatMessageRecord rec = new ChatMessageRecord(
-                                    msgId, "Alice", "[TAMPER BLOCKED]", seq,
+                                    msgId, "Client", "[TAMPER BLOCKED]", seq,
                                     "REJECTED (" + secEx.getMessage() + ")", guardName, hex4Ct, Instant.now()
                             );
                             receivedMessages.add(rec);
                             notifyMessage(rec);
                             if (ev != null) notifyEvent(ev);
-                            log.warn("[SERVER-BOB] Tamper rejected at seq={}: {}", seq, secEx.getMessage());
+                            log.warn("[SERVER] Tamper rejected at seq={}: {}", seq, secEx.getMessage());
                         }
                     }
                 }
@@ -316,6 +333,9 @@ public class ChatLabServerService {
         } catch (Exception e) {
             log.warn("[SERVER-BOB] Connection ended: {}", e.getMessage());
         } finally {
+            this.activeOut.set(null);
+            this.activeSessionKeys.set(null);
+            this.activeCipher.set(null);
             try {
                 if (out != null) out.close();
                 if (in != null) in.close();
@@ -335,6 +355,32 @@ public class ChatLabServerService {
         } catch (Exception e) {
             log.debug("[SERVER-BOB] Failed to send ACK: {}", e.getMessage());
         }
+    }
+
+    public synchronized ChatMessageRecord sendServerMessage(String text) throws IOException {
+        ObjectOutputStream out = activeOut.get();
+        SessionKeys keys = activeSessionKeys.get();
+        AesGcmCipher cipher = activeCipher.get();
+        if (out == null || keys == null || cipher == null) {
+            throw new IllegalStateException("Server has no active client connection. Connect client first.");
+        }
+        long seq = serverSendSeq.getAndIncrement();
+        byte[] nonce = ClassicalSecureChannel.buildNonce(seq);
+        byte[] aad = ClassicalSecureChannel.buildAad(seq);
+        byte[] ct = cipher.encrypt(keys.serverToClient(), nonce, aad, text.getBytes(StandardCharsets.UTF_8));
+        EncryptedRecord record = new EncryptedRecord(seq, nonce, ct);
+        synchronized (out) {
+            out.writeObject(record);
+            out.flush();
+        }
+        String msgId = "srv-" + messageCounter.incrementAndGet();
+        ChatMessageRecord rec = new ChatMessageRecord(
+                msgId, "Server", text, seq, "SENT (seq=" + seq + ")", null, hex4(ct), Instant.now()
+        );
+        receivedMessages.add(rec);
+        notifyMessage(rec);
+        log.info("[SERVER] Sent message seq={} (\"{}\") to client", seq, text);
+        return rec;
     }
 
     private void notifyMessage(ChatMessageRecord rec) {

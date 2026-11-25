@@ -1,9 +1,7 @@
 package com.pqcaps.scanner;
 
 import javax.net.ssl.*;
-import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;

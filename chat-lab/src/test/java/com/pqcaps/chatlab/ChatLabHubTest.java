@@ -132,6 +132,7 @@ class ChatLabHubTest {
         // 2. Downgrade Demo
         GuidedDemoService.DemoResult downVuln = guidedDemoService.runDowngradeDemo(ChatMode.CLASSICAL_VULNERABLE);
         assertThat(downVuln.status()).isEqualTo("SUCCEEDED");
+        assertThat(downVuln.outcome()).contains("BEFORE: [HYBRID, CLASSICAL] AFTER: [CLASSICAL] Handshake accepted: true");
 
         GuidedDemoService.DemoResult downHybrid = guidedDemoService.runDowngradeDemo(ChatMode.HYBRID);
         assertThat(downHybrid.status()).isEqualTo("BLOCKED");
@@ -161,7 +162,7 @@ class ChatLabHubTest {
         // Verify GET /hub.html
         mockMvc.perform(get("/hub.html"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Security-Policy", "frame-ancestors 'self' http://127.0.0.1:8090;"));
+                .andExpect(header().string("Content-Security-Policy", SecurityHeadersFilter.CSP_POLICY));
 
         // Verify root redirects to hub.html when active role is all
         mockMvc.perform(get("/"))
@@ -216,5 +217,59 @@ class ChatLabHubTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.attack").value("REPLAY"))
                 .andExpect(jsonPath("$.status").value("BLOCKED"));
+    }
+
+    @Test
+    @DisplayName("Hub: Real --role=all startup serves hub.html (200) and routes message Alice -> Mallory -> Bob over TCP")
+    void testRealRoleAllStartup_MessageFlowAliceMalloryBob() throws Exception {
+        // Assert hub.html returns 200 and CSP header
+        mockMvc.perform(get("/hub.html"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Security-Policy", SecurityHeadersFilter.CSP_POLICY));
+
+        // Assert root redirects to hub.html because active role is all
+        mockMvc.perform(get("/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/hub.html"));
+
+        // Ensure services are running (auto-started by roleStartupRunner for role=all)
+        if (!serverService.isRunning()) {
+            serverService.start(0, "HYBRID");
+        }
+        attackerService.setTargetPort(serverService.getTcpPort());
+        if (!attackerService.isRunning()) {
+            attackerService.start(0, serverService.getTcpPort());
+        }
+
+        assertThat(serverService.isRunning()).isTrue();
+        assertThat(attackerService.isRunning()).isTrue();
+
+        int proxyPort = attackerService.getListenPort();
+        int serverPort = serverService.getTcpPort();
+        assertThat(proxyPort).isPositive();
+        assertThat(serverPort).isPositive();
+        assertThat(attackerService.getTargetPort()).isEqualTo(serverPort);
+
+        // Connect Alice to Mallory proxy over TCP
+        clientService.setTargetPort(proxyPort);
+        clientService.setPinnedServerKeyMlDsa(serverService.getServerIdentityMlDsaPublic());
+        clientService.connect(HostValidator.LOCALHOST_IP, proxyPort, "HYBRID", null);
+        assertThat(clientService.isConnected()).isTrue();
+
+        // Send a message Alice -> Mallory -> Bob
+        String testMsg = "Live message Alice -> Mallory -> Bob via --role=all";
+        clientService.sendMessage(testMsg);
+
+        Thread.sleep(120);
+
+        // Assert Bob received the message
+        List<ChatMessageRecord> serverMsgs = serverService.getReceivedMessages();
+        assertThat(serverMsgs).isNotEmpty();
+        ChatMessageRecord lastRec = serverMsgs.get(serverMsgs.size() - 1);
+        assertThat(lastRec.text()).isEqualTo(testMsg);
+        assertThat(lastRec.status()).contains("ACCEPTED");
+
+        // Assert Mallory captured the wire record
+        assertThat(attackerService.getCapturedTraffic()).isNotEmpty();
     }
 }

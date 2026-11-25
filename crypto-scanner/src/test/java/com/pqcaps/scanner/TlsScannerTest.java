@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.*;
 import java.math.BigInteger;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.*;
 import java.security.cert.Certificate;

@@ -173,6 +173,9 @@ class ChatLabAttackTest {
 
         assertThat(clientService.isConnected()).isTrue();
         assertThat(clientService.getChosenSuite()).isEqualTo("CLASSICAL");
+        assertThat(attackerService.getActionLog()).anyMatch(a ->
+                a.action().equals("STRIP_HYBRID") && a.detail().contains("BEFORE: [HYBRID, CLASSICAL] AFTER: [CLASSICAL] Handshake accepted: true")
+        );
     }
 
     @Test

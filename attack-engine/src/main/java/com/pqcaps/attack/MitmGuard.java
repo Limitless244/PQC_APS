@@ -3,7 +3,6 @@ package com.pqcaps.attack;
 import com.pqcaps.common.SignatureScheme;
 
 import java.security.PublicKey;
-import java.util.Arrays;
 
 /**
  * Prevents Man-In-The-Middle (MITM) attacks by enforcing strict public-key pinning

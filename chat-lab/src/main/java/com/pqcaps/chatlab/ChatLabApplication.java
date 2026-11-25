@@ -43,24 +43,32 @@ public class ChatLabApplication {
         boolean hasServerPort = Arrays.stream(args).anyMatch(a -> a.startsWith("--server.port="))
                 || System.getProperty("server.port") != null;
 
+        java.util.List<String> argList = new java.util.ArrayList<>(Arrays.asList(args));
         if (!hasServerPort) {
             System.setProperty("server.port", String.valueOf(role.getDefaultWebPort()));
+            argList.add("--server.port=" + role.getDefaultWebPort());
+        }
+        if (argList.stream().noneMatch(a -> a.startsWith("--app.role="))) {
+            argList.add("--app.role=" + role.name().toLowerCase());
         }
 
         log.info("==========================================================================");
         log.info("  STARTING CHAT LAB ROLE: {} (Web Port: {})", role, System.getProperty("server.port"));
         log.info("==========================================================================");
 
-        SpringApplication.run(ChatLabApplication.class, args);
+        SpringApplication.run(ChatLabApplication.class, argList.toArray(new String[0]));
     }
 
     @Bean
     public ApplicationRunner roleStartupRunner(
             ChatLabServerService serverService,
             ChatLabAttackerService attackerService,
-            ChatLabClientService clientService) {
+            ChatLabClientService clientService,
+            @org.springframework.beans.factory.annotation.Value("${app.role:client}") String appRole) {
         return args -> {
-            String roleStr = System.getProperty("app.role", "client").toLowerCase();
+            String roleStr = (appRole != null && !appRole.isBlank())
+                    ? appRole.toLowerCase()
+                    : System.getProperty("app.role", "client").toLowerCase();
             if ("all".equals(roleStr)) {
                 log.info("[ChatLab Hub] Starting ALL-IN-ONE mode: Bob (TCP :9001), Mallory (TCP :9000 -> :9001), Alice (Web :8090)");
                 serverService.start();

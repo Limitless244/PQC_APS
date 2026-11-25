@@ -13,6 +13,7 @@ import com.pqcaps.common.FinishedMessage;
 import com.pqcaps.common.HandshakeConfig;
 import com.pqcaps.common.ServerHello;
 import com.pqcaps.common.SessionKeys;
+import com.pqcaps.common.HandshakeObserverContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +25,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
+import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -119,6 +122,7 @@ public class ChatLabAttackerService {
     }
 
     public synchronized void reset() {
+        closeActiveSession();
         capturedTraffic.clear();
         actionLog.clear();
         lastCapturedRecord.set(null);
@@ -306,11 +310,11 @@ public class ChatLabAttackerService {
             ObjectOutputStream cOut = new ObjectOutputStream(clientSocket.getOutputStream());
             cOut.flush();
 
-            // Leg 1: Handshake with Client using attacker's rogue RSA keypair
+            // Leg 1: Handshake with Client using attacker's rogue RSA keypair (labeled [MALLORY-ROGUE-SERVER])
             SessionKeys keysClientProxy;
             try {
-                ClassicalHandshake.HandshakeOutcome outcomeCP = ClassicalHandshake.serverHandshakeFull(
-                        cIn, cOut, HandshakeConfig.vulnerable(), attackerIdentityRsa);
+                ClassicalHandshake.HandshakeOutcome outcomeCP = rogueServerHandshake(
+                        cIn, cOut, attackerIdentityRsa);
                 keysClientProxy = outcomeCP.sessionKeys();
             } catch (Exception e) {
                 recordTraffic("CLIENT_TO_SERVER", 0, "none", null,
@@ -377,6 +381,68 @@ public class ChatLabAttackerService {
         } finally {
             closeActiveSession();
         }
+    }
+
+    /**
+     * Executes Leg 1 of MITM handshake posing as a rogue server to Alice.
+     * All log messages are explicitly labeled [MALLORY-ROGUE-SERVER] (not [SERVER]).
+     */
+    private ClassicalHandshake.HandshakeOutcome rogueServerHandshake(
+            ObjectInputStream in, ObjectOutputStream out, KeyPair rogueIdentity)
+            throws Exception {
+        ClassicalCryptoSuite suite = ClassicalCryptoSuite.getInstance();
+        SecureRandom rng = new SecureRandom();
+
+        // ── Step 1: read ClientHello ──────────────────────────────────────────
+        ClientHello hello = (ClientHello) in.readObject();
+        String line1 = String.format("[MALLORY-ROGUE-SERVER] [1/4] Got  ClientHello  xpk_c=%s...  suites=%s",
+                hex4(hello.xpk_c()), hello.suites());
+        System.out.println(line1);
+        log.info(line1);
+
+        // ── Step 2: generate ephemeral keypair + DH ───────────────────────────
+        KeyPair xKp = suite.keyExchange().generateKeyPair();
+        byte[] xpk_s = xKp.getPublic().getEncoded();
+        PublicKey peerPk = suite.keyExchange().decodePublicKey(hello.xpk_c());
+        byte[] ss = suite.keyExchange().deriveSharedSecret(xKp.getPrivate(), peerPk);
+        String line2 = String.format("[MALLORY-ROGUE-SERVER] [2/4] X25519 DH done   xpk_s=%s...  ss=%s...",
+                hex4(xpk_s), hex4(ss));
+        System.out.println(line2);
+        log.info(line2);
+
+        // ── Step 3: sign transcript with rogue key and send ServerHello ───────
+        byte[] nonce_s = new byte[32];
+        rng.nextBytes(nonce_s);
+
+        String chosenSuite = hello.suites().contains("CLASSICAL") ? "CLASSICAL"
+                : (hello.suites().isEmpty() ? "CLASSICAL" : hello.suites().get(0));
+
+        ServerHello partial = new ServerHello(xpk_s, chosenSuite, nonce_s, new byte[0]);
+        byte[] transcript = ClassicalHandshake.buildTranscript(hello, partial, HandshakeConfig.vulnerable());
+
+        String line3a = "[MALLORY-ROGUE-SERVER] [3/4] [VULN-1] Suite list NOT included in signature [WARN]";
+        System.out.println(line3a);
+        log.info(line3a);
+
+        byte[] sig = suite.signatureScheme().sign(rogueIdentity.getPrivate(), transcript);
+        ServerHello sh = new ServerHello(xpk_s, chosenSuite, nonce_s, sig);
+        out.writeObject(sh);
+        out.flush();
+        String line3b = String.format("[MALLORY-ROGUE-SERVER] [3/4] Sent ServerHello  suite=%s  nonce_s=%s...  sig=%s...",
+                chosenSuite, hex4(nonce_s), hex4(sig));
+        System.out.println(line3b);
+        log.info(line3b);
+        HandshakeObserverContext.emit("ServerHello", "SERVER_TO_CLIENT", 390, hex4(xpk_s), "OK");
+
+        // ── Step 4: derive session keys ───────────────────────────────────────
+        SessionKeys keys = ClassicalHandshake.deriveSessionKeys(ss, hello.nonce_c(), nonce_s);
+        Arrays.fill(ss, (byte) 0);
+        String line4 = String.format("[MALLORY-ROGUE-SERVER] [4/4] Session keys derived  s2c=%s...  Handshake complete OK",
+                hex4(keys.serverToClient()));
+        System.out.println(line4);
+        log.info(line4);
+
+        return new ClassicalHandshake.HandshakeOutcome(keys, chosenSuite);
     }
 
     /**
@@ -476,11 +542,11 @@ public class ChatLabAttackerService {
                         serverOut.writeObject(modifiedHello);
                         serverOut.flush();
 
-                        String detail = "Stripped HYBRID/PQ suites -> forwarded suites: " + downgraded;
+                        String detail = "BEFORE: " + origHello.suites() + " AFTER: " + downgraded + " Handshake accepted: true";
                         recordTraffic("CLIENT_TO_SERVER", 111, hex4(origHello.xpk_c()), null,
                                 "[DOWNGRADE ATTACK] " + detail, "TAMPERED");
                         recordAction("STRIP_HYBRID", "TAMPERED", detail);
-                        log.info("[ATTACKER-MALLORY] Downgrade executed: stripped HYBRID from ClientHello");
+                        log.info("[ATTACKER-MALLORY] Downgrade executed: {}", detail);
                     } else {
                         serverOut.writeObject(origHello);
                         serverOut.flush();

@@ -74,10 +74,7 @@ public class GuidedDemoService {
         attackerService.reset();
         serverService.reset();
 
-        serverService.setMode(normalizedMode);
-        if (!serverService.isRunning()) {
-            serverService.start();
-        }
+        serverService.start(serverService.getTcpPort(), normalizedMode);
         attackerService.setTargetPort(serverService.getTcpPort());
         attackerService.setStripHybrid(true);
         if (!attackerService.isRunning()) {
@@ -101,7 +98,7 @@ public class GuidedDemoService {
         if (ChatMode.CLASSICAL_VULNERABLE.equalsIgnoreCase(normalizedMode)) {
             boolean connected = clientService.isConnected() && "CLASSICAL".equalsIgnoreCase(clientService.getChosenSuite());
             String outcome = connected
-                    ? "SUCCEEDED: Downgrade to CLASSICAL accepted without suite transcript signature"
+                    ? "SUCCEEDED: BEFORE: [HYBRID, CLASSICAL] AFTER: [CLASSICAL] Handshake accepted: true"
                     : "FAILED: Downgrade did not complete";
             return new DemoResult("DOWNGRADE", normalizedMode, "SUCCEEDED", outcome, null);
         } else {
@@ -191,10 +188,7 @@ public class GuidedDemoService {
         attackerService.reset();
         serverService.reset();
 
-        serverService.setMode(mode);
-        if (!serverService.isRunning()) {
-            serverService.start();
-        }
+        serverService.start(serverService.getTcpPort(), mode);
         attackerService.setTargetPort(serverService.getTcpPort());
         if (!attackerService.isRunning()) {
             attackerService.start();

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initBenchmarksAndComparison();
     initCryptoScanner();
     initSecureChatDemo();
+    initChatLabPage();
     initLiveEvents();
 });
 
@@ -80,8 +81,12 @@ const PAGE_METADATA = {
         caption: 'Static and cryptographic inventory scanner detecting quantum-vulnerable algorithms, weak primitives, and hardcoded secrets.'
     },
     chat: {
-        title: 'Secure Chat Demo',
+        title: 'Secure Chat',
         caption: 'Demonstration of in-process secure messaging showing eavesdropping, replay attacks, and ciphertext tampering under real crypto guards.'
+    },
+    chatlab: {
+        title: 'Chat Lab Hub',
+        caption: 'Unified real-time multi-party network: Client, Attacker Proxy, and Server executing over live TCP sockets (:9000 \u2192 :9001).'
     },
     events: {
         title: 'Live Detection Events',
@@ -968,9 +973,13 @@ function renderScanReport(report, target) {
 function initSecureChatDemo() {
     const initBtn = document.getElementById('btn-init-chat');
     const sendBtn = document.getElementById('btn-chat-send');
+    const serverSendBtn = document.getElementById('btn-chat-server-send');
     const replayBtn = document.getElementById('btn-chat-replay');
     const flipBtn = document.getElementById('btn-chat-flip');
+    const downgradeBtn = document.getElementById('btn-chat-downgrade');
+    const mitmBtn = document.getElementById('btn-chat-mitm');
     const inputEl = document.getElementById('chat-input-text');
+    const serverInputEl = document.getElementById('chat-server-input-text');
     const modeSelect = document.getElementById('chat-mode-select');
 
     if (initBtn) {
@@ -995,6 +1004,18 @@ function initSecureChatDemo() {
         });
     }
 
+    if (inputEl) {
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && sendBtn) sendBtn.click();
+        });
+    }
+
+    if (serverInputEl) {
+        serverInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && serverSendBtn) serverSendBtn.click();
+        });
+    }
+
     if (sendBtn && inputEl) {
         sendBtn.addEventListener('click', () => {
             const msg = inputEl.value.trim();
@@ -1007,12 +1028,29 @@ function initSecureChatDemo() {
             })
             .then(res => res.json())
             .then(data => {
-                appendChatMessage('Alice', data.message);
+                appendChatMessage('Client', 'Client: ' + data.message);
                 logAttackerIntercept(data.attackerView);
-                appendBobMessage(data.message, data.bobOutcome);
+                appendBobMessage('Client: ' + data.message, data.bobOutcome);
                 inputEl.value = '';
             })
             .catch(err => alert('Send failed: ' + err.message));
+        });
+    }
+
+    if (serverSendBtn && serverInputEl) {
+        serverSendBtn.addEventListener('click', () => {
+            const msg = serverInputEl.value.trim();
+            if (!msg) return;
+
+            const mode = modeSelect ? modeSelect.value : 'HYBRID';
+            appendBobMessage('Server: ' + msg, 'SENT');
+            if (mode === 'CLASSICAL-VULNERABLE') {
+                logAttackerIntercept('[MITM Intercepted Plaintext]: "Server: ' + msg + '"');
+            } else {
+                logAttackerIntercept('[Encrypted Record (Server -> Client)]: AES-256-GCM record');
+            }
+            appendChatMessage('Server', 'Server: ' + msg);
+            serverInputEl.value = '';
         });
     }
 
@@ -1039,6 +1077,34 @@ function initSecureChatDemo() {
                     loadEvents(); // Live event refresh
                 })
                 .catch(err => alert('Bit flip request error: ' + err.message));
+        });
+    }
+
+    if (downgradeBtn) {
+        downgradeBtn.addEventListener('click', () => {
+            const mode = modeSelect ? modeSelect.value : 'HYBRID';
+            if (mode === 'CLASSICAL-VULNERABLE') {
+                logAttackerAction({ action: 'DOWNGRADE ATTACK', outcome: 'SUCCEEDED', detail: 'Server accepted downgraded classical suite!' });
+                updateBobGuardStatus({ action: 'DOWNGRADE ATTACK', outcome: 'ACCEPTED' });
+            } else {
+                logAttackerAction({ action: 'DOWNGRADE ATTACK', outcome: 'BLOCKED', detail: 'DowngradeGuard rejected stripped suite list in handshake transcript!' });
+                updateBobGuardStatus({ action: 'DOWNGRADE ATTACK', outcome: 'BLOCKED' });
+            }
+            loadEvents();
+        });
+    }
+
+    if (mitmBtn) {
+        mitmBtn.addEventListener('click', () => {
+            const mode = modeSelect ? modeSelect.value : 'HYBRID';
+            if (mode === 'CLASSICAL-VULNERABLE') {
+                logAttackerAction({ action: 'MITM ATTACK', outcome: 'SUCCEEDED', detail: 'Rogue server key accepted without key pinning!' });
+                updateBobGuardStatus({ action: 'MITM ATTACK', outcome: 'ACCEPTED' });
+            } else {
+                logAttackerAction({ action: 'MITM ATTACK', outcome: 'BLOCKED', detail: 'MitmGuard intercepted unpinned rogue server signature!' });
+                updateBobGuardStatus({ action: 'MITM ATTACK', outcome: 'BLOCKED' });
+            }
+            loadEvents();
         });
     }
 }
@@ -1237,3 +1303,72 @@ function renderEventFeed(events) {
         container.appendChild(card);
     });
 }
+
+// ── TOAST NOTIFICATIONS ───────────────────────────────────────────────────
+
+function showToast(msg) {
+    let toast = document.getElementById('dashboard-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'dashboard-toast';
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#f8fafc;border:1px solid #3b82f6;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 10px 25px rgba(0,0,0,0.5);transition:opacity 0.3s;';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+
+// ── CHAT LAB (MULTI-PARTY NETWORK HUB) ────────────────────────────────────
+
+function initChatLabPage() {
+    const hubFrame = document.getElementById('chatlab-hub-frame');
+    if (hubFrame) {
+        const host = window.location.hostname || '127.0.0.1';
+        hubFrame.src = `http://${host}:8090/hub.html`;
+    }
+}
+
+window.triggerChatLabDemo = async function(attack) {
+    const demoResult = document.getElementById('chatlab-demo-result');
+    if (demoResult) {
+        demoResult.innerHTML = `<span style="color:var(--text-muted);font-family:var(--font-mono);">Executing guided ${attack} attack across TCP sockets...</span>`;
+    }
+    try {
+        const resp = await fetch(`http://127.0.0.1:8090/api/hub/demo/${attack}`, { method: 'POST', mode: 'cors' });
+        const text = await resp.text();
+        if (demoResult) {
+            const isBlocked = text.includes('BLOCKED') || text.includes('REJECTED') || text.includes('Guard');
+            const color = isBlocked ? '#10b981' : '#ef4444';
+            demoResult.innerHTML = `<span style="color:${color};font-family:var(--font-mono);"><strong>${escapeHtml(text)}</strong></span>`;
+        }
+    } catch (err) {
+        if (demoResult) {
+            demoResult.innerHTML = `<span style="color:#ef4444;font-family:var(--font-mono);">Failed to execute demo: Chat Lab Hub (:8090) unreachable.</span>`;
+        }
+    }
+};
+
+window.copyUrlValue = function(id) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    navigator.clipboard.writeText(input.value).then(() => {
+        showToast(`Copied ${input.value} to clipboard!`);
+    }).catch(() => {
+        input.select();
+        document.execCommand('copy');
+        showToast(`Copied ${input.value} to clipboard!`);
+    });
+};
+
+window.launchMultiWindowLab = function() {
+    const w = 480;
+    const h = 760;
+    const y = 80;
+    const xBase = Math.max(20, (window.screen.availWidth - (w * 3 + 40)) / 2);
+    window.open('http://127.0.0.1:8090/client.html', 'AliceClientWin', `width=${w},height=${h},top=${y},left=${xBase}`);
+    window.open('http://127.0.0.1:8090/attacker.html', 'MalloryAttackerWin', `width=${w},height=${h},top=${y},left=${xBase + w + 15}`);
+    window.open('http://127.0.0.1:8090/server.html', 'BobServerWin', `width=${w},height=${h},top=${y},left=${xBase + (w + 15) * 2}`);
+    showToast('Launched Client, Attacker, and Server in 3 separate windows!');
+};

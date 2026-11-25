@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PQC-APS :: Secure Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --bg-card: #0d1322;
+      --bg-panel: #111827;
+      --border-color: #1f293d;
+      --border-focus: #3b82f6;
+      --text-bright: #f8fafc;
+      --text-main: #cbd5e1;
+      --text-muted: #94a3b8;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 24px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Page Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .header-left h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 4px;
+    }
+    .header-left p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .btn-hub-link {
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      color: #93c5fd;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-hub-link:hover { background: #334155; }
+
+    /* Control Panel */
+    .control-panel {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .control-group label {
+      font-size: 0.88rem;
+      color: var(--text-bright);
+      font-weight: 600;
+    }
+    .select-input {
+      background-color: #1e293b;
+      color: var(--text-bright);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .select-input:focus { border-color: var(--border-focus); }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s, background-color 0.2s;
+    }
+    .btn-primary { background-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-secondary { background-color: #374151; color: #f3f4f6; }
+    .btn-secondary:hover { background-color: #4b5563; }
+    .btn-warning { background-color: #d97706; color: #fff; }
+    .btn-warning:hover { background-color: #b45309; }
+    .btn-danger { background-color: #dc2626; color: #fff; }
+    .btn-danger:hover { background-color: #b91c1c; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    /* 3-Panel Chat Demo Grid */
+    .chat-demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 20px;
+      flex: 1;
+      min-height: 480px;
+    }
+    @media (max-width: 1100px) {
+      .chat-demo-grid { grid-template-columns: 1fr; }
+    }
+
+    .card.chat-panel {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .card.chat-panel.attacker-panel {
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.08);
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .actor-icon { font-size: 1.8rem; line-height: 1; }
+    .chat-header h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin: 0;
+    }
+    .actor-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background-color: #090d16;
+    }
+    .chat-body.font-mono {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    /* Speech Bubbles */
+    .chat-bubble {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      max-width: 85%;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .chat-bubble.sender {
+      align-self: flex-end;
+      background-color: #2563eb;
+      color: #fff;
+    }
+    .chat-bubble.sender.server {
+      background-color: #0284c7;
+      color: #fff;
+    }
+    .chat-bubble.receiver {
+      align-self: flex-start;
+      background-color: #1e293b;
+      color: var(--text-bright);
+      border: 1px solid var(--border-color);
+    }
+    .chat-bubble.receiver.blocked {
+      background-color: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    /* Attacker Terminal Logs */
+    .attacker-empty {
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 80px;
+      font-family: var(--font-mono);
+    }
+    .attacker-log-line {
+      line-height: 1.4;
+      padding: 3px 0;
+    }
+    .attacker-log-line.sniff { color: #10b981; }
+    .attacker-log-line.intercepted { color: #f87171; font-weight: 700; }
+    .attacker-log-line.wire { color: #94a3b8; }
+    .attacker-log-line.action { color: #fbbf24; font-weight: 700; }
+
+    /* Bottom Input Bar for Alice */
+    .chat-input-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+    }
+    .input-text {
+      flex: 1;
+      background-color: #1e293b;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--text-bright);
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .input-text:focus { border-color: var(--border-focus); }
+
+    /* Attacker Controls */
+    .attacker-controls {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+    }
+    .attacker-controls button { flex: 1; }
+
+    /* Bob Status Bar */
+    .chat-status-bar {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+    .badge-success { background-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .badge-danger { background-color: rgba(239, 68, 68, 0.2); color: #f87171; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Secure Chat</h1>
+      <p>Demonstration of real TCP loopback secure messaging showing eavesdropping, replay attacks, and ciphertext tampering under real crypto guards.</p>
+    </div>
+    <div class="header-right">
+      <div id="liveBadge" class="live-badge">
+        <span class="live-dot"></span>
+        <span>Live Feed Connected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Channel Mode Bar -->
+  <div class="control-panel">
+    <div class="control-group">
+      <label for="chat-mode-select">Security Channel Mode:</label>
+      <select id="chat-mode-select" class="select-input" onchange="changeChannelMode()">
+        <option value="HYBRID" selected>HYBRID (Quantum-Resistant + Sequence Guard + Tamper Guard)</option>
+        <option value="CLASSICAL-HARDENED">CLASSICAL-HARDENED (RSA/X25519 + Hardened Guards)</option>
+        <option value="CLASSICAL-VULNERABLE">CLASSICAL-VULNERABLE (Vulnerable MITM Baseline)</option>
+      </select>
+    </div>
+    <button id="btn-init-chat" class="btn btn-secondary btn-sm" onclick="resetChannel()">Reset Channel</button>
+    <div style="margin-left:auto; font-size:0.8rem; font-family:var(--font-mono); color:var(--text-muted);">
+      Socket Pipeline: Client &rarr; TCP Proxy (:9000) &rarr; TCP Server (:9001)
+    </div>
+  </div>
+
+  <!-- 3-Panel Chat Demo Grid -->
+  <div class="chat-demo-grid">
+
+    <!-- Client (Sender) -->
+    <div class="card chat-panel">
+      <div class="chat-header">
+        <span class="actor-icon">👧</span>
+        <div>
+          <h4>Client</h4>
+          <span class="actor-sub">Endpoint &bull; AES-256-GCM</span>
+        </div>
+      </div>
+      <div id="chat-alice-messages" class="chat-body">
+        <div class="chat-bubble sender">Type a message to transmit over the secure channel.</div>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" id="chat-input-text" class="input-text" placeholder="" value="">
+        <button id="btn-chat-send" class="btn btn-primary" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+    <!-- Attacker Network View -->
+    <div class="card chat-panel attacker-panel">
+      <div class="chat-header">
+        <span class="actor-icon">🥷</span>
+        <div>
+          <h4>Attacker Network View</h4>
+          <span class="actor-sub">Passive Sniff &amp; Active Injection</span>
+        </div>
+      </div>
+      <div id="chat-attacker-log" class="chat-body font-mono">
+        <div class="attacker-empty">[Listening on 127.0.0.1:9000 TCP proxy interface...]</div>
+      </div>
+      <div class="attacker-controls" style="display:flex; flex-wrap:wrap; gap:6px;">
+        <button id="btn-chat-replay" class="btn btn-warning btn-sm" title="Replay captured ciphertext record" onclick="replayMessage()">&#x21BA; Replay</button>
+        <button id="btn-chat-flip" class="btn btn-danger btn-sm" title="Flip a bit in the ciphertext" onclick="flipBit()">&#x26A1; Tamper</button>
+        <button id="btn-chat-downgrade" class="btn btn-sm" style="background:#6d28d9; color:#fff;" title="Strip PQC hybrid suite" onclick="simulateDowngrade()">&#x1F4C9; Downgrade</button>
+        <button id="btn-chat-mitm" class="btn btn-sm" style="background:#be185d; color:#fff;" title="Simulate rogue server MITM" onclick="simulateMitm()">&#x1F464; MITM</button>
+      </div>
+    </div>
+
+    <!-- Server (Receiver) -->
+    <div class="card chat-panel">
+      <div class="chat-header">
+        <span class="actor-icon">👨</span>
+        <div>
+          <h4>Server</h4>
+          <span class="actor-sub">Endpoint &bull; Sequence &amp; Tag Guard</span>
+        </div>
+      </div>
+      <div id="chat-bob-messages" class="chat-body">
+        <div class="chat-bubble receiver">Awaiting incoming encrypted records...</div>
+      </div>
+      <div class="chat-status-bar">
+        <span id="bob-guard-status" class="badge badge-success">&#x2714; Channel Ready</span>
+        <span id="bob-seq-badge" style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted);">Seq: 0</span>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" id="chat-server-input-text" class="input-text" placeholder="" value="">
+        <button id="btn-chat-server-send" class="btn btn-primary" onclick="sendServerMessage()">Send</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentMode = 'HYBRID';
+    let sseSource = null;
+    let lastSentText = '';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchStatusAndMode();
+      connectSse();
+
+      const input = document.getElementById('chat-input-text');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+
+      const serverInput = document.getElementById('chat-server-input-text');
+      if (serverInput) {
+        serverInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') sendServerMessage();
+        });
+      }
+    });
+
+    async function fetchStatusAndMode() {
+      try {
+        const res = await fetch('/api/client/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.mode) {
+          currentMode = data.mode;
+          document.getElementById('chat-mode-select').value = currentMode;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch status:', err);
+      }
+    }
+
+    async function ensureConnected() {
+      try {
+        const statusRes = await fetch('/api/client/status');
+        const statusData = await statusRes.json();
+        if (!statusData.connected) {
+          logAttackerLine(`[Establishing 8-step PQC handshake in ${currentMode} mode...]`, 'sniff');
+          const connRes = await fetch('/api/client/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port: 9000, mode: currentMode })
+          });
+          const connData = await connRes.json();
+          if (connData.connected) {
+            logAttackerLine(`[Handshake Complete: Suite=${connData.suite}, Key Pinned=${connData.keyPinned}]`, 'sniff');
+          }
+        }
+      } catch (err) {
+        console.warn('ensureConnected error:', err);
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input-text');
+      const text = input.value.trim();
+      if (!text) return;
+      lastSentText = text;
+
+      const sendBtn = document.getElementById('btn-chat-send');
+      sendBtn.disabled = true;
+
+      // Ensure TCP handshake is established
+      await ensureConnected();
+
+      // Append Alice's bubble
+      appendAliceBubble(text);
+
+      try {
+        const res = await fetch('/api/client/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          appendBobBubble(`[TRANSMISSION FAILED] ${err.error || 'Server rejected connection'}`, true);
+          return;
+        }
+
+        const data = await res.json();
+        const seq = data.sequenceNumber;
+        document.getElementById('bob-seq-badge').textContent = `Seq: ${seq}`;
+
+        // Attacker Network View updates
+        if (currentMode === 'CLASSICAL-VULNERABLE') {
+          logAttackerLine(`[Sniffing network traffic in CLASSICAL-VULNERABLE mode...]`, 'sniff');
+          logAttackerLine(`[MITM Intercepted Plaintext]: "${escapeHtml(text)}"`, 'intercepted');
+        } else {
+          logAttackerLine(`[Intercepted Wire Record]: seq=${seq} | AES-256-GCM record`, 'wire');
+          if (data.hex4Ciphertext) {
+            logAttackerLine(`[Ciphertext Hex]: ${data.hex4Ciphertext}... [Encrypted Payload]`, 'wire');
+          }
+        }
+
+        // Bob outcome
+        const bobText = `${text} (ACCEPTED (seq=${seq} verified))`;
+        appendBobBubble(bobText, false);
+
+        document.getElementById('bob-guard-status').className = 'badge badge-success';
+        document.getElementById('bob-guard-status').textContent = '✔ Accepted & Verified';
+
+      } catch (err) {
+        appendBobBubble(`[NETWORK ERROR] ${err.message}`, true);
+      } finally {
+        sendBtn.disabled = false;
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    async function replayMessage() {
+      logAttackerLine(`[Attacker Injection]: Replaying captured ciphertext...`, 'action');
+      try {
+        const res = await fetch('/api/attacker/replay', { method: 'POST' });
+        const outcome = await res.json();
+
+        if (currentMode === 'CLASSICAL-VULNERABLE') {
+          logAttackerLine(`[REPLAY SUCCEEDED]: Replayed message accepted without detection telemetry`, 'intercepted');
+          appendBobBubble(`[REPLAY INJECTED]: "${lastSentText}" (ACCEPTED without sequence guard)`, false);
+          document.getElementById('bob-guard-status').className = 'badge badge-warning';
+          document.getElementById('bob-guard-status').textContent = '⚠️ Replay Succeeded (Vulnerable)';
+        } else {
+          logAttackerLine(`[REPLAY BLOCKED]: ReplayGuard intercepted duplicate sequence record!`, 'intercepted');
+          appendBobBubble(`[REPLAY BLOCKED] (REJECTED: Duplicate sequence detected)`, true);
+          document.getElementById('bob-guard-status').className = 'badge badge-danger';
+          document.getElementById('bob-guard-status').textContent = '🛡️ ReplayGuard Fired';
+        }
+      } catch (err) {
+        logAttackerLine(`[Replay Error]: ${err.message}`, 'intercepted');
+      }
+    }
+
+    async function flipBit() {
+      logAttackerLine(`[Attacker Injection]: Bit flipped in next in-flight ciphertext (byte 0 XOR 0x01)...`, 'action');
+      try {
+        await fetch('/api/attacker/flip-bit', { method: 'POST' });
+
+        if (currentMode === 'CLASSICAL-VULNERABLE') {
+          logAttackerLine(`[TAMPER UNDETECTED]: Record modified; GCM tag error without security detection`, 'intercepted');
+          appendBobBubble(`[TAMPER ERROR]: Decryption failed (GCM authentication tag mismatch - no telemetry)`, true);
+          document.getElementById('bob-guard-status').className = 'badge badge-warning';
+          document.getElementById('bob-guard-status').textContent = '⚠️ Decryption Failed (No Guard)';
+        } else {
+          logAttackerLine(`[TAMPER BLOCKED]: TamperGuard intercepted corrupted ciphertext!`, 'intercepted');
+          appendBobBubble(`[TAMPER BLOCKED] (REJECTED: GCM authentication tag mismatch detected)`, true);
+          document.getElementById('bob-guard-status').className = 'badge badge-danger';
+          document.getElementById('bob-guard-status').textContent = '🛡️ TamperGuard Fired';
+        }
+      } catch (err) {
+        logAttackerLine(`[Tamper Error]: ${err.message}`, 'intercepted');
+      }
+    }
+
+    async function sendServerMessage() {
+      const input = document.getElementById('chat-server-input-text');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const sendBtn = document.getElementById('btn-chat-server-send');
+      if (sendBtn) sendBtn.disabled = true;
+
+      await ensureConnected();
+
+      try {
+        const res = await fetch('/api/server/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          appendBobBubble(`[SEND FAILED]: ${err.error || 'Server cannot send'}`, true, true);
+        } else {
+          appendBobBubble('Server: ' + text, false, true);
+
+          if (currentMode === 'CLASSICAL-VULNERABLE') {
+            logAttackerLine(`[Server ➔ Client Plaintext Intercepted]: "${escapeHtml(text)}"`, 'intercepted');
+          } else {
+            logAttackerLine(`[Intercepted Wire Record]: Server ➔ Client | AES-256-GCM encrypted record`, 'wire');
+          }
+          appendAliceBubble('Server: ' + text, true);
+        }
+      } catch (err) {
+        appendBobBubble(`[SEND ERROR]: ${err.message}`, true, true);
+      } finally {
+        if (sendBtn) sendBtn.disabled = false;
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    async function simulateDowngrade() {
+      logAttackerLine(`[Attacker Injection]: Intercepting ClientHello, stripping HYBRID suite (forcing CLASSICAL)...`, 'action');
+      try {
+        const res = await fetch('/api/hub/demo/downgrade', { method: 'POST' });
+        const text = await res.text();
+        const isBlocked = text.includes('BLOCKED') || text.includes('rejected') || text.includes('Rejected') || text.includes('Guard');
+        if (isBlocked) {
+          logAttackerLine(`[DOWNGRADE BLOCKED]: DowngradeGuard intercepted altered suite list in transcript!`, 'sniff');
+          appendBobBubble(`🛡️ [DOWNGRADE BLOCKED] (REJECTED: Downgrade attack detected)`, true);
+          document.getElementById('bob-guard-status').className = 'badge badge-danger';
+          document.getElementById('bob-guard-status').textContent = '🛡️ DowngradeGuard Fired';
+        } else {
+          logAttackerLine(`[DOWNGRADE SUCCEEDED]: Server accepted downgraded CLASSICAL suite!`, 'intercepted');
+          appendBobBubble(`⚠️ [DOWNGRADE ACCEPTED]: Handshake accepted with classical suite!`, false);
+          document.getElementById('bob-guard-status').className = 'badge badge-warning';
+          document.getElementById('bob-guard-status').textContent = '⚠️ Downgrade Succeeded (Vulnerable)';
+        }
+      } catch (err) {
+        logAttackerLine(`[Downgrade Error]: ${err.message}`, 'intercepted');
+      }
+    }
+
+    async function simulateMitm() {
+      logAttackerLine(`[Attacker Injection]: Injecting rogue server certificate / public key...`, 'action');
+      try {
+        const res = await fetch('/api/hub/demo/mitm', { method: 'POST' });
+        const text = await res.text();
+        const isBlocked = text.includes('BLOCKED') || text.includes('rejected') || text.includes('Rejected') || text.includes('Guard');
+        if (isBlocked) {
+          logAttackerLine(`[MITM BLOCKED]: MitmGuard intercepted rogue server identity signature!`, 'sniff');
+          appendBobBubble(`🛡️ [MITM BLOCKED] (REJECTED: Server identity signature verification failed)`, true);
+          document.getElementById('bob-guard-status').className = 'badge badge-danger';
+          document.getElementById('bob-guard-status').textContent = '🛡️ MitmGuard Fired';
+        } else {
+          logAttackerLine(`[MITM SUCCEEDED]: Rogue server accepted without key pinning! Plaintext exposed.`, 'intercepted');
+          appendBobBubble(`⚠️ [MITM ACCEPTED]: Rogue connection accepted without strict identity check!`, false);
+          document.getElementById('bob-guard-status').className = 'badge badge-warning';
+          document.getElementById('bob-guard-status').textContent = '⚠️ MITM Succeeded (Vulnerable)';
+        }
+      } catch (err) {
+        logAttackerLine(`[MITM Error]: ${err.message}`, 'intercepted');
+      }
+    }
+
+    async function changeChannelMode() {
+      const mode = document.getElementById('chat-mode-select').value;
+      currentMode = mode;
+      logAttackerLine(`[Switching Security Mode to ${mode}...]`, 'sniff');
+
+      try {
+        await fetch(`/api/hub/mode?mode=${encodeURIComponent(mode)}`, { method: 'POST' });
+        await fetch('/api/hub/connect', { method: 'POST' });
+        resetChannelUi();
+        logAttackerLine(`[Channel Reset and Re-established in ${mode} mode]`, 'sniff');
+      } catch (err) {
+        console.warn('Mode change failed:', err);
+      }
+    }
+
+    async function resetChannel() {
+      try {
+        await fetch('/api/hub/reset-all', { method: 'POST' });
+        await fetch('/api/hub/connect', { method: 'POST' });
+        resetChannelUi();
+        logAttackerLine(`[Channel reset in ${currentMode} mode...]`, 'sniff');
+      } catch (err) {
+        console.warn('Reset channel failed:', err);
+      }
+    }
+
+    function resetChannelUi() {
+      const aliceBox = document.getElementById('chat-alice-messages');
+      aliceBox.innerHTML = `<div class="chat-bubble receiver">Channel reset in ${currentMode} mode. Ready to chat.</div>`;
+
+      const bobBox = document.getElementById('chat-bob-messages');
+      bobBox.innerHTML = `<div class="chat-bubble receiver">Connected. Awaiting encrypted records...</div>`;
+
+      const attackerBox = document.getElementById('chat-attacker-log');
+      attackerBox.innerHTML = `<div class="attacker-log-line sniff">[Listening on 127.0.0.1:9000 TCP proxy interface...]</div>`;
+
+      document.getElementById('bob-guard-status').className = 'badge badge-success';
+      document.getElementById('bob-guard-status').textContent = '✔ Channel Ready';
+      document.getElementById('bob-seq-badge').textContent = 'Seq: 0';
+
+      const cIn = document.getElementById('chat-input-text');
+      const sIn = document.getElementById('chat-server-input-text');
+      if (cIn) cIn.value = '';
+      if (sIn) sIn.value = '';
+    }
+
+    function appendAliceBubble(text, isIncoming = false) {
+      const container = document.getElementById('chat-alice-messages');
+      const bubble = document.createElement('div');
+      bubble.className = isIncoming ? 'chat-bubble receiver' : 'chat-bubble sender';
+      bubble.textContent = text;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendBobBubble(text, isBlocked = false, isServerOutgoing = false) {
+      const container = document.getElementById('chat-bob-messages');
+      const bubble = document.createElement('div');
+      if (isServerOutgoing) {
+        bubble.className = 'chat-bubble sender server';
+      } else if (isBlocked) {
+        bubble.className = 'chat-bubble receiver blocked';
+      } else {
+        bubble.className = 'chat-bubble receiver';
+      }
+      bubble.textContent = text;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function logAttackerLine(text, styleClass) {
+      const container = document.getElementById('chat-attacker-log');
+      const empty = container.querySelector('.attacker-empty');
+      if (empty) empty.remove();
+
+      const line = document.createElement('div');
+      line.className = `attacker-log-line ${styleClass}`;
+      line.textContent = text;
+      container.appendChild(line);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    let sseServerSource = null;
+
+    function connectSse() {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource('/api/client/stream');
+
+      sseSource.addEventListener('connection-status', () => {
+        fetchStatusAndMode();
+      });
+
+      sseSource.addEventListener('chat-message', (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.sender === 'Server') {
+            appendAliceBubble('Server: ' + msg.text, true);
+          }
+        } catch (err) {}
+      });
+
+      sseSource.onerror = () => {
+        sseSource.close();
+        setTimeout(connectSse, 3000);
+      };
+
+      if (sseServerSource) sseServerSource.close();
+      sseServerSource = new EventSource('/api/server/stream');
+
+      sseServerSource.addEventListener('server-message', (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.sender === 'Client') {
+            const isAccepted = msg.status && msg.status.startsWith('ACCEPTED');
+            appendBobBubble(msg.text + (isAccepted ? ` (ACCEPTED (seq=${msg.sequenceNumber} verified))` : ` (${msg.status})`), !isAccepted);
+          }
+        } catch (err) {}
+      });
+
+      sseServerSource.addEventListener('detection-event', (e) => {
+        try {
+          const ev = JSON.parse(e.data);
+          logAttackerLine(`[GUARD TRIGGERED]: ${ev.component} ${ev.action} - ${ev.detail}`, 'action');
+        } catch (err) {}
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

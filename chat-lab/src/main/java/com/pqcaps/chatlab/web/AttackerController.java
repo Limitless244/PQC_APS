@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,17 +32,19 @@ public class AttackerController {
 
     @GetMapping("/status")
     public Map<String, Object> getStatus() {
-        return Map.of(
-                "running", attackerService.isRunning(),
-                "listenPort", attackerService.getListenPort(),
-                "targetPort", attackerService.getTargetPort(),
-                "stripHybrid", attackerService.isStripHybrid(),
-                "enableMitm", attackerService.isEnableMitm(),
-                "dropNextRecord", attackerService.isDropNextRecord(),
-                "paused", attackerService.isPaused(),
-                "capturedCount", attackerService.getCapturedTraffic().size(),
-                "actionCount", attackerService.getActionLog().size()
-        );
+        Map<String, Object> res = new HashMap<>();
+        res.put("running", attackerService.isRunning());
+        res.put("listenPort", attackerService.getListenPort());
+        res.put("targetPort", attackerService.getTargetPort());
+        res.put("stripHybrid", attackerService.isStripHybrid());
+        res.put("enableMitm", attackerService.isEnableMitm());
+        res.put("dropNextRecord", attackerService.isDropNextRecord());
+        res.put("paused", attackerService.isPaused());
+        res.put("capturedCount", attackerService.getCapturedTraffic().size());
+        res.put("traffic", attackerService.getCapturedTraffic());
+        res.put("actionCount", attackerService.getActionLog().size());
+        res.put("actions", attackerService.getActionLog());
+        return res;
     }
 
     @GetMapping("/traffic")

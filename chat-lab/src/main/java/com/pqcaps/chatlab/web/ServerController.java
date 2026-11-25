@@ -1,14 +1,20 @@
 package com.pqcaps.chatlab.web;
 
 import com.pqcaps.attack.DetectionEvent;
+import com.pqcaps.chatlab.ChatMode;
+import com.pqcaps.chatlab.HostValidator;
 import com.pqcaps.chatlab.model.ChatMessageRecord;
+import com.pqcaps.chatlab.service.ChatLabAttackerService;
+import com.pqcaps.chatlab.service.ChatLabClientService;
 import com.pqcaps.chatlab.service.ChatLabServerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,10 +27,19 @@ public class ServerController {
 
     private final ChatLabServerService serverService;
     private final ChatLabSseService sseService;
+    private final ChatLabClientService clientService;
+    private final ChatLabAttackerService attackerService;
 
-    public ServerController(ChatLabServerService serverService, ChatLabSseService sseService) {
+    @Autowired
+    public ServerController(
+            ChatLabServerService serverService,
+            ChatLabSseService sseService,
+            @Autowired(required = false) ChatLabClientService clientService,
+            @Autowired(required = false) ChatLabAttackerService attackerService) {
         this.serverService = serverService;
         this.sseService = sseService;
+        this.clientService = clientService;
+        this.attackerService = attackerService;
 
         // Hook SSE listeners
         serverService.addMessageListener(msg -> sseService.broadcastServer("server-message", msg));
@@ -33,14 +48,16 @@ public class ServerController {
 
     @GetMapping("/status")
     public Map<String, Object> getStatus() {
-        return Map.of(
-                "running", serverService.isRunning(),
-                "mode", serverService.getCurrentMode(),
-                "rejectClassical", serverService.isRejectClassical(),
-                "tcpPort", serverService.getTcpPort(),
-                "messageCount", serverService.getReceivedMessages().size(),
-                "eventCount", serverService.getDetectionEvents().size()
-        );
+        Map<String, Object> res = new HashMap<>();
+        res.put("running", serverService.isRunning());
+        res.put("mode", serverService.getCurrentMode());
+        res.put("rejectClassical", serverService.isRejectClassical());
+        res.put("tcpPort", serverService.getTcpPort());
+        res.put("messageCount", serverService.getReceivedMessages().size());
+        res.put("messages", serverService.getReceivedMessages());
+        res.put("eventCount", serverService.getDetectionEvents().size());
+        res.put("events", serverService.getDetectionEvents());
+        return res;
     }
 
     @GetMapping("/reject-classical")
@@ -72,6 +89,38 @@ public class ServerController {
     @GetMapping("/messages")
     public List<ChatMessageRecord> getMessages() {
         return serverService.getReceivedMessages();
+    }
+
+    @PostMapping("/send")
+    public ResponseEntity<?> sendServerMessage(@RequestBody Map<String, String> body) {
+        String message = body != null ? body.get("message") : null;
+        if (message == null || message.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Message cannot be empty"));
+        }
+        try {
+            if (!serverService.hasActiveClient() || (clientService != null && !clientService.isConnected())) {
+                if (!serverService.isRunning()) {
+                    serverService.start();
+                }
+                if (attackerService != null && !attackerService.isRunning()) {
+                    attackerService.start();
+                }
+                if (clientService != null) {
+                    String mode = serverService.getCurrentMode();
+                    if (ChatMode.HYBRID.equalsIgnoreCase(mode)) {
+                        clientService.setPinnedServerKeyMlDsa(serverService.getServerIdentityMlDsaPublic());
+                    } else if (ChatMode.CLASSICAL_HARDENED.equalsIgnoreCase(mode)) {
+                        clientService.setPinnedServerKeyRsa(serverService.getServerIdentityRsaPublic());
+                    }
+                    int targetPort = (attackerService != null) ? attackerService.getListenPort() : serverService.getTcpPort();
+                    clientService.connect(HostValidator.LOCALHOST_IP, targetPort, mode, null);
+                }
+            }
+            ChatMessageRecord record = serverService.sendServerMessage(message);
+            return ResponseEntity.ok(record);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to send: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/events")

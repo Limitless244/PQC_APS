@@ -26,7 +26,6 @@ public final class RuleRegistry {
         return INSTANCE;
     }
 
-    @SuppressWarnings("unchecked")
     private void loadDefaultRules() {
         try (InputStream in = getClass().getResourceAsStream("/rules.yaml")) {
             if (in == null) {

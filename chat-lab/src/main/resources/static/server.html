@@ -2,17 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PQC-APS :: Bob (Server :8083)</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>PQC-APS :: Server</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --bg: #09131c;
-      --card-bg: #122130;
-      --border: #233b52;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
       --text: #f8fafc;
       --text-muted: #94a3b8;
-      --primary: #0ea5e9;
-      --primary-hover: #0284c7;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
       --success: #10b981;
       --danger: #ef4444;
       --warning: #f59e0b;
@@ -79,14 +82,27 @@
     }
     .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #cbd5e1; display: flex; justify-content: space-between; }
     .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
-    select, button {
-      background-color: #09131c;
+    select, input[type="text"], button {
+      background-color: #0f172a;
       border: 1px solid var(--border);
       color: var(--text);
       padding: 8px 12px;
       border-radius: 6px;
       font-size: 0.9rem;
     }
+    #serverMsgInput {
+      background-color: #0f172a !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+      padding: 8px 12px !important;
+      border-radius: 6px !important;
+      font-size: 0.9rem !important;
+      outline: none !important;
+    }
+    #serverMsgInput:focus {
+      border-color: var(--primary) !important;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--primary); }
     button {
       background-color: var(--primary);
       color: white;
@@ -97,7 +113,8 @@
     }
     button:hover { background-color: var(--primary-hover); }
     button.btn-stop { background-color: var(--danger); }
-    button.btn-secondary { background-color: #334155; }
+    button.btn-secondary { background-color: #475569; }
+    button.btn-secondary:hover { background-color: #334155; }
     .status-panel {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -105,7 +122,7 @@
       margin-bottom: 15px;
     }
     .stat-box {
-      background: #09131c;
+      background: #0f172a;
       border: 1px solid var(--border);
       padding: 10px;
       border-radius: 6px;
@@ -116,16 +133,38 @@
     .table-container { max-height: 400px; overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background-color: #09131c; color: var(--text-muted); position: sticky; top: 0; }
+    th { background-color: #0f172a; color: var(--text-muted); position: sticky; top: 0; }
     .mono { font-family: var(--font-mono); }
+    .chat-box {
+      height: 250px;
+      background-color: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .msg-bubble {
+      padding: 8px 12px;
+      border-radius: 8px;
+      max-width: 80%;
+      font-size: 0.9rem;
+    }
+    .msg-server { background-color: #1e3a8a; align-self: flex-end; }
+    .msg-client { background-color: #0c4a6e; align-self: flex-start; }
+    .msg-blocked { background-color: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    .msg-meta { font-size: 0.7rem; color: #93c5fd; margin-top: 4px; }
   </style>
 </head>
 <body>
 
   <div class="header">
     <h1>
-      <span>Bob (Secure Server)</span>
-      <span class="badge badge-server">Port :8083 (TCP :9001)</span>
+      <span>Server</span>
+      <span class="badge badge-server">TCP Server :9001</span>
     </h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
@@ -134,7 +173,7 @@
   </div>
 
   <div id="mismatchBanner" class="banner">
-    ⚠️ <strong>Mode Mismatch Alert:</strong> Server is configured for <span id="bannerServerMode"></span>, but Alice (Client) is running <span id="bannerClientMode"></span>. The handshake will fail or trigger downgrade!
+    ⚠️ <strong>Mode Mismatch Alert:</strong> Server is configured for <span id="bannerServerMode"></span>, but Client is running <span id="bannerClientMode"></span>. The handshake will fail or trigger downgrade!
   </div>
 
   <div class="card">
@@ -199,27 +238,39 @@
       </div>
     </div>
 
-    <!-- Forensic Detection Events Table (EventLog) -->
+    <!-- Chat Messenger for Server (matching Client layout) -->
     <div class="card">
-      <h2>
-        <span>Internal Detection Telemetry (EventLog)</span>
-        <span id="eventCountBadge" class="badge badge-event">0 Events</span>
-      </h2>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Action</th>
-              <th>Component</th>
-              <th>Forensic Detail (detection-events.jsonl)</th>
-            </tr>
-          </thead>
-          <tbody id="eventsTableBody">
-            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No security attacks detected yet.</td></tr>
-          </tbody>
-        </table>
+      <h2>Chat Application (Real Encrypted TCP Channel)</h2>
+      <div id="serverChatBox" class="chat-box">
+        <div style="color:var(--text-muted); text-align:center; margin-top:80px;">Connected to client channel. Ready to communicate.</div>
       </div>
+      <div class="controls" style="margin-bottom:0;">
+        <input type="text" id="serverMsgInput" placeholder="" autocomplete="off" style="flex:1; background-color:#0f172a !important; border:1px solid #334155 !important; color:#f8fafc !important; padding:8px 12px; border-radius:6px; font-size:0.9rem; outline:none;">
+        <button onclick="sendServerMessage()" style="background-color:#3b82f6; color:#ffffff; font-weight:600; padding:8px 16px; border-radius:6px; border:none; cursor:pointer;">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forensic Detection Events Table (EventLog) -->
+  <div class="card" style="margin-top:20px;">
+    <h2>
+      <span>Internal Detection Telemetry (EventLog)</span>
+      <span id="eventCountBadge" class="badge badge-event">0 Events</span>
+    </h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Action</th>
+            <th>Component</th>
+            <th>Forensic Detail (detection-events.jsonl)</th>
+          </tr>
+        </thead>
+        <tbody id="eventsTableBody">
+          <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No security attacks detected yet.</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -227,28 +278,87 @@
     let sseSource = null;
     let isServerRunning = true;
 
-    function init() {
-      fetchStatus();
-      connectSse();
+    async function init() {
+      await fetchStatus();
       checkClientMode();
       setInterval(checkClientMode, 3000);
+      setInterval(fetchStatus, 1000);
+
+      const input = document.getElementById('serverMsgInput');
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') sendServerMessage();
+        });
+      }
+    }
+
+    let serverChatHistory = [];
+
+    async function sendServerMessage() {
+      const input = document.getElementById('serverMsgInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const sendBtn = document.querySelector('.controls button[onclick="sendServerMessage()"]');
+      if (sendBtn) sendBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/server/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.warn('Server send error:', err.error || res.statusText);
+          return;
+        }
+        input.value = '';
+        input.focus();
+        await fetchStatus();
+      } catch (e) {
+        console.warn('Server send exception:', e);
+      } finally {
+        if (sendBtn) sendBtn.disabled = false;
+      }
+    }
+
+    function renderServerChat() {
+      const box = document.getElementById('serverChatBox');
+      if (!serverChatHistory || serverChatHistory.length === 0) {
+        box.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin-top:80px;">Connected session ready. Send a message!</div>';
+        return;
+      }
+      box.innerHTML = serverChatHistory.map(m => {
+        const isServer = m.sender === 'Server';
+        const senderLabel = isServer ? 'Server' : 'Client';
+        const bubbleClass = isServer ? 'msg-server' : (m.isAccepted ? 'msg-client' : 'msg-client msg-blocked');
+        return `
+          <div class="msg-bubble ${bubbleClass}">
+            <div><strong>${senderLabel}</strong> (seq=${m.sequenceNumber}): ${m.text}</div>
+            <div class="msg-meta">${m.status || ''}</div>
+          </div>
+        `;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
     }
 
     async function fetchStatus() {
       try {
         const res = await fetch('/api/server/status');
+        if (!res.ok) {
+          showReconnectBadge();
+          return;
+        }
+        clearReconnectBadge();
         const data = await res.json();
         updateStatusUI(data);
 
-        const msgRes = await fetch('/api/server/messages');
-        const messages = await msgRes.json();
-        renderMessages(messages);
-
-        const evRes = await fetch('/api/server/events');
-        const events = await evRes.json();
-        renderEvents(events);
+        if (data.messages) renderMessages(data.messages);
+        if (data.events) renderEvents(data.events);
       } catch (e) {
-        console.error(e);
+        showReconnectBadge();
+        console.warn('fetchStatus error:', e);
       }
     }
 
@@ -311,17 +421,23 @@
     }
 
     document.getElementById('modeSelect').addEventListener('change', async (e) => {
+      const mode = e.target.value;
       await fetch('/api/server/mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: e.target.value })
+        body: JSON.stringify({ mode: mode })
+      });
+      await fetch('/api/client/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: '127.0.0.1', port: 9000, mode: mode })
       });
       fetchStatus();
     });
 
     async function checkClientMode() {
       try {
-        const res = await fetch('http://127.0.0.1:8081/api/client/status');
+        const res = await fetch('/api/client/status');
         if (res.ok) {
           const data = await res.json();
           const clientMode = data.mode;
@@ -343,10 +459,32 @@
       document.getElementById('msgCountBadge').innerText = messages.length + ' Messages';
       if (!messages || messages.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No messages received yet.</td></tr>';
+        serverChatHistory = [];
+        renderServerChat();
         return;
       }
+
+      // Sync received messages into chat box
+      serverChatHistory = messages.map(m => {
+        const sender = m.sender || 'Client';
+        const isServer = sender === 'Server';
+        const isAccepted = m.status && (m.status.startsWith('ACCEPTED') || m.status.startsWith('SENT'));
+        return {
+          id: m.id,
+          sender: sender,
+          text: m.text,
+          sequenceNumber: m.sequenceNumber,
+          status: isServer
+            ? ('SENT (seq=' + m.sequenceNumber + ')')
+            : (isAccepted ? ('VERIFIED (seq=' + m.sequenceNumber + ')') : (m.guardFired ? ('BLOCKED by ' + m.guardFired) : m.status)),
+          isAccepted: isAccepted
+        };
+      });
+      renderServerChat();
+
       tbody.innerHTML = messages.map(m => {
-        const isAccepted = m.status.startsWith('ACCEPTED');
+        const statusStr = m.status || '';
+        const isAccepted = statusStr.startsWith('ACCEPTED') || statusStr.startsWith('SENT');
         return `
           <tr>
             <td class="mono">${m.sequenceNumber}</td>
@@ -375,36 +513,6 @@
       `).join('');
     }
 
-    // ── SSE Stream Setup with < 2s Reconnect Badge Clear ───────────────────
-    function connectSse() {
-      if (sseSource) sseSource.close();
-      sseSource = new EventSource('/api/server/stream');
-
-      sseSource.onopen = () => {
-        clearReconnectBadge();
-      };
-
-      sseSource.addEventListener('init', () => {
-        clearReconnectBadge();
-      });
-
-      sseSource.addEventListener('server-message', () => {
-        clearReconnectBadge();
-        fetchStatus();
-      });
-
-      sseSource.addEventListener('detection-event', () => {
-        clearReconnectBadge();
-        fetchStatus();
-      });
-
-      sseSource.onerror = () => {
-        showReconnectBadge();
-        sseSource.close();
-        setTimeout(connectSse, 2000);
-      };
-    }
-
     function showReconnectBadge() {
       const badge = document.getElementById('reconnectBadge');
       if (badge) badge.style.display = 'inline-block';
@@ -413,7 +521,7 @@
     function clearReconnectBadge() {
       const badge = document.getElementById('reconnectBadge');
       if (badge && badge.style.display !== 'none') {
-        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears within 2 seconds
+        badge.style.display = 'none';
       }
     }
 

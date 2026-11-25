@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PQC-APS :: Mallory (Attacker TCP Proxy :8082)</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>PQC-APS :: Attacker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
@@ -133,13 +136,17 @@
 
   <div class="header">
     <h1>
-      <span>Mallory (Active TCP Proxy Attacker)</span>
+      <span>Attacker (Active TCP Proxy)</span>
       <span class="badge badge-attacker">Listen :9000 &rarr; Forward :9001</span>
     </h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <span id="reconnectBadge" class="reconnect-badge">Reconnecting Live Feed...</span>
       <span id="proxyBadge" class="badge badge-active">PROXY LISTENING</span>
     </div>
+  </div>
+
+  <div id="pauseWarningBanner" style="display:none; background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#fca5a5; padding:10px 16px; border-radius:8px; margin-bottom:15px; font-size:0.88rem; font-weight:600;">
+    ⚠️ ATTACK ACTIVE: Traffic forwarding is PAUSED or DROP is ARMED. Client messages are being intentionally held or dropped by the proxy! Click "Pause Forwarding" or "Reset" to allow normal traffic through.
   </div>
 
   <div class="card">
@@ -201,7 +208,7 @@
 
     <!-- Attacker Action Telemetry Log -->
     <div class="card">
-      <h2>Mallory Action Telemetry ("Forwarded / What We Saw")</h2>
+      <h2>Attacker Action Telemetry ("Forwarded / What We Saw")</h2>
       <div id="actionLogBox" class="log-box">
         <div style="color:var(--text-muted); text-align:center; margin-top:150px;">No attack actions dispatched yet.</div>
       </div>
@@ -211,26 +218,27 @@
   <script>
     let sseSource = null;
 
-    function init() {
-      fetchStatus();
-      connectSse();
+    async function init() {
+      await fetchStatus();
+      setInterval(fetchStatus, 1000);
     }
 
     async function fetchStatus() {
       try {
         const res = await fetch('/api/attacker/status');
+        if (!res.ok) {
+          showReconnectBadge();
+          return;
+        }
+        clearReconnectBadge();
         const data = await res.json();
         updateStatusUI(data);
 
-        const trafRes = await fetch('/api/attacker/traffic');
-        const traffic = await trafRes.json();
-        renderTraffic(traffic);
-
-        const actRes = await fetch('/api/attacker/actions');
-        const actions = await actRes.json();
-        renderActions(actions);
+        if (data.traffic) renderTraffic(data.traffic);
+        if (data.actions) renderActions(data.actions);
       } catch (e) {
-        console.error(e);
+        showReconnectBadge();
+        console.warn('fetchStatus error:', e);
       }
     }
 
@@ -245,6 +253,11 @@
       updateToggleButton('mitmBtn', data.enableMitm, 'Enable MITM');
       updateToggleButton('dropBtn', data.dropNextRecord, 'Drop Next Record');
       updateToggleButton('pauseBtn', data.paused, 'Pause Forwarding');
+
+      const warn = document.getElementById('pauseWarningBanner');
+      if (warn) {
+        warn.style.display = (data.paused || data.dropNextRecord) ? 'block' : 'none';
+      }
     }
 
     function updateToggleButton(id, active, label) {
@@ -346,36 +359,6 @@
       box.scrollTop = box.scrollHeight;
     }
 
-    // ── SSE Stream Setup with < 2s Reconnect Badge Clear ───────────────────
-    function connectSse() {
-      if (sseSource) sseSource.close();
-      sseSource = new EventSource('/api/attacker/stream');
-
-      sseSource.onopen = () => {
-        clearReconnectBadge();
-      };
-
-      sseSource.addEventListener('init', () => {
-        clearReconnectBadge();
-      });
-
-      sseSource.addEventListener('traffic-record', () => {
-        clearReconnectBadge();
-        fetchStatus();
-      });
-
-      sseSource.addEventListener('attacker-action', () => {
-        clearReconnectBadge();
-        fetchStatus();
-      });
-
-      sseSource.onerror = () => {
-        showReconnectBadge();
-        sseSource.close();
-        setTimeout(connectSse, 2000);
-      };
-    }
-
     function showReconnectBadge() {
       const badge = document.getElementById('reconnectBadge');
       if (badge) badge.style.display = 'inline-block';
@@ -384,7 +367,7 @@
     function clearReconnectBadge() {
       const badge = document.getElementById('reconnectBadge');
       if (badge && badge.style.display !== 'none') {
-        setTimeout(() => { badge.style.display = 'none'; }, 400); // Clears within 2 seconds
+        badge.style.display = 'none';
       }
     }
 

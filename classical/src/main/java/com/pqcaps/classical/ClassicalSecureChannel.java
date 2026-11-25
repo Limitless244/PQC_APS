@@ -7,7 +7,6 @@ import com.pqcaps.common.SessionKeys;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 /**
  * AES-256-GCM record layer for the classical secure channel.
@@ -138,10 +137,23 @@ public final class ClassicalSecureChannel implements Closeable {
 
     @Override
     public void close() throws IOException {
-        try {
-            wireOut.close();
-        } finally {
-            wireIn.close();
+        IOException firstEx = null;
+        if (wireOut != null) {
+            try {
+                wireOut.close();
+            } catch (IOException e) {
+                firstEx = e;
+            }
+        }
+        if (wireIn != null) {
+            try {
+                wireIn.close();
+            } catch (IOException e) {
+                if (firstEx == null) firstEx = e;
+            }
+        }
+        if (firstEx != null) {
+            throw firstEx;
         }
     }
 }

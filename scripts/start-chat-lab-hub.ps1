@@ -2,8 +2,8 @@
 .SYNOPSIS
     Starts the PQC-APS Chat Lab Hub (All-in-One) web application on port 8090.
 .DESCRIPTION
-    Runs Alice, Mallory, and Bob in a single JVM with --role=all, polls until port 8090 answers,
-    and opens the default web browser.
+    Builds the jar if missing or older than sources, starts --role=all with cmd /k,
+    polls port 8090, prints any startup error, and pauses on failure.
 #>
 [CmdletBinding()]
 param(
@@ -18,17 +18,45 @@ Write-Host "====================================================================
 Write-Host "  PQC-APS :: CHAT LAB HUB LAUNCHER (:8090)" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-if (-not (Test-Path $JarPath)) {
-    Write-Host "JAR not found at $JarPath. Building chat-lab module..." -ForegroundColor Yellow
-    & .\mvnw.cmd package -DskipTests -pl chat-lab -am
+$needBuild = $false
+$resolvedJar = Join-Path $projectRoot $JarPath
+if (-not (Test-Path $resolvedJar)) {
+    $needBuild = $true
+} else {
+    $jarTime = (Get-Item $resolvedJar).LastWriteTime
+    $srcFiles = Get-ChildItem -Path (Join-Path $projectRoot "chat-lab\src") -Recurse -File
+    $latestSrc = ($srcFiles | Measure-Object -Property LastWriteTime -Maximum).Maximum
+    if ($latestSrc -and $latestSrc -gt $jarTime) {
+        $needBuild = $true
+    }
 }
 
-Write-Host "Starting java -jar $JarPath --role=all ..." -ForegroundColor Green
-Start-Process "java" -ArgumentList @("-jar", $JarPath, "--role=all")
+if ($needBuild) {
+    Write-Host "[INFO] chat-lab.jar is missing or older than sources. Packaging chat-lab module..." -ForegroundColor Yellow
+    try {
+        & .\mvnw.cmd package -DskipTests -pl chat-lab -am
+        if ($LASTEXITCODE -ne 0) {
+            throw "Maven build failed with exit code $LASTEXITCODE"
+        }
+    } catch {
+        Write-Host "[ERROR] Build failed: $_" -ForegroundColor Red
+        Read-Host "Press Enter to exit..."
+        exit 1
+    }
+}
+
+if (-not (Test-Path $resolvedJar)) {
+    Write-Host "[ERROR] JAR file $resolvedJar not found after build!" -ForegroundColor Red
+    Read-Host "Press Enter to exit..."
+    exit 1
+}
+
+Write-Host "Starting Chat Lab Hub (--role=all)..." -ForegroundColor Green
+$proc = Start-Process "cmd.exe" -ArgumentList @("/k", "java -jar `"$resolvedJar`" --role=all") -PassThru
 
 Write-Host "Waiting for http://127.0.0.1:8090 to answer..." -ForegroundColor Yellow
 $ready = $false
-for ($i = 0; $i -lt 45; $i++) {
+for ($i = 0; $i -lt 30; $i++) {
     try {
         $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8090/api/info" -UseBasicParsing -TimeoutSec 1
         if ($resp.StatusCode -eq 200) {
@@ -44,5 +72,8 @@ if ($ready) {
     Write-Host "Chat Lab Hub is UP and READY! Opening browser at http://127.0.0.1:8090 ..." -ForegroundColor Green
     Start-Process "http://127.0.0.1:8090"
 } else {
-    Write-Host "Warning: Timed out waiting for http://127.0.0.1:8090/api/info" -ForegroundColor Red
+    Write-Host "[ERROR] Timed out waiting for http://127.0.0.1:8090/api/info." -ForegroundColor Red
+    Write-Host "Please check the 'PQC-APS Chat Lab Hub' console window for startup exceptions." -ForegroundColor Red
+    Read-Host "Press Enter to exit..."
+    exit 1
 }

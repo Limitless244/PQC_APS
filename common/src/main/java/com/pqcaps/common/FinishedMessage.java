@@ -2,7 +2,6 @@ package com.pqcaps.common;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Arrays;
 
 /**
  * Key confirmation message sent by the client after receiving ServerHello.

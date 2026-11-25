@@ -1,13 +1,18 @@
 package com.pqcaps.chatlab.web;
 
+import com.pqcaps.chatlab.ChatMode;
 import com.pqcaps.chatlab.HostValidator;
 import com.pqcaps.chatlab.model.ChatMessageRecord;
 import com.pqcaps.chatlab.model.HandshakeStepRecord;
+import com.pqcaps.chatlab.service.ChatLabAttackerService;
 import com.pqcaps.chatlab.service.ChatLabClientService;
+import com.pqcaps.chatlab.service.ChatLabServerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,10 +25,19 @@ public class ClientController {
 
     private final ChatLabClientService clientService;
     private final ChatLabSseService sseService;
+    private final ChatLabServerService serverService;
+    private final ChatLabAttackerService attackerService;
 
-    public ClientController(ChatLabClientService clientService, ChatLabSseService sseService) {
+    @Autowired
+    public ClientController(
+            ChatLabClientService clientService,
+            ChatLabSseService sseService,
+            @Autowired(required = false) ChatLabServerService serverService,
+            @Autowired(required = false) ChatLabAttackerService attackerService) {
         this.clientService = clientService;
         this.sseService = sseService;
+        this.serverService = serverService;
+        this.attackerService = attackerService;
 
         // Hook SSE listeners
         clientService.addStepListener(step -> sseService.broadcastClient("handshake-step", step));
@@ -32,17 +46,19 @@ public class ClientController {
 
     @GetMapping("/status")
     public Map<String, Object> getStatus() {
-        return Map.of(
-                "status", clientService.getConnectionStatus(),
-                "connected", clientService.isConnected(),
-                "mode", clientService.getCurrentMode(),
-                "chosenSuite", clientService.getChosenSuite(),
-                "keyPinned", clientService.isKeyPinned(),
-                "lastError", clientService.getLastError() != null ? clientService.getLastError() : "",
-                "targetPort", clientService.getTargetPort(),
-                "stepCount", clientService.getHandshakeSteps().size(),
-                "messageCount", clientService.getChatHistory().size()
-        );
+        Map<String, Object> res = new HashMap<>();
+        res.put("status", clientService.getConnectionStatus());
+        res.put("connected", clientService.isConnected());
+        res.put("mode", clientService.getCurrentMode());
+        res.put("chosenSuite", clientService.getChosenSuite());
+        res.put("keyPinned", clientService.isKeyPinned());
+        res.put("lastError", clientService.getLastError() != null ? clientService.getLastError() : "");
+        res.put("targetPort", clientService.getTargetPort());
+        res.put("stepCount", clientService.getHandshakeSteps().size());
+        res.put("steps", clientService.getHandshakeSteps());
+        res.put("messageCount", clientService.getChatHistory().size());
+        res.put("history", clientService.getChatHistory());
+        return res;
     }
 
     @GetMapping("/steps")
@@ -83,6 +99,28 @@ public class ClientController {
         }
 
         try {
+            if (serverService != null) {
+                if (!serverService.isRunning()) {
+                    serverService.start();
+                }
+                serverService.setMode(mode);
+                if (ChatMode.HYBRID.equalsIgnoreCase(mode)) {
+                    clientService.setPinnedServerKeyMlDsa(serverService.getServerIdentityMlDsaPublic());
+                } else if (ChatMode.CLASSICAL_HARDENED.equalsIgnoreCase(mode)) {
+                    clientService.setPinnedServerKeyRsa(serverService.getServerIdentityRsaPublic());
+                } else {
+                    clientService.setPinnedServerKeyMlDsa(null);
+                    clientService.setPinnedServerKeyRsa(null);
+                }
+            }
+            if (attackerService != null) {
+                if (serverService != null) {
+                    attackerService.setTargetPort(serverService.getTcpPort());
+                }
+                if (!attackerService.isRunning()) {
+                    attackerService.start();
+                }
+            }
             clientService.connect(host, port, mode, null);
             sseService.broadcastClient("connection-status", Map.of(
                     "status", "CONNECTED",
@@ -97,11 +135,11 @@ public class ClientController {
         } catch (Exception e) {
             sseService.broadcastClient("connection-status", Map.of(
                     "status", "FAILED",
-                    "error", "Handshake failed"
+                    "error", "handshake failed"
             ));
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "FAILED",
-                    "error", "Handshake failed" // Generic error message, never internal details
+                    "error", "handshake failed" // Generic error message, never internal details
             ));
         }
     }
@@ -114,10 +152,19 @@ public class ClientController {
         }
 
         try {
+            if (!clientService.isConnected() || clientService.isSocketClosed()) {
+                connect(null);
+            }
             ChatMessageRecord record = clientService.sendMessage(message);
             return ResponseEntity.ok(record);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Failed to send message: " + e.getMessage()));
+            try {
+                connect(null);
+                ChatMessageRecord record = clientService.sendMessage(message);
+                return ResponseEntity.ok(record);
+            } catch (Exception retryEx) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Failed to send message: " + retryEx.getMessage()));
+            }
         }
     }
 
