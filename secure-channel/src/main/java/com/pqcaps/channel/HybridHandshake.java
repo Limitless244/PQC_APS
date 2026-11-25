@@ -96,11 +96,11 @@ public final class HybridHandshake {
 
         // ── Step 2: Send ClientHello ───────────────────────────────────────
         ClientHello clientHello = new ClientHello(xpk_c, kpk_c, supportedSuites, nonce_c);
+        int chWireBytes = (xpk_c != null) ? 1356 : 1311;
+        HandshakeObserverContext.emit("ClientHello", "CLIENT_TO_SERVER", chWireBytes, hex4(kpk_c), "OK");
         out.writeObject(clientHello);
         out.flush();
         log("[CLIENT] [2/8] Sent ClientHello (suites=%s)", supportedSuites);
-        int chWireBytes = (xpk_c != null) ? 1356 : 1311;
-        HandshakeObserverContext.emit("ClientHello", "CLIENT_TO_SERVER", chWireBytes, hex4(kpk_c), "OK");
 
         // ── Step 4: Receive ServerHello ────────────────────────────────────
         ServerHello serverHello = (ServerHello) in.readObject();
@@ -174,10 +174,10 @@ public final class HybridHandshake {
         // ── Step 6: Send Client Finished Message ───────────────────────────
         byte[] finishedVerifyData = HybridKeySchedule.computeFinished(sessionKeys.finishedKey(), transcriptHash);
         FinishedMessage clientFinished = new FinishedMessage(finishedVerifyData);
+        HandshakeObserverContext.emit("ClientFinished", "CLIENT_TO_SERVER", 127, hex4(finishedVerifyData), "OK");
         out.writeObject(clientFinished);
         out.flush();
         log("[CLIENT] [6/8] Sent Finished message (verifyData=%s...)", hex4(finishedVerifyData));
-        HandshakeObserverContext.emit("ClientFinished", "CLIENT_TO_SERVER", 127, hex4(finishedVerifyData), "OK");
 
         // ── Step 7: Receive & Verify Server Finished (Mutual Confirmation) ──
         FinishedMessage serverFinished;
@@ -286,11 +286,11 @@ public final class HybridHandshake {
 
         // ── Step 4: Send ServerHello ───────────────────────────────────────
         ServerHello serverHello = new ServerHello(xpk_s, ct, chosenSuite, nonce_s, signature);
+        int shWireBytes = (xpk_s != null) ? 4488 : 4444;
+        HandshakeObserverContext.emit("ServerHello", "SERVER_TO_CLIENT", shWireBytes, hex4(signature), "OK");
         out.writeObject(serverHello);
         out.flush();
         log("[SERVER] [4/8] Sent ServerHello to client");
-        int shWireBytes = (xpk_s != null) ? 4488 : 4444;
-        HandshakeObserverContext.emit("ServerHello", "SERVER_TO_CLIENT", shWireBytes, hex4(signature), "OK");
 
         // ── Step 6: Receive & Verify Client Finished ───────────────────────
         FinishedMessage clientFinished = (FinishedMessage) in.readObject();
@@ -309,10 +309,10 @@ public final class HybridHandshake {
         byte[] serverTranscriptHash = sha256(concat(transcriptHash, clientFinished.verifyData()));
         byte[] serverVerifyData = HybridKeySchedule.computeFinished(sessionKeys.finishedKey(), serverTranscriptHash);
         FinishedMessage serverFinished = new FinishedMessage(serverVerifyData);
+        HandshakeObserverContext.emit("ServerFinished", "SERVER_TO_CLIENT", 127, hex4(serverVerifyData), "OK");
         out.writeObject(serverFinished);
         out.flush();
         log("[SERVER] [7/8] Sent Server Finished (verifyData=%s...)", hex4(serverVerifyData));
-        HandshakeObserverContext.emit("ServerFinished", "SERVER_TO_CLIENT", 127, hex4(serverVerifyData), "OK");
 
         log("[SERVER] [8/8] Handshake complete! Channel established.");
         return new HandshakeOutcome(sessionKeys, chosenSuite);

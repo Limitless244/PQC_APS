@@ -1,7 +1,7 @@
 {
-  "scanId" : "49d2caf5-76e1-414a-9ec5-8dba74ee57cc",
+  "scanId" : "50a9b893-ccca-4431-a49c-ef1ca3016443",
   "target" : "Directory: .",
-  "timestamp" : "2026-11-24T14:01:40.304844700Z",
+  "timestamp" : "2026-11-25T17:40:24.182812400Z",
   "summary" : {
     "totalFindings" : 61,
     "countsBySeverity" : {
@@ -17,11 +17,11 @@
     "quantumReadiness" : 73.2
   },
   "findings" : [ {
-    "id" : "36210103-56fd-45f4-a509-7e2953430eb0",
+    "id" : "2d8a3fe6-eab1-4173-8b00-dc5110ee48d2",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/SecurityMatrixRunner.java",
-    "line" : 337,
+    "line" : 389,
     "redactedSnippet" : "byte[] nonce = new byte[12];",
     "algorithm" : "Static/Zero IV",
     "quantumVulnerable" : false,
@@ -31,11 +31,11 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "4ef6ee0b-084f-40e5-a803-adbefdea34a8",
+    "id" : "fdd7e759-a5d7-4e16-9c1f-141afef57584",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/SecurityMatrixRunner.java",
-    "line" : 440,
+    "line" : 492,
     "redactedSnippet" : "byte[] nonce = new byte[12];",
     "algorithm" : "Static/Zero IV",
     "quantumVulnerable" : false,
@@ -45,11 +45,11 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "f3852245-4375-442b-9361-f4df38537897",
+    "id" : "95fed633-61bb-4902-b266-bc21613c01ae",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/SecurityMatrixRunner.java",
-    "line" : 465,
+    "line" : 517,
     "redactedSnippet" : "byte[] nonce = new byte[12];",
     "algorithm" : "Static/Zero IV",
     "quantumVulnerable" : false,
@@ -59,7 +59,7 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "dc73db05-e19e-4a2a-82d3-cfdc222fc897",
+    "id" : "9f83cbca-dff5-43cb-819a-1c6fc72be3d9",
     "ruleId" : "RULE-RC4-BLOWFISH",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -73,7 +73,7 @@
     "recommendation" : "Replace immediately with AES-256-GCM or ChaCha20-Poly1305.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "e9f87562-4aa1-4cd2-bedc-6e005d16e4e6",
+    "id" : "740cfbba-14f2-4297-a368-ca1a5bd34f3c",
     "ruleId" : "RULE-RC4-BLOWFISH",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -87,7 +87,7 @@
     "recommendation" : "Replace immediately with AES-256-GCM or ChaCha20-Poly1305.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "3edae891-dbbb-49ee-b548-a523d6593013",
+    "id" : "0e933e4c-fdf1-474b-b56c-7c682203dc05",
     "ruleId" : "RULE-RC4-BLOWFISH",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -101,7 +101,7 @@
     "recommendation" : "Replace immediately with AES-256-GCM or ChaCha20-Poly1305.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "a4c14b6e-bdae-43e6-bc9f-fa11c1e3f852",
+    "id" : "8639fdbe-7562-4a49-b815-a8452a471a49",
     "ruleId" : "RULE-RSA-WEAK",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -115,7 +115,7 @@
     "recommendation" : "Upgrade immediately to ML-KEM-768/ML-DSA-65, or minimum RSA-3072 as a temporary classical measure.",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "ab434c7c-01bf-4aaf-8215-0baacd1d3da5",
+    "id" : "ce386b64-9352-47a7-a375-2ab35336ffe1",
     "ruleId" : "RULE-DES-3DES",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -129,7 +129,7 @@
     "recommendation" : "Migrate to AES-256-GCM (Authenticated Encryption with Associated Data).",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "d116da1a-f04a-4997-baef-868c8e37d9b4",
+    "id" : "b8cc4b4b-7e72-42dc-90d9-5cf7ce2a9060",
     "ruleId" : "RULE-RC4-BLOWFISH",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -143,7 +143,7 @@
     "recommendation" : "Replace immediately with AES-256-GCM or ChaCha20-Poly1305.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "e480ef7f-3a53-43c8-8eb0-775e93a4f57d",
+    "id" : "a02ab1b3-2baf-46f8-be0b-2039b2140987",
     "ruleId" : "RULE-AES-ECB",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -157,7 +157,7 @@
     "recommendation" : "Use AES-GCM or AES-CBC with HMAC; prefer authenticated AEAD ciphers.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "5fc5b993-9780-4a00-9ad7-b07c011f5eae",
+    "id" : "5c9534d3-0656-4499-80d5-9d160f0395c1",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -171,7 +171,7 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "fe46cd79-eb49-4596-9c29-e040576d235d",
+    "id" : "d91c5dc5-dde5-4c86-99af-7d906fd43f66",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -185,7 +185,7 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "20dcad8f-14bc-48d9-8e5d-df1593700d48",
+    "id" : "3674df19-1a4e-4a87-b63a-4e58562130d5",
     "ruleId" : "RULE-HARDCODED-SECRET",
     "category" : "SECRET_HARDCODED",
     "file" : "benchmark-dashboard/src/test/java/com/pqcaps/dashboard/service/ChatDemoTest.java",
@@ -199,7 +199,7 @@
     "recommendation" : "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately.",
     "migrationTarget" : "Environment Variable / Hardware Security Module / Vault"
   }, {
-    "id" : "10469ba9-15b5-4a56-8d12-548a13bcbc1d",
+    "id" : "04312eb0-1bbc-4b3c-b388-9d77b3b81ca8",
     "ruleId" : "RULE-HARDCODED-SECRET",
     "category" : "SECRET_HARDCODED",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/FilterAndLimitsTest.java",
@@ -213,7 +213,7 @@
     "recommendation" : "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately.",
     "migrationTarget" : "Environment Variable / Hardware Security Module / Vault"
   }, {
-    "id" : "d1816adc-eff4-4c71-8425-7e607d467143",
+    "id" : "225b787a-3c77-44d1-b0c4-4c61b9309f8b",
     "ruleId" : "RULE-HARDCODED-SECRET",
     "category" : "SECRET_HARDCODED",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -227,7 +227,7 @@
     "recommendation" : "Externalize secrets to a secure vault (KMS, Vault, environment variable) and rotate immediately.",
     "migrationTarget" : "Environment Variable / Hardware Security Module / Vault"
   }, {
-    "id" : "6b4abc62-2d55-4f6f-83df-4923d3113542",
+    "id" : "b60123df-ff84-40d9-9f23-b9447ea7e0c5",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/ClassicalWeakCryptoSuite.java",
@@ -241,7 +241,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "a7b49bbc-bcd8-45f5-ad59-e62149d117de",
+    "id" : "547b21e2-ffc0-47c6-9683-086f1f951c02",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/ClassicalWeakCryptoSuite.java",
@@ -255,7 +255,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "acf6b182-978e-4801-98ac-698910d127ff",
+    "id" : "dcfad752-eb66-442e-b27a-af5433d1376a",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "classical/src/main/java/com/pqcaps/classical/RsaSigner.java",
@@ -269,7 +269,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "5d94bdeb-4327-4669-a25f-42fe375be0d9",
+    "id" : "3874615c-a8da-42b6-934d-89612826590c",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "classical/src/main/java/com/pqcaps/classical/RsaSigner.java",
@@ -283,7 +283,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "e9a798c6-c736-412f-920f-ab864ee0828e",
+    "id" : "f50db26d-0fbf-422f-b312-2e17bd9b5ec8",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -297,7 +297,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "08381802-c67b-451b-bd9b-64a5858a716a",
+    "id" : "9a551528-bd91-4881-9e6c-65f889dadf74",
     "ruleId" : "RULE-ECC",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -311,7 +311,7 @@
     "recommendation" : "Deploy a hybrid key exchange combining X25519 with ML-KEM-768, and migrate authentication to ML-DSA-65.",
     "migrationTarget" : "Hybrid X25519 + ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "1430111d-f8fb-4d6d-88bb-c2967cfd13c1",
+    "id" : "0ffc0043-b2aa-4e68-a492-e6d62e684946",
     "ruleId" : "RULE-ECC",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -325,7 +325,7 @@
     "recommendation" : "Deploy a hybrid key exchange combining X25519 with ML-KEM-768, and migrate authentication to ML-DSA-65.",
     "migrationTarget" : "Hybrid X25519 + ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "cf161e5f-eaf0-42ad-abd1-06b6e0909ef7",
+    "id" : "27725d79-f742-4e25-a1be-79910656d32f",
     "ruleId" : "RULE-DH-DSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -339,7 +339,7 @@
     "recommendation" : "Migrate key establishment to ML-KEM-768 and signatures to ML-DSA-65.",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "0f27ab42-9c2b-4e0d-ac37-e79ad56f88b6",
+    "id" : "4c3a3d6c-7c07-4ccf-b3d4-aeb9982b7c79",
     "ruleId" : "RULE-DH-DSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -353,11 +353,11 @@
     "recommendation" : "Migrate key establishment to ML-KEM-768 and signatures to ML-DSA-65.",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "fab14067-eb08-44c1-b3e7-5428821cf366",
+    "id" : "78d1b0d4-e6c7-40cc-8f2a-d47b0ea88942",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/TlsScannerTest.java",
-    "line" : 43,
+    "line" : 42,
     "redactedSnippet" : "KeyPairGenerator kpg = KeyPairGenerator.getInstance(\"RSA\");",
     "algorithm" : "RSA-2048",
     "quantumVulnerable" : true,
@@ -367,7 +367,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "3c2b9202-a921-4c91-b065-77d786f6883e",
+    "id" : "55af9f44-055a-4b66-85f2-725298ec06bd",
     "ruleId" : "RULE-WEAK-RNG",
     "category" : "RNG_WEAK",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -381,7 +381,7 @@
     "recommendation" : "Always use java.security.SecureRandom for keys, nonces, IVs, salts, and session tokens.",
     "migrationTarget" : "java.security.SecureRandom"
   }, {
-    "id" : "1dd14eec-4d86-4f5f-942b-11dc244ed48e",
+    "id" : "3276ac28-5888-4cb5-8bf8-c5cce23467d1",
     "ruleId" : "RULE-MD5",
     "category" : "HASH_BROKEN",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -395,7 +395,7 @@
     "recommendation" : "Replace with SHA-256, SHA-384, or SHA3-256.",
     "migrationTarget" : "SHA-256 / SHA-384"
   }, {
-    "id" : "9ecc2432-62b7-4427-83c1-f9e8284072ca",
+    "id" : "c585357d-8567-492d-984b-8d9418b28cb1",
     "ruleId" : "RULE-MD5",
     "category" : "HASH_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -409,7 +409,7 @@
     "recommendation" : "Replace with SHA-256, SHA-384, or SHA3-256.",
     "migrationTarget" : "SHA-256 / SHA-384"
   }, {
-    "id" : "c2ddbef0-6a98-479c-8a9f-980c6edaefab",
+    "id" : "be0201f9-8e6b-4223-b2b9-f42583b8d2c0",
     "ruleId" : "RULE-SHA1",
     "category" : "HASH_BROKEN",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -423,7 +423,7 @@
     "recommendation" : "Migrate to SHA-256, SHA-384, or SHA-512.",
     "migrationTarget" : "SHA-256 / SHA-384"
   }, {
-    "id" : "803a93b7-01e7-495b-8ca2-322614faae5e",
+    "id" : "2c5ae533-a324-4536-918d-4c6bcb63edf3",
     "ruleId" : "RULE-AES128",
     "category" : "SYMMETRIC_INFO",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -437,7 +437,7 @@
     "recommendation" : "Upgrade to AES-256 for long-term data protection to retain 128-bit post-quantum security margin.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "49868975-fc50-47f0-a00e-9cace61903cc",
+    "id" : "1a41d2f5-96f5-4686-9324-2ea834cc3bd6",
     "ruleId" : "RULE-AES128",
     "category" : "SYMMETRIC_INFO",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -451,11 +451,11 @@
     "recommendation" : "Upgrade to AES-256 for long-term data protection to retain 128-bit post-quantum security margin.",
     "migrationTarget" : "AES-256-GCM"
   }, {
-    "id" : "58ff57d9-ddf5-4764-828c-a7b51e9cedfd",
+    "id" : "4d6937e6-29b3-4168-a2e6-a2c4940ddb2c",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 265,
+    "line" : 270,
     "redactedSnippet" : "noteEl.textContent = 'Hybrid combines classical X25519 with post-quantum ML-KEM-768 for forward secrecy and ML-DSA-65 signatures for authentication.';",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -465,11 +465,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "c9198fe2-13c1-43dd-b0b7-ba68a18827a6",
+    "id" : "d8e085ec-5a93-451d-815e-0e2cd2fa3b03",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 267,
+    "line" : 272,
     "redactedSnippet" : "noteEl.textContent = 'PQ_ONLY uses pure lattice-based cryptography: ML-KEM-768 for encapsulation and ML-DSA-65 for identity signatures.';",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -479,11 +479,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "a0a0e601-df05-4fb5-86c9-d2b67eab4d02",
+    "id" : "ad64d8fb-9154-46d9-ba45-b141ce2b8409",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 625,
+    "line" : 630,
     "redactedSnippet" : "const mlKemPk = findSize('PRIMITIVE_KEY', 'ML-KEM-768 Encapsulation Key') || 1184;",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -493,11 +493,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "77484c6d-0089-4a52-b08d-bd490a8c8710",
+    "id" : "bba063c1-93c3-42a3-8b43-fd1cf0f374fb",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 627,
+    "line" : 632,
     "redactedSnippet" : "const mlDsaSig = findSize('SIGNATURE', 'ML-DSA-65 Signature') || 3309;",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -507,11 +507,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "5f803f84-7be4-4048-9750-5bf5e5420c20",
+    "id" : "250b0d87-f6a2-477d-bf00-eb62757beb92",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 655,
+    "line" : 660,
     "redactedSnippet" : "escapeHtml(keyRatio) + 'x on raw key material (' + escapeHtml(hybridRaw.toLocaleString()) + ' B vs ' + escapeHtml(classicalRaw.toLocaleString()) + ' B) due to ML-KEM-768 encapsulation key (' +",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -521,11 +521,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "cf191f0d-ccae-4169-adde-25f3f7bc63aa",
+    "id" : "c2db8a8c-d047-4453-bb57-6e11aa96ac4b",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 656,
+    "line" : 661,
     "redactedSnippet" : "escapeHtml(mlKemPk.toLocaleString()) + ' B) and ML-DSA-65 signature (' + escapeHtml(mlDsaSig.toLocaleString()) + ' B). In return, it guarantees post-quantum forward secrecy with minimal CPU overhead.';",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -535,11 +535,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "8ca533ae-b50b-4955-8894-96ba8587450b",
+    "id" : "354a2aa1-abce-472f-922d-a99d03d8d583",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 671,
+    "line" : 676,
     "redactedSnippet" : "callout.innerHTML = '<strong>Pure Post-Quantum:</strong> PQ_ONLY drops classical X25519 entirely, relying exclusively on ML-KEM-768 and ML-DSA-65. Handshake wire size is ' +",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -549,7 +549,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "bf248210-2d7f-409d-94df-945886505895",
+    "id" : "487783a0-0ca2-4ea5-b97d-2a338c282845",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -563,7 +563,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "fa7491a8-743f-4a3e-9762-ac27037a34f1",
+    "id" : "eb39980c-8881-4e8b-be43-17dfb87743b7",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -577,7 +577,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "57e71f1a-c770-4fea-ada6-5a5faebe0056",
+    "id" : "15e41c9a-4b14-43d9-9600-7328d0ce2034",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -591,7 +591,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "11e6be66-ce82-449e-8331-b940c8995136",
+    "id" : "f5de0827-6a9f-4ef2-bfa6-a62801749682",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -605,7 +605,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "cac8d775-d8c1-449d-abd9-1230c49ba91a",
+    "id" : "1ca24e8c-986e-4bd9-bdd5-394a024c7099",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -619,7 +619,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "0df37e18-6e6f-4b51-980d-d483eee32157",
+    "id" : "baf6be3e-ccf6-4407-a8c9-61343d0ed34c",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -633,7 +633,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "c7cf609a-b7c7-4606-9d1f-1a1d68dca80d",
+    "id" : "855ace72-b9d7-4b59-82bd-bd8c4d926372",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -647,7 +647,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "ef1dc170-de65-43ed-a65b-7da652f4fb7c",
+    "id" : "c4146809-1764-4172-b015-fc193f3bd5ca",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -661,7 +661,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "ab5a466e-bda8-4f56-81ed-20492d8f0aac",
+    "id" : "fde39fb0-d359-4293-a028-eeb82ac42ce2",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -675,7 +675,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "4e59b145-761e-4977-9e24-4fb96b71b1cf",
+    "id" : "4d8ebc84-5ece-4ffb-a936-784d204e347b",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -689,7 +689,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "a5414f8f-932d-4b9d-b882-9728f8e0018d",
+    "id" : "6852bf1f-ee5f-4486-bfa3-7c5515d81af4",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -703,7 +703,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "7c897eef-e4dd-4a68-b45d-ea5f21999c5a",
+    "id" : "34b56337-e113-4e98-b100-fbbd5678c089",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -717,7 +717,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "2167f96e-7a8b-49d0-9bd0-3a5ce909be3f",
+    "id" : "ec3eaa8f-6069-45ca-8e18-f356306b70d4",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -731,7 +731,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "b6643f73-1a80-47b4-85fe-9b78612a1182",
+    "id" : "98c9b182-ff93-4ecf-9f75-2e9eafafc8ab",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -745,7 +745,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "41efe53d-bc21-4184-81d7-15284b6951ab",
+    "id" : "375fe19d-02c0-4acf-8343-f4e15631cbfa",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -759,7 +759,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "60f5e5a0-0c62-4fcd-847a-229bbc1f6bbd",
+    "id" : "119b4695-d431-4d07-91d7-c31311efdce6",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -773,7 +773,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "02a060b2-2e62-4b6a-b1d0-1e319972fb8e",
+    "id" : "01e30cd1-98f6-467e-9698-e2a0bfbe7677",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -787,7 +787,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "6b431ccd-0e14-4649-ac11-d5f6f49b70f8",
+    "id" : "96e663de-7ed6-4ec3-a76e-24cbd8034651",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -801,7 +801,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "949f0341-e6b9-4aed-b112-96b1afcb5754",
+    "id" : "70bfa83d-489c-4ed4-a256-68ce9231bf66",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/main/resources/rules.yaml",
@@ -815,7 +815,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "83d813da-a925-4e58-ae54-a162b80e1590",
+    "id" : "edc667cf-c783-44cc-97be-d92838538fa9",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -829,7 +829,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "36b4bf3a-7485-4f89-ba6b-24f767fbc3ba",
+    "id" : "7893efcc-7e3d-43de-8ea4-d517d09fee65",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-scanner/src/test/java/com/pqcaps/scanner/SourceScannerRulesTest.java",
@@ -843,11 +843,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "34443b9e-f7a0-4623-a8aa-0bfeaa841835",
+    "id" : "00e3f17c-5521-4f34-8f17-dd583d7b7afa",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "pom.xml",
-    "line" : 47,
+    "line" : 48,
     "redactedSnippet" : "<!-- Bouncy Castle — NIST-compliant ML-KEM-768 / ML-DSA-65 -->",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -857,11 +857,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "58fc8807-e10c-4898-b5a2-604d06d755ec",
+    "id" : "858c1829-f466-4491-8a74-5091ce76db3a",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "pom.xml",
-    "line" : 75,
+    "line" : 76,
     "redactedSnippet" : "<!-- Bouncy Castle provider (ML-KEM, ML-DSA, HKDF, AES-GCM) -->",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,

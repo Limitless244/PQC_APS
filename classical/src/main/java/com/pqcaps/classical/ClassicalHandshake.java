@@ -67,10 +67,10 @@ public final class ClassicalHandshake {
         rng.nextBytes(nonce_c);
         List<String> offeredSuites = (suites != null && !suites.isEmpty()) ? suites : List.of("CLASSICAL");
         ClientHello hello = new ClientHello(xpk_c, offeredSuites, nonce_c);
+        HandshakeObserverContext.emit("ClientHello", "CLIENT_TO_SERVER", 111, hex4(xpk_c), "OK");
         out.writeObject(hello);
         out.flush();
         log("[CLIENT] [2/5] Sent ClientHello  nonce_c=%s...  suites=%s", hex4(nonce_c), offeredSuites);
-        HandshakeObserverContext.emit("ClientHello", "CLIENT_TO_SERVER", 111, hex4(xpk_c), "OK");
 
         // ── Step 3: receive ServerHello ───────────────────────────────────────
         ServerHello sh = (ServerHello) in.readObject();
@@ -160,10 +160,10 @@ public final class ClassicalHandshake {
 
         byte[] sig = suite.signatureScheme().sign(serverIdentity.getPrivate(), transcript);
         ServerHello sh = new ServerHello(xpk_s, chosenSuite, nonce_s, sig);
+        HandshakeObserverContext.emit("ServerHello", "SERVER_TO_CLIENT", 390, hex4(xpk_s), "OK");
         out.writeObject(sh);
         out.flush();
         log("[SERVER] [3/4] Sent ServerHello  suite=%s  nonce_s=%s...  sig=%s...", chosenSuite, hex4(nonce_s), hex4(sig));
-        HandshakeObserverContext.emit("ServerHello", "SERVER_TO_CLIENT", 390, hex4(xpk_s), "OK");
 
         // ── Step 4: derive session keys ───────────────────────────────────────
         SessionKeys keys = deriveSessionKeys(ss, hello.nonce_c(), nonce_s);

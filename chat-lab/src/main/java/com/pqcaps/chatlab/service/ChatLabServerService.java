@@ -204,8 +204,8 @@ public class ChatLabServerService {
             String mode = this.currentMode;
             SessionKeys sessionKeys;
             String chosenSuite;
-            ReplayGuard replayGuard = null;
-            TamperGuard tamperGuard = null;
+            final ReplayGuard replayGuard = new ReplayGuard();
+            final TamperGuard tamperGuard = new TamperGuard();
             AesGcmCipher cipher = new AesGcmCipher();
 
             if (ChatMode.CLASSICAL_VULNERABLE.equalsIgnoreCase(mode)) {
@@ -220,16 +220,12 @@ public class ChatLabServerService {
                         ClassicalHandshake.serverHandshakeFull(in, out, HandshakeConfig.hardened(), serverIdentityRsa);
                 sessionKeys = outcome.sessionKeys();
                 chosenSuite = outcome.chosenSuite();
-                replayGuard = new ReplayGuard();
-                tamperGuard = new TamperGuard();
             } else {
                 // HYBRID: FIPS 203 ML-KEM-768 + X25519, FIPS 204 ML-DSA-65 identity, ReplayGuard, TamperGuard
                 HybridHandshake.HandshakeOutcome outcome =
                         HybridHandshake.serverHandshake(out, in, serverIdentityMlDsa.getPrivate(), this.rejectClassical);
                 sessionKeys = outcome.sessionKeys();
                 chosenSuite = outcome.chosenSuite();
-                replayGuard = new ReplayGuard();
-                tamperGuard = new TamperGuard();
             }
 
             log.info("[SERVER-BOB] Handshake complete! Negotiated suite: {}", chosenSuite);
@@ -239,7 +235,6 @@ public class ChatLabServerService {
             this.serverSendSeq.set(0);
 
             // ── Record Phase Loop ──────────────────────────────────────────
-            long expectedSeq = 0;
             while (running.get() && !socket.isClosed()) {
                 Object obj;
                 try {

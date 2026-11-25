@@ -1,13 +1,11 @@
 package com.pqcaps.chatlab;
 
-import com.pqcaps.attack.DetectionEvent;
 import com.pqcaps.attack.EventLog;
 import com.pqcaps.chatlab.model.ChatMessageRecord;
 import com.pqcaps.chatlab.service.ChatLabAttackerService;
 import com.pqcaps.chatlab.service.ChatLabClientService;
 import com.pqcaps.chatlab.service.ChatLabServerService;
 import com.pqcaps.chatlab.service.GuidedDemoService;
-import com.pqcaps.chatlab.web.HubController;
 import com.pqcaps.chatlab.web.SecurityHeadersFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +20,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -193,7 +192,7 @@ class ChatLabHubTest {
 
         // POST /api/hub/mode
         mockMvc.perform(post("/api/hub/mode")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"mode\":\"CLASSICAL-HARDENED\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.globalMode").value("CLASSICAL-HARDENED"))
@@ -212,7 +211,7 @@ class ChatLabHubTest {
 
         // POST /api/hub/demo/replay
         mockMvc.perform(post("/api/hub/demo/replay")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .content("{\"mode\":\"HYBRID\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.attack").value("REPLAY"))

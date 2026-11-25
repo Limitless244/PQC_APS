@@ -65,6 +65,7 @@ public class ChatLabClientService {
     private ClassicalSecureChannel secureChannel;
     private Thread receiverThread;
     private final AtomicLong messageCounter = new AtomicLong(0);
+    private final AtomicLong sessionGeneration = new AtomicLong(0);
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
     private PublicKey pinnedServerKeyMlDsa;
@@ -214,19 +215,22 @@ public class ChatLabClientService {
         if (receiverThread != null && receiverThread.isAlive()) {
             receiverThread.interrupt();
         }
-        receiverThread = new Thread(this::receiveLoop, "chat-lab-client-receiver");
+        final long myGen = sessionGeneration.incrementAndGet();
+        final ClassicalSecureChannel myChannel = this.secureChannel;
+        final Socket mySocket = this.clientSocket;
+        receiverThread = new Thread(() -> receiveLoop(myGen, myChannel, mySocket), "chat-lab-client-receiver");
         receiverThread.setDaemon(true);
         receiverThread.start();
     }
 
-    private void receiveLoop() {
+    private void receiveLoop(long myGen, ClassicalSecureChannel myChannel, Socket mySocket) {
         log.info("[CLIENT] Started asynchronous receive loop");
-        while (connected.get() && secureChannel != null) {
+        while (connected.get() && sessionGeneration.get() == myGen && myChannel != null) {
             try {
-                byte[] reply = secureChannel.receive();
+                byte[] reply = myChannel.receive();
                 if (reply == null) break;
                 String replyText = new String(reply, StandardCharsets.UTF_8);
-                long seq = secureChannel.getRecvSeq() - 1;
+                long seq = myChannel.getRecvSeq() - 1;
                 log.info("[CLIENT] Received incoming record seq={} (\"{}\")", seq, replyText);
 
                 if (replyText.startsWith("ACK: ")) {
@@ -274,14 +278,20 @@ public class ChatLabClientService {
                 continue;
             } catch (Exception e) {
                 log.warn("[CLIENT] Error in receive loop: {}", e.getMessage());
-                if (clientSocket == null || clientSocket.isClosed()) {
+                if (mySocket == null || mySocket.isClosed()) {
                     break;
                 }
                 continue;
             }
         }
         log.info("[CLIENT] Asynchronous receive loop ended");
-        disconnect();
+        disconnectIfSession(myGen);
+    }
+
+    private synchronized void disconnectIfSession(long expectedGen) {
+        if (sessionGeneration.get() == expectedGen) {
+            disconnect();
+        }
     }
 
     public boolean isSocketClosed() {
@@ -289,6 +299,7 @@ public class ChatLabClientService {
     }
 
     public synchronized void disconnect() {
+        sessionGeneration.incrementAndGet();
         connected.set(false);
         if (receiverThread != null && receiverThread.isAlive()) {
             receiverThread.interrupt();

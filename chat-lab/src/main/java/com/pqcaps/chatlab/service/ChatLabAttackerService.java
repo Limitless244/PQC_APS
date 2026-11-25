@@ -1,6 +1,5 @@
 package com.pqcaps.chatlab.service;
 
-import com.pqcaps.chatlab.ChatMode;
 import com.pqcaps.chatlab.HostValidator;
 import com.pqcaps.chatlab.model.AttackerActionOutcome;
 import com.pqcaps.chatlab.model.CapturedTrafficRecord;

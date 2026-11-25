@@ -6,12 +6,9 @@ import com.pqcaps.chatlab.ChatMode;
 import com.pqcaps.chatlab.HostValidator;
 import com.pqcaps.chatlab.model.CapturedTrafficRecord;
 import com.pqcaps.chatlab.model.ChatMessageRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Executes automated guided attack demonstrations through real localhost TCP sockets.
@@ -19,8 +16,6 @@ import java.util.Map;
  */
 @Service
 public class GuidedDemoService {
-
-    private static final Logger log = LoggerFactory.getLogger(GuidedDemoService.class);
 
     private final ChatLabServerService serverService;
     private final ChatLabAttackerService attackerService;

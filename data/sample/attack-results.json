@@ -4,6 +4,7 @@
   "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
+  "detected" : false,
   "eventId" : null,
   "detail" : "ClientHello suites [HYBRID, CLASSICAL] stripped to [CLASSICAL] -> accepted by vulnerable server without detection"
 }, {
@@ -12,7 +13,8 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "2c7a3124-674f-4c21-be20-5df27856f0fc",
+  "detected" : true,
+  "eventId" : "181c1879-d1f8-4049-a505-edc5c9d321a0",
   "detail" : "ClientHello suites stripped -> signature verification over transcript failed, suite tampering blocked"
 }, {
   "attack" : "Downgrade",
@@ -20,7 +22,8 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "5ab76443-adaf-4c93-8cbf-cda0b2792ce1",
+  "detected" : true,
+  "eventId" : "c6083a2c-8bac-4d91-a119-8c14c6ed6016",
   "detail" : "Server policy (rejectClassical=true) rejected classical-only suite; signed transcript check (rejectClassical=false) detected ML-DSA-65 signature mismatch"
 }, {
   "attack" : "MITM",
@@ -28,6 +31,7 @@
   "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
+  "detected" : false,
   "eventId" : null,
   "detail" : "Rogue server presented untrusted RSA key -> accepted by vulnerable client with key pinning disabled"
 }, {
@@ -36,7 +40,8 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "59695d51-230e-4bc1-903a-c7e31efb758a",
+  "detected" : true,
+  "eventId" : "c0b20839-c06c-44ba-a677-ababc2f20435",
   "detail" : "Rogue server presented untrusted RSA key -> pinned key check failed, rogue server rejected"
 }, {
   "attack" : "MITM",
@@ -44,7 +49,8 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "fd5453f0-b708-4d7a-822f-70be44a7ef19",
+  "detected" : true,
+  "eventId" : "73539a08-b6a5-483f-9eda-2698b3af8e0a",
   "detail" : "Rogue server presented unpinned ML-DSA-65 key -> signature verification against pinned key failed"
 }, {
   "attack" : "Replay",
@@ -52,6 +58,7 @@
   "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
+  "detected" : false,
   "eventId" : null,
   "detail" : "Record seq=0 re-sent -> accepted duplicate record by vulnerable channel without sequence validation"
 }, {
@@ -60,7 +67,8 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "abceb7e3-aad1-46cc-8cb1-2e9af00b041a",
+  "detected" : true,
+  "eventId" : "f445b3e4-6666-4bf3-bfaa-bcc95d6920de",
   "detail" : "Record seq=0 re-sent -> rejected duplicate sequence number by ReplayGuard"
 }, {
   "attack" : "Replay",
@@ -68,7 +76,8 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "9b769250-6643-4b59-8f96-dc84db3b1a89",
+  "detected" : true,
+  "eventId" : "7f26b9c2-721a-4dbe-8d17-5e250a55c14f",
   "detail" : "Record seq=0 re-sent -> rejected by ReplayGuard"
 }, {
   "attack" : "Nonce Reuse",
@@ -76,6 +85,7 @@
   "status" : "SUCCEEDED",
   "attackSucceeded" : true,
   "defenceTriggered" : false,
+  "detected" : false,
   "eventId" : null,
   "detail" : "Two plaintexts encrypted under same nonce=0 -> keystream reused, C1^C2 leaked P1^P2"
 }, {
@@ -84,7 +94,8 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "b3d89ad6-271e-4d26-a94e-bdb08b1b93a4",
+  "detected" : true,
+  "eventId" : "84c5251c-7da8-45a4-abc3-cc76daaaf4d2",
   "detail" : "Attempted nonce counter reset -> reset refused by NonceGuard"
 }, {
   "attack" : "Nonce Reuse",
@@ -92,23 +103,26 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "02964228-8741-4173-bce0-1647c76d6c49",
+  "detected" : true,
+  "eventId" : "940047ce-3ed1-457a-ab74-b7f293ef1cd0",
   "detail" : "Duplicate nonce presented -> blocked by NonceManager"
 }, {
   "attack" : "Tampering",
   "mode" : "CLASSICAL-VULNERABLE",
   "status" : "UNDETECTED",
-  "attackSucceeded" : true,
+  "attackSucceeded" : false,
   "defenceTriggered" : false,
+  "detected" : false,
   "eventId" : null,
-  "detail" : "Attacker flipped bit in ciphertext -> GCM decryption threw raw exception with zero detection telemetry logged (error oracle risk; UNDETECTED tampering)"
+  "detail" : "Attacker flipped bit in ciphertext -> GCM decryption threw raw exception with zero detection telemetry logged (no detection telemetry; UNDETECTED tampering)"
 }, {
   "attack" : "Tampering",
   "mode" : "CLASSICAL-HARDENED",
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "95d95fcb-3962-48d1-a509-a1370767b960",
+  "detected" : true,
+  "eventId" : "8c78dd24-515a-45ce-8cb5-f5b4d1869d10",
   "detail" : "Ciphertext bit flipped -> TamperGuard caught tag mismatch"
 }, {
   "attack" : "Tampering",
@@ -116,6 +130,7 @@
   "status" : "BLOCKED",
   "attackSucceeded" : false,
   "defenceTriggered" : true,
-  "eventId" : "6cb0358d-b1a9-41c5-98b2-967dcc3d0523",
+  "detected" : true,
+  "eventId" : "34edb09d-d6f4-4853-9d68-bbd6c6f35b1d",
   "detail" : "ML-KEM ciphertext bit flipped -> Finished verification failed via implicit rejection"
 } ]

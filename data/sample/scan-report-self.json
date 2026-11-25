@@ -1,7 +1,7 @@
 {
-  "scanId" : "0f8be189-6a9a-4a2a-aca1-1fecc329c541",
+  "scanId" : "a741d6d7-c360-4190-89db-272be227207b",
   "target" : "Directory: .",
-  "timestamp" : "2026-11-24T14:01:38.342921800Z",
+  "timestamp" : "2026-11-25T17:40:22.600997500Z",
   "summary" : {
     "totalFindings" : 20,
     "countsBySeverity" : {
@@ -17,11 +17,11 @@
     "quantumReadiness" : 76.5
   },
   "findings" : [ {
-    "id" : "160d4f0a-f01b-40b5-99d9-777b58a3d584",
+    "id" : "25bded2f-26b8-472a-bbf1-d476cbbafb2b",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/SecurityMatrixRunner.java",
-    "line" : 337,
+    "line" : 389,
     "redactedSnippet" : "byte[] nonce = new byte[12];",
     "algorithm" : "Static/Zero IV",
     "quantumVulnerable" : false,
@@ -31,11 +31,11 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "43b1a5c0-20ed-41ad-bb7a-0441cf2e9eff",
+    "id" : "07d79e76-9c48-4482-b734-a9bfef8e5452",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/SecurityMatrixRunner.java",
-    "line" : 440,
+    "line" : 492,
     "redactedSnippet" : "byte[] nonce = new byte[12];",
     "algorithm" : "Static/Zero IV",
     "quantumVulnerable" : false,
@@ -45,11 +45,11 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "ae155e91-fa67-44c8-93b4-977320cde624",
+    "id" : "337e66c2-0a6e-4b59-97cc-a100ba1afc3c",
     "ruleId" : "RULE-STATIC-IV",
     "category" : "CIPHER_BROKEN",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/SecurityMatrixRunner.java",
-    "line" : 465,
+    "line" : 517,
     "redactedSnippet" : "byte[] nonce = new byte[12];",
     "algorithm" : "Static/Zero IV",
     "quantumVulnerable" : false,
@@ -59,7 +59,7 @@
     "recommendation" : "Generate a unique 12-byte counter or CSPRNG nonce for every GCM encryption invocation.",
     "migrationTarget" : "CSPRNG Nonce / Monotonic Counter"
   }, {
-    "id" : "589a9e7f-6a97-46bb-9be2-060073e7b1f2",
+    "id" : "c35ee767-e458-460d-9047-19bf247f92ce",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/ClassicalWeakCryptoSuite.java",
@@ -73,7 +73,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "0c85e4a4-40e3-4ee6-bd04-33352dd2a84a",
+    "id" : "26a713d0-82ab-4cf1-bcac-e37a1c28710a",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "attack-lab/src/main/java/com/pqcaps/attacklab/ClassicalWeakCryptoSuite.java",
@@ -87,7 +87,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "47fdae7c-4327-4f78-a28e-ca335a105cb9",
+    "id" : "79c4dfc6-0898-4f8b-b18c-2b0206b54878",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "classical/src/main/java/com/pqcaps/classical/RsaSigner.java",
@@ -101,7 +101,7 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "a125773a-1f50-44cc-a728-242f99c427b5",
+    "id" : "50625d31-3ef3-4dd9-ab00-c5ccba8e3096",
     "ruleId" : "RULE-RSA",
     "category" : "KEY_EXCHANGE_QV",
     "file" : "classical/src/main/java/com/pqcaps/classical/RsaSigner.java",
@@ -115,11 +115,11 @@
     "recommendation" : "Migrate key encapsulation to ML-KEM-768 (FIPS 203) and digital signatures to ML-DSA-65 (FIPS 204).",
     "migrationTarget" : "ML-KEM-768 / ML-DSA-65"
   }, {
-    "id" : "b7e32b3b-21de-4fb1-9e9e-b29d20d4175a",
+    "id" : "6eadfed6-e5f3-4273-9c05-1787ea2d63e0",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 265,
+    "line" : 270,
     "redactedSnippet" : "noteEl.textContent = 'Hybrid combines classical X25519 with post-quantum ML-KEM-768 for forward secrecy and ML-DSA-65 signatures for authentication.';",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -129,11 +129,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "7d6e17c0-8429-455b-88b4-4bd44af080e4",
+    "id" : "776f39fe-a316-4211-bdd8-b93e2f69a929",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 267,
+    "line" : 272,
     "redactedSnippet" : "noteEl.textContent = 'PQ_ONLY uses pure lattice-based cryptography: ML-KEM-768 for encapsulation and ML-DSA-65 for identity signatures.';",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -143,11 +143,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "cc211578-d9e1-43ef-a067-0a1c96282ade",
+    "id" : "58a65955-fdab-4b96-9db8-7b8bcd7ac2ee",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 625,
+    "line" : 630,
     "redactedSnippet" : "const mlKemPk = findSize('PRIMITIVE_KEY', 'ML-KEM-768 Encapsulation Key') || 1184;",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -157,11 +157,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "561bd8b9-530c-4b76-adc4-0129f8a8fca7",
+    "id" : "1b58c16f-bebe-4d9e-913a-8f17e0c43892",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 627,
+    "line" : 632,
     "redactedSnippet" : "const mlDsaSig = findSize('SIGNATURE', 'ML-DSA-65 Signature') || 3309;",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -171,11 +171,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "f87703d2-d444-4e85-87e9-4248c21d70ff",
+    "id" : "4d81fd5c-9872-4548-a366-f0b9216090af",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 655,
+    "line" : 660,
     "redactedSnippet" : "escapeHtml(keyRatio) + 'x on raw key material (' + escapeHtml(hybridRaw.toLocaleString()) + ' B vs ' + escapeHtml(classicalRaw.toLocaleString()) + ' B) due to ML-KEM-768 encapsulation key (' +",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -185,11 +185,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "370407df-2f72-42fd-a355-0fbd8f6d28e0",
+    "id" : "0ed442ed-64d2-435a-b12d-63c580303d78",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 656,
+    "line" : 661,
     "redactedSnippet" : "escapeHtml(mlKemPk.toLocaleString()) + ' B) and ML-DSA-65 signature (' + escapeHtml(mlDsaSig.toLocaleString()) + ' B). In return, it guarantees post-quantum forward secrecy with minimal CPU overhead.';",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -199,11 +199,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "ae9a4365-c397-4607-9e81-7097a7ca0638",
+    "id" : "fb04f321-a68d-46d5-a31c-7bfc3d3741b1",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "benchmark-dashboard/src/main/resources/static/js/dashboard.js",
-    "line" : 671,
+    "line" : 676,
     "redactedSnippet" : "callout.innerHTML = '<strong>Pure Post-Quantum:</strong> PQ_ONLY drops classical X25519 entirely, relying exclusively on ML-KEM-768 and ML-DSA-65. Handshake wire size is ' +",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -213,7 +213,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "ea236d63-b916-40af-809d-c2651d9302f8",
+    "id" : "cef2d0ca-c345-4928-9523-b42101e80f04",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -227,7 +227,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "503ad2b0-a6d6-4301-be48-c6b4ca862c2d",
+    "id" : "c684a41a-6df6-4d6d-8088-767f540d9763",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -241,7 +241,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "833fc080-f14c-4e14-8988-88cf93345757",
+    "id" : "3056b524-0f4b-4f61-a89b-80daf08dc8e8",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -255,7 +255,7 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "f31dd919-afd2-4d6d-94f3-9328efe876ce",
+    "id" : "ab07ab36-d2bc-4675-803c-2c180469ecd8",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "crypto-agility/src/main/resources/suites.yaml",
@@ -269,11 +269,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "10a06ba6-3710-422e-9e4c-9ba3251394b7",
+    "id" : "ce4475be-36b3-4bcd-990e-1e1ce6aeccf5",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "pom.xml",
-    "line" : 47,
+    "line" : 48,
     "redactedSnippet" : "<!-- Bouncy Castle — NIST-compliant ML-KEM-768 / ML-DSA-65 -->",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,
@@ -283,11 +283,11 @@
     "recommendation" : "No migration needed. Maintain algorithm agility and follow standards evolution.",
     "migrationTarget" : "Already Quantum-Resistant"
   }, {
-    "id" : "0394fd9d-97ab-4206-84d1-094da4f276f1",
+    "id" : "1728ec42-eaa4-4044-a4fa-52627652c300",
     "ruleId" : "RULE-PQC-READY",
     "category" : "PQC_READY",
     "file" : "pom.xml",
-    "line" : 75,
+    "line" : 76,
     "redactedSnippet" : "<!-- Bouncy Castle provider (ML-KEM, ML-DSA, HKDF, AES-GCM) -->",
     "algorithm" : "PQC Primitive",
     "quantumVulnerable" : false,

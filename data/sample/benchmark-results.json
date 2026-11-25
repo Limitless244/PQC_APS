@@ -7,7 +7,7 @@
     "osName" : "Windows 11",
     "osArch" : "amd64",
     "cpuCores" : 16,
-    "timestamp" : "2026-11-24T14:01:41.280909Z"
+    "timestamp" : "2026-11-25T17:40:24.981357Z"
   },
   "sizes" : [ {
     "category" : "PRIMITIVE_KEY",
@@ -160,108 +160,108 @@
   "latency" : [ {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "X25519",
-    "avgMicroseconds" : 535.45,
-    "p95Microseconds" : 747.0
+    "avgMicroseconds" : 511.85,
+    "p95Microseconds" : 798.1
   }, {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "ML-KEM-768",
-    "avgMicroseconds" : 277.58,
-    "p95Microseconds" : 431.2
+    "avgMicroseconds" : 301.23,
+    "p95Microseconds" : 424.6
   }, {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "ML-DSA-65",
-    "avgMicroseconds" : 821.93,
-    "p95Microseconds" : 1153.4
+    "avgMicroseconds" : 623.91,
+    "p95Microseconds" : 891.8
   }, {
     "operation" : "keygen",
     "suiteOrAlgorithm" : "RSA-2048",
-    "avgMicroseconds" : 75982.82,
-    "p95Microseconds" : 148193.9
+    "avgMicroseconds" : 66212.19,
+    "p95Microseconds" : 150661.0
   }, {
     "operation" : "encapsulate",
     "suiteOrAlgorithm" : "ML-KEM-768",
-    "avgMicroseconds" : 283.99,
-    "p95Microseconds" : 671.6
+    "avgMicroseconds" : 284.07,
+    "p95Microseconds" : 517.4
   }, {
     "operation" : "decapsulate",
     "suiteOrAlgorithm" : "ML-KEM-768",
-    "avgMicroseconds" : 361.95,
-    "p95Microseconds" : 728.4
+    "avgMicroseconds" : 246.3,
+    "p95Microseconds" : 454.8
   }, {
     "operation" : "sign",
     "suiteOrAlgorithm" : "RSA-2048",
-    "avgMicroseconds" : 869.45,
-    "p95Microseconds" : 917.3
+    "avgMicroseconds" : 798.02,
+    "p95Microseconds" : 944.1
   }, {
     "operation" : "verify",
     "suiteOrAlgorithm" : "RSA-2048",
-    "avgMicroseconds" : 54.38,
-    "p95Microseconds" : 89.3
+    "avgMicroseconds" : 48.86,
+    "p95Microseconds" : 71.1
   }, {
     "operation" : "sign",
     "suiteOrAlgorithm" : "ML-DSA-65",
-    "avgMicroseconds" : 704.73,
-    "p95Microseconds" : 993.5
+    "avgMicroseconds" : 345.77,
+    "p95Microseconds" : 482.0
   }, {
     "operation" : "verify",
     "suiteOrAlgorithm" : "ML-DSA-65",
-    "avgMicroseconds" : 229.28,
-    "p95Microseconds" : 359.4
+    "avgMicroseconds" : 204.38,
+    "p95Microseconds" : 400.9
   }, {
     "operation" : "handshake",
     "suiteOrAlgorithm" : "CLASSICAL",
-    "avgMicroseconds" : 1833.03,
-    "p95Microseconds" : 2685.2
+    "avgMicroseconds" : 1511.87,
+    "p95Microseconds" : 1888.2
   }, {
     "operation" : "handshake",
     "suiteOrAlgorithm" : "HYBRID",
-    "avgMicroseconds" : 1724.73,
-    "p95Microseconds" : 2439.8
+    "avgMicroseconds" : 12028.42,
+    "p95Microseconds" : 33008.2
   }, {
     "operation" : "handshake",
     "suiteOrAlgorithm" : "PQ_ONLY",
-    "avgMicroseconds" : 1095.18,
-    "p95Microseconds" : 1914.8
+    "avgMicroseconds" : 5214.48,
+    "p95Microseconds" : 9776.3
   } ],
   "cpu" : [ {
     "suite" : "CLASSICAL",
-    "avgCpuMicroseconds" : 1406.25,
+    "avgCpuMicroseconds" : 4062.5,
     "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
   }, {
     "suite" : "HYBRID",
-    "avgCpuMicroseconds" : 1718.75,
+    "avgCpuMicroseconds" : 4062.5,
     "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
   }, {
     "suite" : "PQ_ONLY",
-    "avgCpuMicroseconds" : 937.5,
+    "avgCpuMicroseconds" : 2656.25,
     "limitation" : "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler (typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any thread-local JVM GC/JIT execution occurring during sampling."
   } ],
   "throughput" : [ {
     "recordSize" : "1 KB",
     "operation" : "Encrypt",
-    "throughputMBps" : 73.8,
-    "stdDevMBps" : 41.0,
+    "throughputMBps" : 12.5,
+    "stdDevMBps" : 5.6,
     "forks" : 1,
     "iterations" : 5
   }, {
     "recordSize" : "1 KB",
     "operation" : "Decrypt",
-    "throughputMBps" : 140.6,
-    "stdDevMBps" : 25.4,
+    "throughputMBps" : 16.0,
+    "stdDevMBps" : 9.6,
     "forks" : 1,
     "iterations" : 5
   }, {
     "recordSize" : "64 KB",
     "operation" : "Encrypt",
-    "throughputMBps" : 2248.1,
-    "stdDevMBps" : 220.3,
+    "throughputMBps" : 170.3,
+    "stdDevMBps" : 112.6,
     "forks" : 1,
     "iterations" : 5
   }, {
     "recordSize" : "64 KB",
     "operation" : "Decrypt",
-    "throughputMBps" : 2578.8,
-    "stdDevMBps" : 47.2,
+    "throughputMBps" : 346.2,
+    "stdDevMBps" : 274.1,
     "forks" : 1,
     "iterations" : 5
   } ],
@@ -269,9 +269,9 @@
     "handshakeWireOverheadRatio" : 7.85,
     "keyMaterialOverheadRatio" : 12.17,
     "hybridWireOverheadRatio" : 12.17,
-    "hybridCpuOverheadRatio" : 1.22,
+    "hybridCpuOverheadRatio" : 1.0,
     "classicalHandshakeWireBytes" : 820,
     "hybridHandshakeWireBytes" : 6433,
-    "analysis" : "HYBRID incurs ~7.85x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). Key material and primitive payload alone incurs ~12.17x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). CPU cost: 1718.75 µs vs 1406.25 µs (+312.5 µs, 1.22x)."
+    "analysis" : "HYBRID incurs ~7.85x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). Key material and primitive payload alone incurs ~12.17x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). CPU cost: 4062.5 µs vs 4062.5 µs (+0.0 µs, 1.0x)."
   }
 }

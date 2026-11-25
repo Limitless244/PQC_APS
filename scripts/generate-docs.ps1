@@ -91,15 +91,19 @@ if (Test-Path $attackPath) {
     [void]$sb.AppendLine("| Attack Vector | CLASSICAL-VULNERABLE | CLASSICAL-HARDENED | HYBRID |")
     [void]$sb.AppendLine("| :--- | :--- | :--- | :--- |")
 
+    $warnSym  = [char]0x26A0
+    $crossSym = [char]0x274C
+    $checkSym = [char]0x2714
+
     $attacks = @("Downgrade", "MITM", "Replay", "Nonce Reuse", "Tampering")
     foreach ($atk in $attacks) {
         $vuln = $attackList | Where-Object { $_.attack -eq $atk -and $_.mode -eq "CLASSICAL-VULNERABLE" } | Select-Object -First 1
         $hard = $attackList | Where-Object { $_.attack -eq $atk -and $_.mode -eq "CLASSICAL-HARDENED" } | Select-Object -First 1
         $hybr = $attackList | Where-Object { $_.attack -eq $atk -and $_.mode -eq "HYBRID" } | Select-Object -First 1
 
-        $vStr = if ($null -eq $vuln) { "not measured" } elseif ($vuln.status -eq "UNDETECTED") { "⚠ UNDETECTED (Decryption failure, 0 telemetry)" } elseif ($vuln.attackSucceeded) { "❌ SUCCEEDED (Vulnerable)" } else { "✔ BLOCKED" }
-        $hStr = if ($null -eq $hard) { "not measured" } elseif ($hard.defenceTriggered -and -not $hard.attackSucceeded) { "✔ BLOCKED (Defended)" } else { "❌ FAILED" }
-        $yStr = if ($null -eq $hybr) { "not measured" } elseif ($hybr.defenceTriggered -and -not $hybr.attackSucceeded) { "✔ BLOCKED (Defended)" } else { "❌ FAILED" }
+        $vStr = if ($null -eq $vuln) { "not measured" } elseif ($vuln.status -eq "UNDETECTED") { "$warnSym UNDETECTED (Decryption failure, 0 telemetry)" } elseif ($vuln.attackSucceeded) { "$crossSym SUCCEEDED (Vulnerable)" } else { "$checkSym BLOCKED" }
+        $hStr = if ($null -eq $hard) { "not measured" } elseif ($hard.defenceTriggered -and -not $hard.attackSucceeded) { "$checkSym BLOCKED (Defended)" } else { "$crossSym FAILED" }
+        $yStr = if ($null -eq $hybr) { "not measured" } elseif ($hybr.defenceTriggered -and -not $hybr.attackSucceeded) { "$checkSym BLOCKED (Defended)" } else { "$crossSym FAILED" }
 
         [void]$sb.AppendLine("| **$atk** | $vStr | $hStr | $yStr |")
     }
@@ -226,7 +230,9 @@ if ($null -ne $benchJson) {
 [void]$sb.AppendLine("## 5. Latency, CPU Time, and AES-GCM Throughput")
 [void]$sb.AppendLine("")
 if ($null -ne $benchJson) {
-    $modeStr = if ($benchJson.mode -eq "FULL") { "full (mean ± SD)" } else { "quick (indicative)" }
+    $pm = [char]0x00B1
+    $mu = [char]0x00B5
+    $modeStr = if ($benchJson.mode -eq "FULL") { "full (mean $pm SD)" } else { "quick (indicative)" }
     [void]$sb.AppendLine("Source: $($q)data/benchmark-results.json$($q), generated $benchTimestamp")
     [void]$sb.AppendLine("")
     [void]$sb.AppendLine("- **Benchmark Execution Mode**: **$modeStr**")
@@ -235,31 +241,31 @@ if ($null -ne $benchJson) {
 
     [void]$sb.AppendLine("### Cryptographic Operation Latency")
     [void]$sb.AppendLine("")
-    [void]$sb.AppendLine("| Operation | Algorithm / Target | Average (µs) | p95 (µs) |")
+    [void]$sb.AppendLine("| Operation | Algorithm / Target | Average (${mu}s) | p95 (${mu}s) |")
     [void]$sb.AppendLine("| :--- | :--- | :--- | :--- |")
     foreach ($lat in $benchJson.latency) {
         $op = Format-Val $lat.operation
         $tgt = Format-Val $lat.suiteOrAlgorithm
-        $avg = Format-Num $lat.avgMicroseconds 2 " µs"
-        $p95 = Format-Num $lat.p95Microseconds 2 " µs"
+        $avg = Format-Num $lat.avgMicroseconds 2 " ${mu}s"
+        $p95 = Format-Num $lat.p95Microseconds 2 " ${mu}s"
         [void]$sb.AppendLine("| $op | **$tgt** | $avg | $p95 |")
     }
 
     [void]$sb.AppendLine("")
     [void]$sb.AppendLine("### Handshake CPU Impact")
     [void]$sb.AppendLine("")
-    [void]$sb.AppendLine("| Suite | Average Handshake CPU Time (µs) | Overhead vs CLASSICAL | Measurement Mechanism / Caveat |")
+    [void]$sb.AppendLine("| Suite | Average Handshake CPU Time (${mu}s) | Overhead vs CLASSICAL | Measurement Mechanism / Caveat |")
     [void]$sb.AppendLine("| :--- | :--- | :--- | :--- |")
 
     $classicalCpu = ($benchJson.cpu | Where-Object { $_.suite -eq "CLASSICAL" } | Select-Object -First 1).avgCpuMicroseconds
     foreach ($cp in $benchJson.cpu) {
         $sName = Format-Val $cp.suite
-        $cpuVal = Format-Num $cp.avgCpuMicroseconds 2 " µs"
+        $cpuVal = Format-Num $cp.avgCpuMicroseconds 2 " ${mu}s"
         $overhead = if ($null -ne $classicalCpu -and $classicalCpu -gt 0 -and $null -ne $cp.avgCpuMicroseconds) {
             $diff = [double]$cp.avgCpuMicroseconds - [double]$classicalCpu
             $ratio = [double]$cp.avgCpuMicroseconds / [double]$classicalCpu
-            if ($diff -gt 0) { "+$("{0:N2}" -f $diff) µs ({0:N2}x)" -f $ratio }
-            elseif ($diff -lt 0) { "$("{0:N2}" -f $diff) µs ({0:N2}x)" -f $ratio }
+            if ($diff -gt 0) { "+$("{0:N2}" -f $diff) ${mu}s ({0:N2}x)" -f $ratio }
+            elseif ($diff -lt 0) { "$("{0:N2}" -f $diff) ${mu}s ({0:N2}x)" -f $ratio }
             else { "Baseline (1.00x)" }
         } else { "not measured" }
         $lim = (Format-Val $cp.limitation) -replace '\|', '&#124;'
@@ -277,7 +283,7 @@ if ($null -ne $benchJson) {
         $mb = Format-Num $tp.throughputMBps 1 " MB/s"
         $sd = Format-Num $tp.stdDevMBps 1 " MB/s"
         $cfg = "$(Format-Val $tp.forks) fork(s), $(Format-Val $tp.iterations) iteration(s)"
-        [void]$sb.AppendLine("| $rs | $op | **$mb** | ± $sd | $cfg |")
+        [void]$sb.AppendLine("| $rs | $op | **$mb** | $pm $sd | $cfg |")
     }
 } else {
     [void]$sb.AppendLine("Source: $($q)data/benchmark-results.json$($q), generated not measured")
