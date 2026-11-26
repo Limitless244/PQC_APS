@@ -77,6 +77,9 @@ public class ChatLabSseService {
     }
 
     private void broadcast(List<SseEmitter> list, String eventName, Object data) {
+        if (eventName == null || data == null) {
+            return;
+        }
         for (SseEmitter emitter : list) {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(data));

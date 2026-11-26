@@ -1,7 +1,5 @@
 package com.pqcaps.attack;
 
-import javax.crypto.AEADBadTagException;
-
 /**
  * Detects ciphertext and handshake message tampering while preventing oracle leaks.
  *

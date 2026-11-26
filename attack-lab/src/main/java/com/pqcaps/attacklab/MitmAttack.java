@@ -87,7 +87,7 @@ public final class MitmAttack {
                 try (Socket conn = ss.accept()) {
                     SessionKeys keys = ClassicalHandshake.serverHandshake(conn, serverConfig, realServerIdentity);
                     try (ClassicalSecureChannel channel = new ClassicalSecureChannel(conn, keys, false, serverConfig)) {
-                        byte[] clientMsg = channel.receive();
+                        channel.receive();
                         // Real server replies
                         channel.send("SERVER_ACK_TXN_ACCEPTED".getBytes(StandardCharsets.UTF_8));
                     }
@@ -166,7 +166,7 @@ public final class MitmAttack {
                         socket, keys, true, clientConfig)) {
                     String secretMessage = "TRANSFER $50,000 FROM ACC-001 TO ACC-002";
                     channel.send(secretMessage.getBytes(StandardCharsets.UTF_8));
-                    byte[] reply = channel.receive();
+                    channel.receive();
                 }
             }
         } catch (SecurityException se) {

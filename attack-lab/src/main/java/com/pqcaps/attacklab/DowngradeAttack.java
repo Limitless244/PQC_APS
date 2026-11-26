@@ -3,12 +3,10 @@ package com.pqcaps.attacklab;
 import com.pqcaps.classical.ClassicalCryptoSuite;
 import com.pqcaps.classical.ClassicalHandshake;
 import com.pqcaps.classical.ClassicalHandshake.HandshakeOutcome;
-import com.pqcaps.classical.ClassicalSecureChannel;
 import com.pqcaps.common.ClientHello;
 import com.pqcaps.common.HandshakeConfig;
 import com.pqcaps.common.ServerHello;
 
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;

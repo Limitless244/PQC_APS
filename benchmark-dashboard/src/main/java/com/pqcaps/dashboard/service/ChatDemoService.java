@@ -7,14 +7,9 @@ import com.pqcaps.attack.TamperGuard;
 import com.pqcaps.classical.AesGcmCipher;
 import com.pqcaps.classical.ClassicalSecureChannel;
 import com.pqcaps.common.EncryptedRecord;
-import com.pqcaps.common.HandshakeConfig;
 import com.pqcaps.common.SessionKeys;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.*;
@@ -30,10 +25,10 @@ public class ChatDemoService {
             String ciphertextHexTruncated,
             String attackerView,
             String bobOutcome,
-            String mode
-    ) {
+            String mode) {
         /**
-         * Returns the actual decrypted plaintext seen by the attacker in CLASSICAL-VULNERABLE mode.
+         * Returns the actual decrypted plaintext seen by the attacker in
+         * CLASSICAL-VULNERABLE mode.
          */
         public String attackerPlaintext() {
             if (attackerView != null && attackerView.startsWith("[MITM Intercepted Plaintext]: \"")) {
@@ -48,8 +43,8 @@ public class ChatDemoService {
             String outcome,
             String detail,
             String eventId,
-            String mode
-    ) {}
+            String mode) {
+    }
 
     private final ReentrantLock lock = new ReentrantLock();
     private final AesGcmCipher cipher = new AesGcmCipher();
@@ -60,23 +55,21 @@ public class ChatDemoService {
     private ReplayGuard replayGuard;
     private TamperGuard tamperGuard;
     private long aliceSendSeq = 0;
-    private long bobRecvSeq = 0;
     private EncryptedRecord lastRecord = null;
-    private String lastPlaintext = null;
 
     public ChatDemoService() {
         initSession("HYBRID");
     }
 
     public synchronized void initSession(String mode) {
-        if (mode == null || !List.of("CLASSICAL-VULNERABLE", "CLASSICAL-HARDENED", "HYBRID").contains(mode.toUpperCase())) {
-            throw new IllegalArgumentException("Invalid chat mode: '" + mode + "'. Allowed: CLASSICAL-VULNERABLE, CLASSICAL-HARDENED, HYBRID");
+        if (mode == null
+                || !List.of("CLASSICAL-VULNERABLE", "CLASSICAL-HARDENED", "HYBRID").contains(mode.toUpperCase())) {
+            throw new IllegalArgumentException(
+                    "Invalid chat mode: '" + mode + "'. Allowed: CLASSICAL-VULNERABLE, CLASSICAL-HARDENED, HYBRID");
         }
         this.currentMode = mode.toUpperCase();
         this.aliceSendSeq = 0;
-        this.bobRecvSeq = 0;
         this.lastRecord = null;
-        this.lastPlaintext = null;
 
         SecureRandom rng = new SecureRandom();
         byte[] c2s = new byte[32];
@@ -114,7 +107,6 @@ public class ChatDemoService {
             byte[] ct = cipher.encrypt(sessionKeys.clientToServer(), nonce, aad, plaintext);
             EncryptedRecord record = new EncryptedRecord(aliceSendSeq, nonce, ct);
             this.lastRecord = record;
-            this.lastPlaintext = message;
 
             long seq = aliceSendSeq++;
 
@@ -124,27 +116,29 @@ public class ChatDemoService {
             // Attacker observation
             String attackerView;
             if ("CLASSICAL-VULNERABLE".equals(currentMode) && attackerCompromisedKeys != null) {
-                // VULN-4: Missing client key pinning allows the on-path MITM to terminate the handshake
-                // with both client and server, obtaining session keys. The attacker intercepts the captured
-                // on-wire EncryptedRecord and genuinely decrypts it using AES-GCM without hardcoded strings.
+                // VULN-4: Missing client key pinning allows the on-path MITM to terminate the
+                // handshake
+                // with both client and server, obtaining session keys. The attacker intercepts
+                // the captured
+                // on-wire EncryptedRecord and genuinely decrypts it using AES-GCM without
+                // hardcoded strings.
                 byte[] intercepted = cipher.decrypt(
                         attackerCompromisedKeys.clientToServer(),
                         record.nonce(),
                         ClassicalSecureChannel.buildAad(record.sequenceNumber()),
-                        record.ciphertext()
-                );
+                        record.ciphertext());
                 String actualDecryptedPlaintext = new String(intercepted, StandardCharsets.UTF_8);
                 attackerView = "[MITM Intercepted Plaintext]: \"" + actualDecryptedPlaintext + "\"";
             } else {
                 // Hybrid/Hardened: Attacker only sees encrypted ciphertext bytes
-                attackerView = "[Encrypted Record seq=" + seq + "]: " + ctHexTruncated + " (" + ct.length + " bytes ciphertext)";
+                attackerView = "[Encrypted Record seq=" + seq + "]: " + ctHexTruncated + " (" + ct.length
+                        + " bytes ciphertext)";
             }
 
             // Bob receives record
             if (replayGuard != null) {
                 replayGuard.validateStrictSequence(seq, "C2S", currentMode);
             }
-            bobRecvSeq++;
             String bobOutcome = "ACCEPTED (seq=" + seq + " verified)";
 
             return new ChatSendResult("Alice", message, seq, ctHexTruncated, attackerView, bobOutcome, currentMode);
@@ -165,10 +159,10 @@ public class ChatDemoService {
                 return new AttackerActionResult(
                         "REPLAY",
                         "SUCCEEDED",
-                        "Replayed record seq=" + lastRecord.sequenceNumber() + " accepted by Bob without sequence check!",
+                        "Replayed record seq=" + lastRecord.sequenceNumber()
+                                + " accepted by Bob without sequence check!",
                         null,
-                        currentMode
-                );
+                        currentMode);
             } else {
                 try {
                     replayGuard.validateStrictSequence(lastRecord.sequenceNumber(), "C2S", currentMode);
@@ -177,18 +171,17 @@ public class ChatDemoService {
                             "SUCCEEDED",
                             "Replay succeeded",
                             null,
-                            currentMode
-                    );
+                            currentMode);
                 } catch (SecurityException e) {
                     DetectionEvent lastEvent = EventLog.getInstance().getLastEvent();
                     String eventId = lastEvent != null ? lastEvent.id() : null;
                     return new AttackerActionResult(
                             "REPLAY",
                             "BLOCKED",
-                            "Replay of record seq=" + lastRecord.sequenceNumber() + " BLOCKED by ReplayGuard: " + e.getMessage() + " (blocked by sequence validation)",
+                            "Replay of record seq=" + lastRecord.sequenceNumber() + " BLOCKED by ReplayGuard: "
+                                    + e.getMessage() + " (blocked by sequence validation)",
                             eventId,
-                            currentMode
-                    );
+                            currentMode);
                 }
             }
         } finally {
@@ -216,8 +209,7 @@ public class ChatDemoService {
                         "SUCCEEDED",
                         "Ciphertext bit flipped -> GCM decryption error triggered without defensive event telemetry (error oracle leak risk)",
                         null,
-                        currentMode
-                );
+                        currentMode);
             } else {
                 try {
                     cipher.decrypt(sessionKeys.clientToServer(), nonce, aad, tamperedCt);
@@ -226,19 +218,19 @@ public class ChatDemoService {
                             "SUCCEEDED",
                             "Tampered record unexpectedly decrypted successfully",
                             null,
-                            currentMode
-                    );
+                            currentMode);
                 } catch (Exception e) {
-                    SecurityException secEx = tamperGuard.handleAeadTampering(e, lastRecord.sequenceNumber(), nonce, currentMode);
+                    SecurityException secEx = tamperGuard.handleAeadTampering(e, lastRecord.sequenceNumber(), nonce,
+                            currentMode);
                     DetectionEvent lastEvent = EventLog.getInstance().getLastEvent();
                     String eventId = lastEvent != null ? lastEvent.id() : null;
                     return new AttackerActionResult(
                             "TAMPER",
                             "BLOCKED",
-                            "Tampering BLOCKED by TamperGuard: " + secEx.getMessage() + " (authentication tag mismatch)",
+                            "Tampering BLOCKED by TamperGuard: " + secEx.getMessage()
+                                    + " (authentication tag mismatch)",
                             eventId,
-                            currentMode
-                    );
+                            currentMode);
                 }
             }
         } finally {
@@ -251,7 +243,8 @@ public class ChatDemoService {
     }
 
     private String formatTruncatedHex(byte[] b, int maxBytes) {
-        if (b == null || b.length == 0) return "empty";
+        if (b == null || b.length == 0)
+            return "empty";
         int len = Math.min(b.length, maxBytes);
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < len; i++) {

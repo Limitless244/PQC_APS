@@ -18,6 +18,11 @@
     feeds, and crypto scanner reports. Hosts the Chart.js dashboard frontend.
   </description>
 
+  <properties>
+    <!-- Prevent Eclipse JDT incremental APT from conflicting with JMH annotation processor -->
+    <m2e.apt.activation>disabled</m2e.apt.activation>
+  </properties>
+
   <dependencies>
     <!-- Spring Boot Web -->
     <dependency>

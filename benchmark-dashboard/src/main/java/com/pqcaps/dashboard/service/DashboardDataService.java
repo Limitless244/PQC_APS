@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -148,7 +147,7 @@ public class DashboardDataService {
             List<com.pqcaps.scanner.ScanFinding> findings = report.findings() != null
                     ? new ArrayList<>(report.findings())
                     : new ArrayList<>();
-            findings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
+            findings.sort(Comparator.comparingInt((com.pqcaps.scanner.ScanFinding f) -> f.riskScore()).reversed());
             return new ScanReport(report.scanId(), report.target(), report.timestamp(), report.summary(), findings);
         } catch (Exception e) {
             log.error("Failed to parse scan report from {}, executing in-process scan: {}", path, e.getMessage(), e);
@@ -186,7 +185,7 @@ public class DashboardDataService {
 
         try {
             List<com.pqcaps.scanner.ScanFinding> findings = new ArrayList<>(scanner.scanDirectory(scanPath));
-            findings.sort(Comparator.comparingInt(com.pqcaps.scanner.ScanFinding::riskScore).reversed());
+            findings.sort(Comparator.comparingInt((com.pqcaps.scanner.ScanFinding f) -> f.riskScore()).reversed());
             com.pqcaps.scanner.ScanSummary summary = com.pqcaps.scanner.RiskScoreCalculator.createSummary(findings);
             ScanReport report = new ScanReport(
                     UUID.randomUUID().toString(),

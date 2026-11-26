@@ -7,7 +7,6 @@ import com.pqcaps.common.EncryptedRecord;
 import com.pqcaps.common.HandshakeConfig;
 import com.pqcaps.common.SessionKeys;
 
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -68,7 +67,6 @@ public final class ReplayAttack {
         int[] portHolder = new int[1];
 
         List<String> serverProcessed = new ArrayList<>();
-        List<Long> serverSeenSeqs    = new ArrayList<>();
         AtomicReference<String> failureReason = new AtomicReference<>();
 
         // ── 1. Target Server Thread ──────────────────────────────────────────
@@ -111,50 +109,47 @@ public final class ReplayAttack {
                 SessionKeys keys = ClassicalHandshake.clientHandshake(
                         socket, config, vulnerable ? null : serverIdentity.getPublic(), List.of("CLASSICAL"));
 
-                ObjectOutputStream wireOut = new ObjectOutputStream(socket.getOutputStream());
-                wireOut.flush();
-                ObjectInputStream wireIn = new ObjectInputStream(socket.getInputStream());
+                try (ObjectOutputStream wireOut = new ObjectOutputStream(socket.getOutputStream())) {
+                    wireOut.flush();
 
-                ClassicalSecureChannel clientChannel = new ClassicalSecureChannel(
-                        wireOut, wireIn, keys, true, config);
+                    // Send Record 1: "transfer 100" (seq 0)
+                    byte[] p1 = "transfer 100".getBytes(StandardCharsets.UTF_8);
+                    byte[] nonce0 = ClassicalSecureChannel.buildNonce(0);
+                    byte[] aad0   = ClassicalSecureChannel.buildAad(0);
+                    byte[] c1     = new com.pqcaps.classical.AesGcmCipher().encrypt(
+                            keys.clientToServer(), nonce0, aad0, p1);
+                    EncryptedRecord record0 = new EncryptedRecord(0L, nonce0, c1);
 
-                // Send Record 1: "transfer 100" (seq 0)
-                byte[] p1 = "transfer 100".getBytes(StandardCharsets.UTF_8);
-                byte[] nonce0 = ClassicalSecureChannel.buildNonce(0);
-                byte[] aad0   = ClassicalSecureChannel.buildAad(0);
-                byte[] c1     = new com.pqcaps.classical.AesGcmCipher().encrypt(
-                        keys.clientToServer(), nonce0, aad0, p1);
-                EncryptedRecord record0 = new EncryptedRecord(0L, nonce0, c1);
+                    System.out.printf("[CLIENT] Sending record 1 (seq=%d, nonce=%s...): \"transfer 100\"%n",
+                            record0.sequenceNumber(), ClassicalHandshake.hex4(record0.nonce()));
+                    wireOut.writeObject(record0);
+                    wireOut.flush();
 
-                System.out.printf("[CLIENT] Sending record 1 (seq=%d, nonce=%s...): \"transfer 100\"%n",
-                        record0.sequenceNumber(), ClassicalHandshake.hex4(record0.nonce()));
-                wireOut.writeObject(record0);
-                wireOut.flush();
+                    Thread.sleep(50);
 
-                Thread.sleep(50);
+                    // Send Record 2: "check balance" (seq 1)
+                    byte[] p2 = "check balance".getBytes(StandardCharsets.UTF_8);
+                    byte[] nonce1 = ClassicalSecureChannel.buildNonce(1);
+                    byte[] aad1   = ClassicalSecureChannel.buildAad(1);
+                    byte[] c2     = new com.pqcaps.classical.AesGcmCipher().encrypt(
+                            keys.clientToServer(), nonce1, aad1, p2);
+                    EncryptedRecord record1 = new EncryptedRecord(1L, nonce1, c2);
 
-                // Send Record 2: "check balance" (seq 1)
-                byte[] p2 = "check balance".getBytes(StandardCharsets.UTF_8);
-                byte[] nonce1 = ClassicalSecureChannel.buildNonce(1);
-                byte[] aad1   = ClassicalSecureChannel.buildAad(1);
-                byte[] c2     = new com.pqcaps.classical.AesGcmCipher().encrypt(
-                        keys.clientToServer(), nonce1, aad1, p2);
-                EncryptedRecord record1 = new EncryptedRecord(1L, nonce1, c2);
+                    System.out.printf("[CLIENT] Sending record 2 (seq=%d, nonce=%s...): \"check balance\"%n",
+                            record1.sequenceNumber(), ClassicalHandshake.hex4(record1.nonce()));
+                    wireOut.writeObject(record1);
+                    wireOut.flush();
 
-                System.out.printf("[CLIENT] Sending record 2 (seq=%d, nonce=%s...): \"check balance\"%n",
-                        record1.sequenceNumber(), ClassicalHandshake.hex4(record1.nonce()));
-                wireOut.writeObject(record1);
-                wireOut.flush();
+                    Thread.sleep(50);
 
-                Thread.sleep(50);
+                    // ATTACK: Replay Record 1 (seq 0) again on the same channel!
+                    System.out.printf("[ATTACKER] Re-injecting captured record (seq=%d, nonce=%s...): \"transfer 100\"%n",
+                            record0.sequenceNumber(), ClassicalHandshake.hex4(record0.nonce()));
+                    wireOut.writeObject(record0);
+                    wireOut.flush();
 
-                // ATTACK: Replay Record 1 (seq 0) again on the same channel!
-                System.out.printf("[ATTACKER] Re-injecting captured record (seq=%d, nonce=%s...): \"transfer 100\"%n",
-                        record0.sequenceNumber(), ClassicalHandshake.hex4(record0.nonce()));
-                wireOut.writeObject(record0);
-                wireOut.flush();
-
-                Thread.sleep(100);
+                    Thread.sleep(100);
+                }
             }
         } catch (Exception e) {
             failureReason.set("Client failed: " + e.getMessage());

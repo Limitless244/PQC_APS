@@ -23,7 +23,6 @@ public class JmhBenchmarkSuite {
     private MlDsaSignatureScheme dsaAuth;
     private RsaSigner rsaSigner;
 
-    private KeyPair xKp;
     private KeyPair kemKp;
     private KeyPair dsaKp;
     private KeyPair rsaKp;
@@ -40,7 +39,6 @@ public class JmhBenchmarkSuite {
         dsaAuth = new MlDsaSignatureScheme();
         rsaSigner = new RsaSigner();
 
-        xKp = xKex.generateKeyPair();
         kemKp = kemKex.generateKeyPair();
         dsaKp = dsaAuth.generateKeyPair();
         rsaKp = rsaSigner.generateKeyPair();

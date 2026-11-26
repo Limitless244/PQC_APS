@@ -21,20 +21,25 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Executes comprehensive benchmarks comparing CLASSICAL, HYBRID, and PQ_ONLY suites.
+ * Executes comprehensive benchmarks comparing CLASSICAL, HYBRID, and PQ_ONLY
+ * suites.
  *
- * <p>Measures:
+ * <p>
+ * Measures:
  * <ul>
- *   <li>Raw and encoded key/signature/wire message sizes.</li>
- *   <li>Latency (avg & p95 in microseconds) for keygen, encapsulation, decapsulation, sign, verify, and in-memory handshakes.</li>
- *   <li>Thread CPU time per handshake via {@link ThreadMXBean#getCurrentThreadCpuTime()}.</li>
- *   <li>Symmetric AES-256-GCM encryption/decryption throughput (MB/s) for 1 KB and 64 KB payloads.</li>
+ * <li>Raw and encoded key/signature/wire message sizes.</li>
+ * <li>Latency (avg & p95 in microseconds) for keygen, encapsulation,
+ * decapsulation, sign, verify, and in-memory handshakes.</li>
+ * <li>Thread CPU time per handshake via
+ * {@link ThreadMXBean#getCurrentThreadCpuTime()}.</li>
+ * <li>Symmetric AES-256-GCM encryption/decryption throughput (MB/s) for 1 KB
+ * and 64 KB payloads.</li>
  * </ul>
  */
 public final class BenchmarkRunner {
 
-    private static final String CPU_LIMITATION_NOTE =
-            "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler " +
+    private static final String CPU_LIMITATION_NOTE = "ThreadMXBean.getCurrentThreadCpuTime() measurement: resolution depends on host OS thread scheduler "
+            +
             "(typically 10-15ms on Windows, sub-microsecond on Linux); includes thread scheduling noise and any " +
             "thread-local JVM GC/JIT execution occurring during sampling.";
 
@@ -48,11 +53,16 @@ public final class BenchmarkRunner {
         List<CpuMetric> cpu = measureCpuTimes(warmup, Math.max(iterations, 100));
         List<ThroughputMetric> throughput = measureThroughput(quickMode);
 
-        double handshakeWireOverhead = Math.round((6433.0 / 820.0) * 100.0) / 100.0; // ~7.85x total handshake wire overhead (matching WireSizeComparisonTest)
-        double keyMaterialOverhead = Math.round((6098.0 / 501.0) * 100.0) / 100.0;    // ~12.17x key material / raw payload overhead
+        double handshakeWireOverhead = Math.round((6433.0 / 820.0) * 100.0) / 100.0; // ~7.85x total handshake wire
+                                                                                     // overhead (matching
+                                                                                     // WireSizeComparisonTest)
+        double keyMaterialOverhead = Math.round((6098.0 / 501.0) * 100.0) / 100.0; // ~12.17x key material / raw payload
+                                                                                   // overhead
 
-        double classicalCpu = cpu.stream().filter(c -> "CLASSICAL".equals(c.suite())).findFirst().map(CpuMetric::avgCpuMicroseconds).orElse(1250.0);
-        double hybridCpu = cpu.stream().filter(c -> "HYBRID".equals(c.suite())).findFirst().map(CpuMetric::avgCpuMicroseconds).orElse(1406.25);
+        double classicalCpu = cpu.stream().filter(c -> "CLASSICAL".equals(c.suite())).findFirst()
+                .map(c -> c.avgCpuMicroseconds()).orElse(1250.0);
+        double hybridCpu = cpu.stream().filter(c -> "HYBRID".equals(c.suite())).findFirst()
+                .map(c -> c.avgCpuMicroseconds()).orElse(1406.25);
         double cpuOverhead = (classicalCpu > 0) ? Math.round((hybridCpu / classicalCpu) * 100.0) / 100.0 : 1.13;
         double cpuDiffMicros = Math.round((hybridCpu - classicalCpu) * 10.0) / 10.0;
 
@@ -60,10 +70,14 @@ public final class BenchmarkRunner {
                 handshakeWireOverhead,
                 keyMaterialOverhead,
                 cpuOverhead,
-                "HYBRID incurs ~" + handshakeWireOverhead + "x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). " +
-                "Key material and primitive payload alone incurs ~" + keyMaterialOverhead + "x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). " +
-                "CPU cost: " + hybridCpu + " µs vs " + classicalCpu + " µs (" + (cpuDiffMicros >= 0 ? "+" : "") + cpuDiffMicros + " µs, " + cpuOverhead + "x)."
-        );
+                "HYBRID incurs ~" + handshakeWireOverhead
+                        + "x total handshake wire overhead (6433 B vs 820 B, matching WireSizeComparisonTest serialized socket messages). "
+                        +
+                        "Key material and primitive payload alone incurs ~" + keyMaterialOverhead
+                        + "x (6098 B vs 501 B) due to ML-KEM-768 public key (1184 B) and ML-DSA-65 signature (3309 B). "
+                        +
+                        "CPU cost: " + hybridCpu + " µs vs " + classicalCpu + " µs (" + (cpuDiffMicros >= 0 ? "+" : "")
+                        + cpuDiffMicros + " µs, " + cpuOverhead + "x).");
 
         String mode = quickMode ? "QUICK" : "FULL";
         BenchmarkReport report = new BenchmarkReport(mode, machine, sizes, latency, cpu, throughput, summary);
@@ -88,41 +102,61 @@ public final class BenchmarkRunner {
                 System.getProperty("os.name", "unknown"),
                 System.getProperty("os.arch", "unknown"),
                 Runtime.getRuntime().availableProcessors(),
-                Instant.now().toString()
-        );
+                Instant.now().toString());
     }
 
     private static List<SizeMetric> collectSizes() {
         List<SizeMetric> list = new ArrayList<>();
 
         // 1. Primitive Keys and Signatures
-        list.add(new SizeMetric("PRIMITIVE_KEY", "X25519 Public Key", "CLASSICAL", 32, 44, "Raw Curve25519 point vs DER SubjectPublicKeyInfo"));
-        list.add(new SizeMetric("PRIMITIVE_KEY", "ML-KEM-768 Encapsulation Key", "HYBRID/PQ", 1184, 1206, "NIST FIPS 203 encapsulation key"));
-        list.add(new SizeMetric("PRIMITIVE_KEY", "ML-KEM-768 Ciphertext", "HYBRID/PQ", 1088, 1088, "NIST FIPS 203 KEM ciphertext"));
-        list.add(new SizeMetric("PRIMITIVE_KEY", "ML-DSA-65 Public Key", "HYBRID/PQ", 1952, 1974, "NIST FIPS 204 verification key"));
-        list.add(new SizeMetric("SIGNATURE", "ML-DSA-65 Signature", "HYBRID/PQ", 3309, 3309, "NIST FIPS 204 signature"));
-        list.add(new SizeMetric("SIGNATURE", "RSA-2048 Signature", "CLASSICAL", 256, 256, "PKCS#1 v1.5 RSA-2048 signature"));
+        list.add(new SizeMetric("PRIMITIVE_KEY", "X25519 Public Key", "CLASSICAL", 32, 44,
+                "Raw Curve25519 point vs DER SubjectPublicKeyInfo"));
+        list.add(new SizeMetric("PRIMITIVE_KEY", "ML-KEM-768 Encapsulation Key", "HYBRID/PQ", 1184, 1206,
+                "NIST FIPS 203 encapsulation key"));
+        list.add(new SizeMetric("PRIMITIVE_KEY", "ML-KEM-768 Ciphertext", "HYBRID/PQ", 1088, 1088,
+                "NIST FIPS 203 KEM ciphertext"));
+        list.add(new SizeMetric("PRIMITIVE_KEY", "ML-DSA-65 Public Key", "HYBRID/PQ", 1952, 1974,
+                "NIST FIPS 204 verification key"));
+        list.add(
+                new SizeMetric("SIGNATURE", "ML-DSA-65 Signature", "HYBRID/PQ", 3309, 3309, "NIST FIPS 204 signature"));
+        list.add(new SizeMetric("SIGNATURE", "RSA-2048 Signature", "CLASSICAL", 256, 256,
+                "PKCS#1 v1.5 RSA-2048 signature"));
 
-        // 2. Total Handshake Wire Sizes (Matching WireSizeComparisonTest: 820 B vs 6433 B)
-        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "CLASSICAL", 820, 820, "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest)"));
-        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "HYBRID", 6433, 6433, "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest: 7.8x overhead)"));
-        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "PQ_ONLY", 6344, 6344, "Total wire bytes via ObjectOutputStream (7.7x overhead)"));
+        // 2. Total Handshake Wire Sizes (Matching WireSizeComparisonTest: 820 B vs 6433
+        // B)
+        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "CLASSICAL", 820, 820,
+                "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest)"));
+        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "HYBRID", 6433, 6433,
+                "Total wire bytes via ObjectOutputStream (matching WireSizeComparisonTest: 7.8x overhead)"));
+        list.add(new SizeMetric("HANDSHAKE_WIRE", "Total Handshake Wire", "PQ_ONLY", 6344, 6344,
+                "Total wire bytes via ObjectOutputStream (7.7x overhead)"));
 
         // 3. Raw Wire Messages & Primitive Key Material
-        list.add(new SizeMetric("WIRE_MESSAGE", "ClientHello", "CLASSICAL", 111, 111, "X25519 pk + nonce + suite list"));
-        list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "CLASSICAL", 390, 390, "X25519 pk + RSA-2048 sig + nonce"));
+        list.add(
+                new SizeMetric("WIRE_MESSAGE", "ClientHello", "CLASSICAL", 111, 111, "X25519 pk + nonce + suite list"));
+        list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "CLASSICAL", 390, 390,
+                "X25519 pk + RSA-2048 sig + nonce"));
         list.add(new SizeMetric("WIRE_MESSAGE", "Finished", "CLASSICAL", 0, 0, "N/A in Phase 1 Classical baseline"));
-        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "CLASSICAL", 501, 501, "Raw key material / unframed payload (12.2x ratio baseline)"));
+        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "CLASSICAL", 501, 501,
+                "Raw key material / unframed payload (12.2x ratio baseline)"));
 
-        list.add(new SizeMetric("WIRE_MESSAGE", "ClientHello", "HYBRID", 1356, 1356, "X25519 pk + ML-KEM-768 pk + nonce + suites"));
-        list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "HYBRID", 4488, 4488, "X25519 pk + ML-KEM ct + ML-DSA-65 sig + nonce"));
-        list.add(new SizeMetric("WIRE_MESSAGE", "Finished (x2)", "HYBRID", 254, 254, "Mutual Finished messages (Client + Server)"));
-        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "HYBRID", 6098, 6098, "Raw key material / unframed payload (12.2x key material ratio)"));
+        list.add(new SizeMetric("WIRE_MESSAGE", "ClientHello", "HYBRID", 1356, 1356,
+                "X25519 pk + ML-KEM-768 pk + nonce + suites"));
+        list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "HYBRID", 4488, 4488,
+                "X25519 pk + ML-KEM ct + ML-DSA-65 sig + nonce"));
+        list.add(new SizeMetric("WIRE_MESSAGE", "Finished (x2)", "HYBRID", 254, 254,
+                "Mutual Finished messages (Client + Server)"));
+        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "HYBRID", 6098, 6098,
+                "Raw key material / unframed payload (12.2x key material ratio)"));
 
-        list.add(new SizeMetric("WIRE_MESSAGE", "ClientHello", "PQ_ONLY", 1311, 1311, "ML-KEM-768 pk + nonce + suites"));
-        list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "PQ_ONLY", 4444, 4444, "ML-KEM ct + ML-DSA-65 sig + nonce"));
-        list.add(new SizeMetric("WIRE_MESSAGE", "Finished (x2)", "PQ_ONLY", 254, 254, "Mutual Finished messages (Client + Server)"));
-        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "PQ_ONLY", 6009, 6009, "Complete PQ-Only handshake"));
+        list.add(
+                new SizeMetric("WIRE_MESSAGE", "ClientHello", "PQ_ONLY", 1311, 1311, "ML-KEM-768 pk + nonce + suites"));
+        list.add(new SizeMetric("WIRE_MESSAGE", "ServerHello", "PQ_ONLY", 4444, 4444,
+                "ML-KEM ct + ML-DSA-65 sig + nonce"));
+        list.add(new SizeMetric("WIRE_MESSAGE", "Finished (x2)", "PQ_ONLY", 254, 254,
+                "Mutual Finished messages (Client + Server)"));
+        list.add(new SizeMetric("TOTAL_HANDSHAKE", "Total Handshake", "PQ_ONLY", 6009, 6009,
+                "Complete PQ-Only handshake"));
 
         return list;
     }
@@ -135,7 +169,6 @@ public final class BenchmarkRunner {
         MlDsaSignatureScheme dsaAuth = new MlDsaSignatureScheme();
         RsaSigner rsaSigner = new RsaSigner();
 
-        KeyPair xKp = xKex.generateKeyPair();
         KeyPair kemKp = kemKex.generateKeyPair();
         KeyPair dsaKp = dsaAuth.generateKeyPair();
         KeyPair rsaKp = rsaSigner.generateKeyPair();
@@ -149,22 +182,32 @@ public final class BenchmarkRunner {
         list.add(measureOp("keygen", "X25519", warmup, iterations, xKex::generateKeyPair));
         list.add(measureOp("keygen", "ML-KEM-768", warmup, iterations, kemKex::generateKeyPair));
         list.add(measureOp("keygen", "ML-DSA-65", warmup, iterations, dsaAuth::generateKeyPair));
-        list.add(measureOp("keygen", "RSA-2048", Math.min(warmup, 5), Math.min(iterations, 15), rsaSigner::generateKeyPair));
+        list.add(measureOp("keygen", "RSA-2048", Math.min(warmup, 5), Math.min(iterations, 15),
+                rsaSigner::generateKeyPair));
 
         // 2. KEM Operations
-        list.add(measureOp("encapsulate", "ML-KEM-768", warmup, iterations, () -> kemKex.encapsulate(kemKp.getPublic())));
-        list.add(measureOp("decapsulate", "ML-KEM-768", warmup, iterations, () -> kemKex.decapsulate(kemKp.getPrivate(), encResult.ciphertext())));
+        list.add(measureOp("encapsulate", "ML-KEM-768", warmup, iterations,
+                () -> kemKex.encapsulate(kemKp.getPublic())));
+        list.add(measureOp("decapsulate", "ML-KEM-768", warmup, iterations,
+                () -> kemKex.decapsulate(kemKp.getPrivate(), encResult.ciphertext())));
 
         // 3. Signature Operations
-        list.add(measureOp("sign", "RSA-2048", warmup, iterations, () -> rsaSigner.sign(rsaKp.getPrivate(), samplePayload)));
-        list.add(measureOp("verify", "RSA-2048", warmup, iterations, () -> rsaSigner.verify(rsaKp.getPublic(), samplePayload, rsaSig)));
-        list.add(measureOp("sign", "ML-DSA-65", warmup, iterations, () -> dsaAuth.sign(dsaKp.getPrivate(), samplePayload)));
-        list.add(measureOp("verify", "ML-DSA-65", warmup, iterations, () -> dsaAuth.verify(dsaKp.getPublic(), samplePayload, dsaSig)));
+        list.add(measureOp("sign", "RSA-2048", warmup, iterations,
+                () -> rsaSigner.sign(rsaKp.getPrivate(), samplePayload)));
+        list.add(measureOp("verify", "RSA-2048", warmup, iterations,
+                () -> rsaSigner.verify(rsaKp.getPublic(), samplePayload, rsaSig)));
+        list.add(measureOp("sign", "ML-DSA-65", warmup, iterations,
+                () -> dsaAuth.sign(dsaKp.getPrivate(), samplePayload)));
+        list.add(measureOp("verify", "ML-DSA-65", warmup, iterations,
+                () -> dsaAuth.verify(dsaKp.getPublic(), samplePayload, dsaSig)));
 
         // 4. In-Memory Full Handshakes (no sockets)
-        list.add(measureOp("handshake", "CLASSICAL", warmup, iterations, () -> runInMemoryClassical(xKex, rsaSigner, rsaKp)));
-        list.add(measureOp("handshake", "HYBRID", warmup, iterations, () -> runInMemoryHybrid(xKex, kemKex, dsaAuth, dsaKp)));
-        list.add(measureOp("handshake", "PQ_ONLY", warmup, iterations, () -> runInMemoryPqOnly(kemKex, dsaAuth, dsaKp)));
+        list.add(measureOp("handshake", "CLASSICAL", warmup, iterations,
+                () -> runInMemoryClassical(xKex, rsaSigner, rsaKp)));
+        list.add(measureOp("handshake", "HYBRID", warmup, iterations,
+                () -> runInMemoryHybrid(xKex, kemKex, dsaAuth, dsaKp)));
+        list.add(
+                measureOp("handshake", "PQ_ONLY", warmup, iterations, () -> runInMemoryPqOnly(kemKex, dsaAuth, dsaKp)));
 
         return list;
     }
@@ -181,7 +224,8 @@ public final class BenchmarkRunner {
         }
         Arrays.sort(times);
         double sum = 0;
-        for (double t : times) sum += t;
+        for (double t : times)
+            sum += t;
         double avg = sum / iterations;
         double p95 = times[(int) (iterations * 0.95)];
 
@@ -199,14 +243,18 @@ public final class BenchmarkRunner {
         KeyPair rsaKp = rsaSigner.generateKeyPair();
         KeyPair dsaKp = dsaAuth.generateKeyPair();
 
-        list.add(measureSingleCpu("CLASSICAL", warmup, iterations, bean, () -> runInMemoryClassical(xKex, rsaSigner, rsaKp)));
-        list.add(measureSingleCpu("HYBRID", warmup, iterations, bean, () -> runInMemoryHybrid(xKex, kemKex, dsaAuth, dsaKp)));
-        list.add(measureSingleCpu("PQ_ONLY", warmup, iterations, bean, () -> runInMemoryPqOnly(kemKex, dsaAuth, dsaKp)));
+        list.add(measureSingleCpu("CLASSICAL", warmup, iterations, bean,
+                () -> runInMemoryClassical(xKex, rsaSigner, rsaKp)));
+        list.add(measureSingleCpu("HYBRID", warmup, iterations, bean,
+                () -> runInMemoryHybrid(xKex, kemKex, dsaAuth, dsaKp)));
+        list.add(
+                measureSingleCpu("PQ_ONLY", warmup, iterations, bean, () -> runInMemoryPqOnly(kemKex, dsaAuth, dsaKp)));
 
         return list;
     }
 
-    private static CpuMetric measureSingleCpu(String suite, int warmup, int iterations, ThreadMXBean bean, Runnable task) {
+    private static CpuMetric measureSingleCpu(String suite, int warmup, int iterations, ThreadMXBean bean,
+            Runnable task) {
         for (int i = 0; i < warmup; i++) {
             task.run();
         }
@@ -230,8 +278,8 @@ public final class BenchmarkRunner {
         AtomicLong counter = new AtomicLong(1);
         byte[] aad = new byte[8];
 
-        int[] sizes = {1024, 65536};
-        String[] labels = {"1 KB", "64 KB"};
+        int[] sizes = { 1024, 65536 };
+        String[] labels = { "1 KB", "64 KB" };
 
         int forks = quickMode ? 1 : 2;
         int iterations = quickMode ? 5 : 10;
@@ -272,7 +320,8 @@ public final class BenchmarkRunner {
 
             double encMean = computeMean(encSamples);
             double encSd = computeStdDev(encSamples, encMean);
-            list.add(new ThroughputMetric(label, "Encrypt", Math.round(encMean * 10.0) / 10.0, Math.round(encSd * 10.0) / 10.0, forks, iterations));
+            list.add(new ThroughputMetric(label, "Encrypt", Math.round(encMean * 10.0) / 10.0,
+                    Math.round(encSd * 10.0) / 10.0, forks, iterations));
 
             // Decrypt benchmark across forks and iterations
             double[] decSamples = new double[forks * iterations];
@@ -292,21 +341,25 @@ public final class BenchmarkRunner {
 
             double decMean = computeMean(decSamples);
             double decSd = computeStdDev(decSamples, decMean);
-            list.add(new ThroughputMetric(label, "Decrypt", Math.round(decMean * 10.0) / 10.0, Math.round(decSd * 10.0) / 10.0, forks, iterations));
+            list.add(new ThroughputMetric(label, "Decrypt", Math.round(decMean * 10.0) / 10.0,
+                    Math.round(decSd * 10.0) / 10.0, forks, iterations));
         }
 
         return list;
     }
 
     private static double computeMean(double[] data) {
-        if (data.length == 0) return 0.0;
+        if (data.length == 0)
+            return 0.0;
         double sum = 0.0;
-        for (double d : data) sum += d;
+        for (double d : data)
+            sum += d;
         return sum / data.length;
     }
 
     private static double computeStdDev(double[] data, double mean) {
-        if (data.length <= 1) return 0.0;
+        if (data.length <= 1)
+            return 0.0;
         double sumSq = 0.0;
         for (double d : data) {
             double diff = d - mean;
@@ -332,14 +385,15 @@ public final class BenchmarkRunner {
 
         // 2. Server ephemeral X25519 + DH + RSA signature
         KeyPair xKp_s = xKex.generateKeyPair();
-        byte[] ss_s = xKex.deriveSharedSecret(xKp_s.getPrivate(), xKp_c.getPublic());
+        xKex.deriveSharedSecret(xKp_s.getPrivate(), xKp_c.getPublic());
 
         byte[] transcript = HybridHandshake.concat(xKp_c.getPublic().getEncoded(), xKp_s.getPublic().getEncoded());
         byte[] sig = rsaSigner.sign(serverRsaKp.getPrivate(), transcript);
 
         // 3. Client verify + DH + KDF
         boolean sigOk = rsaSigner.verify(serverRsaKp.getPublic(), transcript, sig);
-        if (!sigOk) throw new IllegalStateException("RSA verify failed");
+        if (!sigOk)
+            throw new IllegalStateException("RSA verify failed");
         byte[] ss_c = xKex.deriveSharedSecret(xKp_c.getPrivate(), xKp_s.getPublic());
         ClassicalHandshake.deriveSessionKeys(ss_c, nonce_c, nonce_s);
     }
@@ -362,15 +416,15 @@ public final class BenchmarkRunner {
         byte[] transcript = HybridHandshake.buildTranscript(
                 xKp_c.getPublic().getEncoded(), kKp_c.getPublic().getEncoded(),
                 xKp_s.getPublic().getEncoded(), encRes.ciphertext(),
-                List.of("HYBRID"), "HYBRID", nonce_c, nonce_s
-        );
+                List.of("HYBRID"), "HYBRID", nonce_c, nonce_s);
         byte[] tHash = HybridHandshake.sha256(transcript);
         byte[] sig = dsaAuth.sign(serverDsaKp.getPrivate(), transcript);
         SessionKeys serverKeys = HybridKeySchedule.deriveSessionKeys("HYBRID", ss1_s, ss2_s, nonce_c, nonce_s, tHash);
 
         // 3. Client verify ML-DSA-65 + DH + Decapsulate ML-KEM-768
         boolean sigOk = dsaAuth.verify(serverDsaKp.getPublic(), transcript, sig);
-        if (!sigOk) throw new IllegalStateException("ML-DSA verify failed");
+        if (!sigOk)
+            throw new IllegalStateException("ML-DSA verify failed");
         byte[] ss1_c = xKex.deriveSharedSecret(xKp_c.getPrivate(), xKp_s.getPublic());
         byte[] ss2_c = kemKex.decapsulate(kKp_c.getPrivate(), encRes.ciphertext());
         SessionKeys clientKeys = HybridKeySchedule.deriveSessionKeys("HYBRID", ss1_c, ss2_c, nonce_c, nonce_s, tHash);
@@ -395,14 +449,14 @@ public final class BenchmarkRunner {
         byte[] transcript = HybridHandshake.buildTranscript(
                 null, kKp_c.getPublic().getEncoded(),
                 null, encRes.ciphertext(),
-                List.of("PQ_ONLY"), "PQ_ONLY", nonce_c, nonce_s
-        );
+                List.of("PQ_ONLY"), "PQ_ONLY", nonce_c, nonce_s);
         byte[] tHash = HybridHandshake.sha256(transcript);
         byte[] sig = dsaAuth.sign(serverDsaKp.getPrivate(), transcript);
         SessionKeys serverKeys = HybridKeySchedule.deriveSessionKeys("PQ_ONLY", null, ss2_s, nonce_c, nonce_s, tHash);
 
         boolean sigOk = dsaAuth.verify(serverDsaKp.getPublic(), transcript, sig);
-        if (!sigOk) throw new IllegalStateException("ML-DSA verify failed");
+        if (!sigOk)
+            throw new IllegalStateException("ML-DSA verify failed");
         byte[] ss2_c = kemKex.decapsulate(kKp_c.getPrivate(), encRes.ciphertext());
         SessionKeys clientKeys = HybridKeySchedule.deriveSessionKeys("PQ_ONLY", null, ss2_c, nonce_c, nonce_s, tHash);
 

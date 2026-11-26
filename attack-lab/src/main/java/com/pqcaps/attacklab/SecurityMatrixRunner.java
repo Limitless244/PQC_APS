@@ -6,12 +6,9 @@ import com.pqcaps.auth.MlDsaSignatureScheme;
 import com.pqcaps.channel.HybridHandshake;
 import com.pqcaps.classical.*;
 import com.pqcaps.common.*;
-import com.pqcaps.kex.MlKemKeyExchange;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
@@ -20,7 +17,6 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -436,9 +432,8 @@ public final class SecurityMatrixRunner {
         HandshakeConfig config = HandshakeConfig.hardened(); // unsafeNonceMode = false
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        ClassicalSecureChannel ch = new ClassicalSecureChannel(oos, null, keys, true, config);
-        ch.send("Message 1".getBytes(StandardCharsets.UTF_8));
-        try {
+        try (ClassicalSecureChannel ch = new ClassicalSecureChannel(oos, null, keys, true, config)) {
+            ch.send("Message 1".getBytes(StandardCharsets.UTF_8));
             ch.resetNonceCounterForTesting(); // Must throw IllegalStateException!
             ch.send("Message 2".getBytes(StandardCharsets.UTF_8));
             return true;
@@ -499,8 +494,7 @@ public final class SecurityMatrixRunner {
         oos.flush();
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        ClassicalSecureChannel ch = new ClassicalSecureChannel(null, ois, keys, false, config);
-        try {
+        try (ClassicalSecureChannel ch = new ClassicalSecureChannel(null, ois, keys, false, config)) {
             ch.receive();
             return false;
         } catch (SecurityException e) {
@@ -524,8 +518,7 @@ public final class SecurityMatrixRunner {
         oos.flush();
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        ClassicalSecureChannel ch = new ClassicalSecureChannel(null, ois, keys, false, config);
-        try {
+        try (ClassicalSecureChannel ch = new ClassicalSecureChannel(null, ois, keys, false, config)) {
             ch.receive();
             return true;
         } catch (SecurityException e) {

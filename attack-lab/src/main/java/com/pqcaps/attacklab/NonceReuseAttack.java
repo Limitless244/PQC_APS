@@ -3,7 +3,6 @@ package com.pqcaps.attacklab;
 import com.pqcaps.classical.AesGcmCipher;
 import com.pqcaps.classical.ClassicalHandshake;
 import com.pqcaps.classical.ClassicalSecureChannel;
-import com.pqcaps.common.HandshakeConfig;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -53,7 +52,6 @@ public final class NonceReuseAttack {
      * @return the AttackResult demonstrating successful plaintext recovery.
      */
     public static AttackResult execute() {
-        HandshakeConfig config = HandshakeConfig.vulnerable(); // unsafeNonceMode=true
         AesGcmCipher cipher = new AesGcmCipher();
 
         // 1. Session key and reused nonce
