@@ -19,7 +19,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Verifies that after a successful handshake in both HYBRID and PQ_ONLY modes:
@@ -85,26 +84,27 @@ class DataFlowAndReplayTest {
                 rawOut.flush();
 
                 // Send 3 messages using the secure channel
-                ClassicalSecureChannel ch = new ClassicalSecureChannel(rawOut, null, ho.sessionKeys(), true, HandshakeConfig.hardened());
+                try (ClassicalSecureChannel ch = new ClassicalSecureChannel(rawOut, null, ho.sessionKeys(), true, HandshakeConfig.hardened())) {
 
-                // We capture the ciphertext of message 0 to replay later
-                byte[] nonce0 = ClassicalSecureChannel.buildNonce(0);
-                byte[] aad0 = ClassicalSecureChannel.buildAad(0);
-                byte[] ct0 = new com.pqcaps.classical.AesGcmCipher().encrypt(
-                        ho.sessionKeys().clientToServer(), nonce0, aad0, "Payload #0".getBytes(StandardCharsets.UTF_8));
-                EncryptedRecord record0 = new EncryptedRecord(0, nonce0, ct0);
+                    // We capture the ciphertext of message 0 to replay later
+                    byte[] nonce0 = ClassicalSecureChannel.buildNonce(0);
+                    byte[] aad0 = ClassicalSecureChannel.buildAad(0);
+                    byte[] ct0 = new com.pqcaps.classical.AesGcmCipher().encrypt(
+                            ho.sessionKeys().clientToServer(), nonce0, aad0, "Payload #0".getBytes(StandardCharsets.UTF_8));
+                    EncryptedRecord record0 = new EncryptedRecord(0, nonce0, ct0);
 
-                // Send 3 normal messages (seq 0, 1, 2)
-                ch.send("Payload #0".getBytes(StandardCharsets.UTF_8));
-                ch.send("Payload #1".getBytes(StandardCharsets.UTF_8));
-                ch.send("Payload #2".getBytes(StandardCharsets.UTF_8));
-                assertThat(ch.getSendSeq()).isEqualTo(3);
+                    // Send 3 normal messages (seq 0, 1, 2)
+                    ch.send("Payload #0".getBytes(StandardCharsets.UTF_8));
+                    ch.send("Payload #1".getBytes(StandardCharsets.UTF_8));
+                    ch.send("Payload #2".getBytes(StandardCharsets.UTF_8));
+                    assertThat(ch.getSendSeq()).isEqualTo(3);
 
-                // Replay record 0 (sequence number 0 sent again after seq 2)
-                rawOut.writeObject(record0);
-                rawOut.flush();
+                    // Replay record 0 (sequence number 0 sent again after seq 2)
+                    rawOut.writeObject(record0);
+                    rawOut.flush();
 
-                return true;
+                    return true;
+                }
             }
         });
 

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
 import java.security.PublicKey;
-import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -1,6 +1,5 @@
 package com.pqcaps.dashboard.service;
 
-import com.pqcaps.common.HandshakeStepEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +24,7 @@ class HandshakeVisualizerServiceTest {
         assertThat(result.payloadBytes()).isEqualTo(6098);   // Payload before framing (1356 + 4488 + 127 + 127)
         assertThat(result.steps()).isNotEmpty();
 
-        List<String> stepNames = result.steps().stream().map(HandshakeStepEvent::stepName).toList();
+        List<String> stepNames = result.steps().stream().map(s -> s.stepName()).toList();
         assertThat(stepNames).containsSubsequence(
                 "ClientHello",
                 "ServerHello",
@@ -46,7 +45,7 @@ class HandshakeVisualizerServiceTest {
         assertThat(result.totalWireBytes()).isEqualTo(820);  // WireSizeComparisonTest serialized total (292 + 528)
         assertThat(result.payloadBytes()).isEqualTo(501);    // Payload before framing (111 + 390)
 
-        List<String> stepNames = result.steps().stream().map(HandshakeStepEvent::stepName).toList();
+        List<String> stepNames = result.steps().stream().map(s -> s.stepName()).toList();
         assertThat(stepNames).containsSubsequence(
                 "ClientHello",
                 "ServerHello",

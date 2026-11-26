@@ -98,6 +98,7 @@ class ChatLabAttackTest {
         assertThat(received.get(1).status()).contains("REJECTED");
         assertThat(received.get(1).guardFired()).isEqualTo("ReplayGuard");
 
+        assertThat(EventLog.getInstance().getEvents().size()).isGreaterThan(initialEventCount);
         DetectionEvent lastEvent = EventLog.getInstance().getLastEvent();
         assertThat(lastEvent.attackType()).isEqualTo(DetectionEvent.AttackType.REPLAY);
     }
@@ -147,6 +148,7 @@ class ChatLabAttackTest {
         assertThat(received.get(1).status()).contains("REJECTED");
         assertThat(received.get(1).guardFired()).isEqualTo("TamperGuard");
 
+        assertThat(EventLog.getInstance().getEvents().size()).isGreaterThan(initialEventCount);
         DetectionEvent lastEvent = EventLog.getInstance().getLastEvent();
         assertThat(lastEvent.attackType()).isEqualTo(DetectionEvent.AttackType.TAMPER);
     }

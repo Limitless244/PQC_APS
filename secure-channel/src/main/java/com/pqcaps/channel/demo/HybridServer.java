@@ -8,7 +8,6 @@ import com.pqcaps.channel.HybridHandshake;
 import com.pqcaps.common.HandshakeConfig;
 import com.pqcaps.common.SessionKeys;
 
-import java.io.File;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -95,7 +94,7 @@ public final class HybridServer {
                 try (ClassicalSecureChannel channel = new ClassicalSecureChannel(
                         socket, keys, false, HandshakeConfig.safe())) {
                     for (int i = 1; i <= 3; i++) {
-                        byte[] msg = channel.receive();
+                        channel.receive();
                         String reply = "Classical ACK [" + i + "/3]";
                         channel.send(reply.getBytes(StandardCharsets.UTF_8));
                     }

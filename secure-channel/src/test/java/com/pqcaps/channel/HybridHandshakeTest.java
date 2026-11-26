@@ -5,7 +5,6 @@ import com.pqcaps.classical.ClassicalSecureChannel;
 import com.pqcaps.common.HandshakeConfig;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;

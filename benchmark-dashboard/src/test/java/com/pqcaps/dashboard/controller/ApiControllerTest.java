@@ -1,6 +1,5 @@
 package com.pqcaps.dashboard.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pqcaps.attack.DetectionEvent;
 import com.pqcaps.attacklab.SecurityMatrixResult;
 import com.pqcaps.common.HandshakeStepEvent;
@@ -28,7 +27,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = {ApiController.class, GlobalExceptionHandler.class})
 @DisplayName("API Controller Tests")
+@SuppressWarnings("null") // Hamcrest matchers and MediaType constants are unannotated for Spring @NonNullApi MockMvc DSL
 class ApiControllerTest {
 
     @Autowired
